@@ -180,7 +180,8 @@ StateDirectoryMode=0700
 WorkingDirectory=/var/lib/telemt-node
 LoadCredential=telemt.toml:/opt/telemt-node/telemt.toml
 ExecStartPre=/bin/sh -c 'test -e /var/lib/telemt-node/telemt.toml || install -m 0600 %d/telemt.toml /var/lib/telemt-node/telemt.toml'
-ExecStart=/opt/telemt-node/telemt /var/lib/telemt-node/telemt.toml
+# DynamicUser makes /var/lib/telemt-node a symlink. Telemt rejects symlink components.
+ExecStart=/opt/telemt-node/telemt /var/lib/private/telemt-node/telemt.toml
 CapabilityBoundingSet=CAP_NET_BIND_SERVICE
 AmbientCapabilities=CAP_NET_BIND_SERVICE
 NoNewPrivileges=yes
