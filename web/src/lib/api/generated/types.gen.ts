@@ -534,6 +534,43 @@ export type AgentCommand = {
     };
 };
 
+export type NodeUpgradeInput = {
+    ssh_port: number;
+    /**
+     * SSH account with UID zero.
+     */
+    ssh_user: string;
+    host_fingerprint: string;
+    /**
+     * Apply the approved Telemt artifact
+     */
+    telemt: boolean;
+    /**
+     * Update the agent and its HTTPS gateway to the panel build.
+     */
+    agent: boolean;
+    request_id: string;
+};
+
+export type NodeUpgradeStatus = {
+    available: boolean;
+    /**
+     * Approved target Telemt version; omitted when no artifact is configured.
+     */
+    telemt_version?: string;
+    /**
+     * Target version for the agent and its HTTPS gateway.
+     */
+    agent_version?: string;
+    job?: NodeUpgradeJob;
+};
+
+export type NodeUpgradeJob = {
+    request_id: string;
+    state: 'checking_host' | 'staging' | 'restarting' | 'checking' | 'rolling_back' | 'updated' | 'unchanged' | 'rolled_back' | 'failed' | 'unconfirmed';
+    code?: string;
+};
+
 export type NodeInstallInput = {
     name: string;
     /**
@@ -4926,6 +4963,96 @@ export type ApplyNodeInstallResponses = {
 };
 
 export type ApplyNodeInstallResponse = ApplyNodeInstallResponses[keyof ApplyNodeInstallResponses];
+
+export type GetNodeUpgradeData = {
+    body?: never;
+    path: {
+        node_id: string;
+    };
+    query?: never;
+    url: '/api/nodes/{node_id}/upgrade';
+};
+
+export type GetNodeUpgradeErrors = {
+    /**
+     * No valid session
+     */
+    401: Error;
+    /**
+     * Stable installer error code without SSH output or credentials.
+     */
+    403: Error;
+    /**
+     * Stable installer error code without SSH output or credentials.
+     */
+    404: Error;
+    /**
+     * Stable installer error code without SSH output or credentials.
+     */
+    503: Error;
+};
+
+export type GetNodeUpgradeError = GetNodeUpgradeErrors[keyof GetNodeUpgradeErrors];
+
+export type GetNodeUpgradeResponses = {
+    /**
+     * Upgrade availability and status
+     */
+    200: NodeUpgradeStatus;
+};
+
+export type GetNodeUpgradeResponse = GetNodeUpgradeResponses[keyof GetNodeUpgradeResponses];
+
+export type StartNodeUpgradeData = {
+    body: NodeUpgradeInput;
+    path: {
+        node_id: string;
+    };
+    query?: never;
+    url: '/api/nodes/{node_id}/upgrade';
+};
+
+export type StartNodeUpgradeErrors = {
+    /**
+     * Stable installer error code without SSH output or credentials.
+     */
+    400: Error;
+    /**
+     * No valid session
+     */
+    401: Error;
+    /**
+     * Stable installer error code without SSH output or credentials.
+     */
+    403: Error;
+    /**
+     * Stable installer error code without SSH output or credentials.
+     */
+    404: Error;
+    /**
+     * Stable installer error code without SSH output or credentials.
+     */
+    409: Error;
+    /**
+     * Stable installer error code without SSH output or credentials.
+     */
+    422: Error;
+    /**
+     * Stable installer error code without SSH output or credentials.
+     */
+    503: Error;
+};
+
+export type StartNodeUpgradeError = StartNodeUpgradeErrors[keyof StartNodeUpgradeErrors];
+
+export type StartNodeUpgradeResponses = {
+    /**
+     * Upgrade accepted or status of the repeated request
+     */
+    202: NodeUpgradeStatus;
+};
+
+export type StartNodeUpgradeResponse = StartNodeUpgradeResponses[keyof StartNodeUpgradeResponses];
 
 export type ListNodesData = {
     body?: never;

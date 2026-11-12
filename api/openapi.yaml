@@ -3355,6 +3355,45 @@ paths:
         '404': { $ref: '#/components/responses/NodeInstallError' }
         '409': { $ref: '#/components/responses/NodeInstallError' }
         '503': { $ref: '#/components/responses/NodeInstallError' }
+  /api/nodes/{node_id}/upgrade:
+    parameters:
+      - { name: node_id, in: path, required: true, schema: { type: string } }
+    get:
+      tags: [nodes]
+      operationId: getNodeUpgrade
+      description: Read available SSH upgrade targets and the latest process-local job for the registered node. Requires an administrator session.
+      responses:
+        '200':
+          description: Upgrade availability and status
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/NodeUpgradeStatus' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/NodeInstallError' }
+        '404': { $ref: '#/components/responses/NodeInstallError' }
+        '503': { $ref: '#/components/responses/NodeInstallError' }
+    post:
+      tags: [nodes]
+      operationId: startNodeUpgrade
+      description: Start an administrator-authorized SSH upgrade with the panel's approved binaries. Verify the pinned node APIs or restore the previous files. An identical repeat for the latest request returns its status.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/NodeUpgradeInput' }
+      responses:
+        '202':
+          description: Upgrade accepted or status of the repeated request
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/NodeUpgradeStatus' }
+        '400': { $ref: '#/components/responses/NodeInstallError' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/NodeInstallError' }
+        '404': { $ref: '#/components/responses/NodeInstallError' }
+        '409': { $ref: '#/components/responses/NodeInstallError' }
+        '422': { $ref: '#/components/responses/NodeInstallError' }
+        '503': { $ref: '#/components/responses/NodeInstallError' }
   /api/nodes:
     get:
       tags:
@@ -11828,6 +11867,34 @@ components:
         body:
           type: object
           additionalProperties: true
+    NodeUpgradeInput:
+      type: object
+      additionalProperties: false
+      required: [ssh_port, ssh_user, host_fingerprint, telemt, agent, request_id]
+      properties:
+        ssh_port: { type: integer, minimum: 1, maximum: 65535 }
+        ssh_user: { type: string, pattern: '^[a-zA-Z_][a-zA-Z0-9_-]{0,63}$', description: SSH account with UID zero. }
+        host_fingerprint: { type: string, pattern: '^SHA256:[A-Za-z0-9+/]{43}$' }
+        telemt: { type: boolean, description: Apply the approved Telemt artifact, if configured. }
+        agent: { type: boolean, description: Update the agent and its HTTPS gateway to the panel build. }
+        request_id: { type: string, pattern: '^[a-f0-9]{32}$' }
+    NodeUpgradeStatus:
+      type: object
+      required: [available]
+      properties:
+        available: { type: boolean }
+        telemt_version: { type: string, description: Approved target Telemt version; omitted when no artifact is configured. }
+        agent_version: { type: string, description: Target version for the agent and its HTTPS gateway. }
+        job: { $ref: '#/components/schemas/NodeUpgradeJob' }
+    NodeUpgradeJob:
+      type: object
+      required: [request_id, state]
+      properties:
+        request_id: { type: string }
+        state:
+          type: string
+          enum: [checking_host, staging, restarting, checking, rolling_back, updated, unchanged, rolled_back, failed, unconfirmed]
+        code: { type: string }
     NodeInstallInput:
       type: object
       additionalProperties: false

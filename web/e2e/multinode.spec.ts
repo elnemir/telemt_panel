@@ -180,3 +180,58 @@ test("SSH installer checks the host before confirming and tracks registry admiss
   await dialog.getByRole("button", { name: "Готово", exact: true }).click();
   await expect(dialog).toBeHidden();
 });
+
+test("SSH update screen follows the selected node and reports rollback", async ({ page, login }, info) => {
+  await login();
+  const name = "Upgrade-" + info.project.name;
+  const headers = { "Sec-Fetch-Site": "same-origin" };
+  const created = await page.request.post("/api/nodes", {
+    headers, data: { name, api_url: urls[0], enabled: true },
+  });
+  expect(created.status()).toBe(201);
+  const node = await created.json() as { id: string; revision: number };
+  const route = `/api/nodes/${node.id}/upgrade`;
+  const screen = `/server/updates?node=${node.id}`;
+  try {
+    await page.goto(screen);
+    await expect(page.getByText("Нужны активная управляемая нода с агентом и установочный SSH-ключ в настройках панели.")).toBeVisible();
+    await expect(page.getByRole("button", { name: "Запустить обновление" })).toHaveCount(0);
+
+    // The SSH/systemd transaction is exercised separately in Linux.
+    // Inject just its statuses to test the actual form, selected node and polling.
+    const versions = { available: true, telemt_version: "3.5.17", agent_version: "1.0.0" };
+    let requestID = "";
+    const fingerprint = "SHA256:" + "abc+/".repeat(8) + "abc";
+    await page.route("**" + route, async intercepted => {
+      if (intercepted.request().method() === "POST") {
+        const body = intercepted.request().postDataJSON();
+        expect(body).toMatchObject({ ssh_port: 22, ssh_user: "root", host_fingerprint: fingerprint, telemt: true, agent: true });
+        expect(body.request_id).toMatch(/^[a-f0-9]{32}$/);
+        requestID = body.request_id;
+        await intercepted.fulfill({ status: 202, json: { ...versions, job: { state: "checking", request_id: requestID } } });
+      } else {
+        await intercepted.fulfill({
+          json: requestID ? { ...versions, job: { state: "rolled_back", request_id: requestID, code: "node_upgrade_verify" } } : versions,
+        });
+      }
+    });
+    await page.reload();
+    const key = page.getByLabel("Отпечаток ED25519 ключа SSH-хоста", { exact: true });
+    const submit = page.getByRole("button", { name: "Запустить обновление", exact: true });
+    await key.fill("SHA256:too-short");
+    await submit.click();
+    expect(requestID).toBe("");
+    expect(await key.evaluate((input: HTMLInputElement) => input.checkValidity())).toBe(false);
+    await key.fill(fingerprint);
+    expect(await key.evaluate((input: HTMLInputElement) => input.checkValidity())).toBe(true);
+    await submit.click();
+    await expect(page.getByText("Обновление не прошло. Прежние файлы восстановлены, оба API отвечают")).toBeVisible();
+    await expect(page.getByText("Проверка версий, API или конфигурации после обновления не прошла.")).toBeVisible();
+    await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth - innerWidth)).toBeLessThanOrEqual(1);
+  } finally {
+    const removed = await page.request.delete(`/api/nodes/${node.id}`, {
+      headers: { ...headers, "If-Match": String(node.revision) },
+    });
+    expect(removed.status()).toBe(204);
+  }
+});

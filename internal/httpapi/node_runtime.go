@@ -269,6 +269,13 @@ func (s *Server) handleNodeManagement(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	id := r.PathValue("node_id")
+	if r.Method != http.MethodGet && r.Method != http.MethodHead {
+		release, ok := s.nodeWrite(w, id)
+		if !ok {
+			return
+		}
+		defer release()
+	}
 	if _, _, err := s.nodes.Resolve(id); err != nil {
 		writeNodeError(w, err)
 		return

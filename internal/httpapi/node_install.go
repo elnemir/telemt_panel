@@ -29,14 +29,17 @@ type nodeInstallJob struct {
 }
 
 type nodeInstallJobs struct {
-	mu     sync.Mutex
-	work   sync.WaitGroup
-	runner NodeInstaller
-	ctx    context.Context
-	cancel context.CancelFunc
-	jobs   map[string]*nodeInstallJob
-	busy   bool
-	closed bool
+	mu            sync.Mutex
+	work          sync.WaitGroup
+	runner        NodeInstaller
+	ctx           context.Context
+	cancel        context.CancelFunc
+	jobs          map[string]*nodeInstallJob
+	upgrades      map[string]*nodeUpgradeJob
+	nodeWrites    map[string]int
+	upgradingNode string
+	busy          bool
+	closed        bool
 }
 
 func newNodeInstallJobs(parent context.Context, runner NodeInstaller) *nodeInstallJobs {
@@ -44,7 +47,8 @@ func newNodeInstallJobs(parent context.Context, runner NodeInstaller) *nodeInsta
 		parent = context.Background()
 	}
 	ctx, cancel := context.WithCancel(parent)
-	return &nodeInstallJobs{runner: runner, ctx: ctx, cancel: cancel, jobs: make(map[string]*nodeInstallJob)}
+	return &nodeInstallJobs{runner: runner, ctx: ctx, cancel: cancel, jobs: make(map[string]*nodeInstallJob),
+		upgrades: make(map[string]*nodeUpgradeJob), nodeWrites: make(map[string]int)}
 }
 
 func (j *nodeInstallJobs) close() {
@@ -59,6 +63,11 @@ func (j *nodeInstallJobs) expire() {
 	for id, job := range j.jobs {
 		if !job.expires.IsZero() && time.Now().After(job.expires) {
 			delete(j.jobs, id)
+		}
+	}
+	for id, job := range j.upgrades {
+		if !job.expires.IsZero() && time.Now().After(job.expires) {
+			delete(j.upgrades, id)
 		}
 	}
 }
@@ -189,7 +198,7 @@ func installErrorCode(err error) string {
 	case nodeinstall.ErrInvalid, nodeinstall.ErrSSH, nodeinstall.ErrHostKey,
 		nodeinstall.ErrUnsupported, nodeinstall.ErrExisting, nodeinstall.ErrPorts,
 		nodeinstall.ErrArtifacts, nodeinstall.ErrApply, nodeinstall.ErrHealth, nodeinstall.ErrManagement,
-		nodeinstall.ErrRegistry, nodeinstall.ErrUnconfirmed:
+		nodeinstall.ErrRegistry, nodeinstall.ErrUnconfirmed, nodeinstall.ErrUpgradeStart, nodeinstall.ErrUpgradeCheck:
 		return err.Error()
 	default:
 		return "node_install_failed"

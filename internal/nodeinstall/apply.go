@@ -14,6 +14,7 @@ import (
 	"github.com/amirotin/telemt_panel/internal/nodeagent"
 	"github.com/amirotin/telemt_panel/internal/nodes"
 	"github.com/amirotin/telemt_panel/internal/telemt"
+	"golang.org/x/crypto/ssh"
 )
 
 // Apply rechecks the preview and holds the remote installation open until
@@ -57,20 +58,11 @@ func (i *Installer) Apply(ctx context.Context, plan Plan, registry *nodes.Regist
 	}
 
 	report("installing")
-	name, err := smallCommand(client, "umask 077; /usr/bin/mktemp -d /var/tmp/telemt-install.XXXXXXXXXX", nil)
-	stage := strings.TrimSpace(name)
-	if err != nil || !stagePattern.MatchString(stage) {
-		return "", ErrApply
-	}
-	defer func() { _, _ = smallCommand(client, "/bin/rm -rf -- "+shellQuote(stage), nil) }()
-	reader, writer := io.Pipe()
-	defer reader.Close()
-	go func() { _ = writer.CloseWithError(files.archive(writer)) }()
-	_, err = smallCommand(client, "/bin/tar -x --no-same-owner --no-same-permissions -C "+shellQuote(stage), reader)
-	_ = reader.Close()
+	stage, cleanup, err := transferBundle(client, files)
 	if err != nil {
-		return "", ErrApply
+		return "", err
 	}
+	defer cleanup()
 	remote, err := begin(client, stage, plan.Request)
 	if err != nil {
 		return "", err
@@ -106,6 +98,24 @@ func (i *Installer) Apply(ctx context.Context, plan Plan, registry *nodes.Regist
 		return n.ID, ErrUnconfirmed
 	}
 	return n.ID, nil
+}
+
+func transferBundle(client *ssh.Client, files bundle) (string, func(), error) {
+	name, err := smallCommand(client, "umask 077; /usr/bin/mktemp -d /var/tmp/telemt-install.XXXXXXXXXX", nil)
+	stage := strings.TrimSpace(name)
+	if err != nil || !stagePattern.MatchString(stage) {
+		return "", nil, ErrApply
+	}
+	cleanup := func() { _, _ = smallCommand(client, "/bin/rm -rf -- "+shellQuote(stage), nil) }
+	reader, writer := io.Pipe()
+	go func() { _ = writer.CloseWithError(files.archive(writer)) }()
+	_, err = smallCommand(client, "/bin/tar -x --no-same-owner --no-same-permissions -C "+shellQuote(stage), reader)
+	_ = reader.Close()
+	if err != nil {
+		cleanup()
+		return "", nil, ErrApply
+	}
+	return stage, cleanup, nil
 }
 
 func checkAPIs(ctx context.Context, in nodes.Input, credentials nodes.ManagedCredentials, configFiles bool) error {

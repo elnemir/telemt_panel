@@ -1,6 +1,14 @@
 package nodeinstall
 
+import "regexp"
+
 const Release = "3.5.17"
+
+var userPattern = regexp.MustCompile(`^[a-zA-Z_][a-zA-Z0-9_-]{0,63}$`)
+var fingerprintPattern = regexp.MustCompile(`^SHA256:[A-Za-z0-9+/]{43}$`)
+var requestIDPattern = regexp.MustCompile(`^[a-f0-9]{32}$`)
+
+func validPort(port int) bool { return port >= 1 && port <= 65535 }
 
 type Request struct {
 	Name            string `json:"name"`
@@ -22,21 +30,45 @@ type Plan struct {
 	ConfigFiles  bool   `json:"config_files,omitempty"`
 }
 
+type UpgradeRequest struct {
+	SSHPort         int    `json:"ssh_port"`
+	SSHUser         string `json:"ssh_user"`
+	HostFingerprint string `json:"host_fingerprint"`
+	Telemt          bool   `json:"telemt"`
+	Agent           bool   `json:"agent"`
+	RequestID       string `json:"request_id"`
+}
+
+const (
+	UpgradeUpdated    = "updated"
+	UpgradeUnchanged  = "unchanged"
+	UpgradeRolledBack = "rolled_back"
+	UpgradeFailed     = "failed"
+	UpgradeUnknown    = "unconfirmed"
+)
+
+func (r UpgradeRequest) Valid() bool {
+	return (r.Telemt || r.Agent) && validPort(r.SSHPort) && userPattern.MatchString(r.SSHUser) &&
+		fingerprintPattern.MatchString(r.HostFingerprint) && requestIDPattern.MatchString(r.RequestID)
+}
+
 type failure string
 
 func (e failure) Error() string { return string(e) }
 
 const (
-	ErrInvalid     failure = "node_install_invalid"
-	ErrSSH         failure = "node_install_ssh"
-	ErrHostKey     failure = "node_install_host_key"
-	ErrUnsupported failure = "node_install_unsupported"
-	ErrExisting    failure = "node_install_existing"
-	ErrPorts       failure = "node_install_ports"
-	ErrArtifacts   failure = "node_install_artifacts"
-	ErrApply       failure = "node_install_apply"
-	ErrHealth      failure = "node_install_health"
-	ErrManagement  failure = "node_install_management"
-	ErrRegistry    failure = "node_install_registry"
-	ErrUnconfirmed failure = "node_install_unconfirmed"
+	ErrInvalid      failure = "node_install_invalid"
+	ErrSSH          failure = "node_install_ssh"
+	ErrHostKey      failure = "node_install_host_key"
+	ErrUnsupported  failure = "node_install_unsupported"
+	ErrExisting     failure = "node_install_existing"
+	ErrPorts        failure = "node_install_ports"
+	ErrArtifacts    failure = "node_install_artifacts"
+	ErrApply        failure = "node_install_apply"
+	ErrHealth       failure = "node_install_health"
+	ErrManagement   failure = "node_install_management"
+	ErrRegistry     failure = "node_install_registry"
+	ErrUnconfirmed  failure = "node_install_unconfirmed"
+	ErrUpgradeStart failure = "node_upgrade_services"
+	ErrUpgradeCheck failure = "node_upgrade_verify"
 )

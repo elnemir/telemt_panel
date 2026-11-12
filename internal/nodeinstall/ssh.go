@@ -27,8 +27,6 @@ var preflightScript string
 //go:embed install.sh
 var installScript string
 
-var userPattern = regexp.MustCompile(`^[a-zA-Z_][a-zA-Z0-9_-]{0,63}$`)
-var fingerprintPattern = regexp.MustCompile(`^SHA256:[A-Za-z0-9+/]{43}$`)
 var stagePattern = regexp.MustCompile(`^/var/tmp/telemt-install\.[a-zA-Z0-9]{10}$`)
 
 type Installer struct {
@@ -79,8 +77,6 @@ func normalize(request Request) (Request, error) {
 	request.Host = host.Unmap().String()
 	return request, nil
 }
-
-func validPort(port int) bool { return port >= 1 && port <= 65535 }
 
 func (i *Installer) connect(ctx context.Context, r Request) (*ssh.Client, func(), error) {
 	endpoint := net.JoinHostPort(r.Host, strconv.Itoa(r.SSHPort))
@@ -190,6 +186,16 @@ type installation struct {
 }
 
 func begin(client *ssh.Client, stage string, r Request) (*installation, error) {
+	command := fmt.Sprintf("/bin/bash -c %s -- %s %d %d", shellQuote(installScript), shellQuote(stage), r.ProxyPort, r.ManagementPort)
+	transaction, err := beginRemote(client, command)
+	var status *ssh.ExitError
+	if errors.As(err, &status) {
+		return nil, ErrApply
+	}
+	return transaction, err
+}
+
+func beginRemote(client *ssh.Client, command string) (*installation, error) {
 	session, err := client.NewSession()
 	if err != nil {
 		return nil, ErrApply
@@ -205,7 +211,6 @@ func begin(client *ssh.Client, stage string, r Request) (*installation, error) {
 		return nil, ErrApply
 	}
 	session.Stderr = io.Discard
-	command := fmt.Sprintf("/bin/bash -c %s -- %s %d %d", shellQuote(installScript), shellQuote(stage), r.ProxyPort, r.ManagementPort)
 	if err := session.Start(command); err != nil {
 		session.Close()
 		return nil, ErrApply
@@ -214,13 +219,13 @@ func begin(client *ssh.Client, stage string, r Request) (*installation, error) {
 	line, err := bufio.NewReader(io.LimitReader(stdout, 32)).ReadString('\n')
 	if err != nil || line != "ready\n" {
 		_ = input.Close()
+		waitErr := session.Wait()
+		session.Close()
 		var exit *ssh.ExitError
-		if waitErr := session.Wait(); !errors.As(waitErr, &exit) || exit.ExitStatus() == 25 {
-			session.Close()
+		if !errors.As(waitErr, &exit) || exit.ExitStatus() == 25 {
 			return nil, ErrUnconfirmed
 		}
-		session.Close()
-		return nil, ErrApply
+		return nil, waitErr
 	}
 	return runner, nil
 }

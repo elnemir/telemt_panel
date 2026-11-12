@@ -136,7 +136,13 @@ func (s *Server) handleReplaceNode(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	n, err := s.nodes.Replace(r.PathValue("node_id"), revision, input)
+	id := r.PathValue("node_id")
+	release, ok := s.nodeWrite(w, id)
+	if !ok {
+		return
+	}
+	defer release()
+	n, err := s.nodes.Replace(id, revision, input)
 	if err != nil {
 		writeNodeError(w, err)
 		return
@@ -156,6 +162,11 @@ func (s *Server) handleDeleteNode(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	id := r.PathValue("node_id")
+	release, ok := s.nodeWrite(w, id)
+	if !ok {
+		return
+	}
+	defer release()
 	if err := s.deleteRegisteredNode(r.Context(), id, revision); err != nil {
 		if errors.Is(err, platform.ErrConflict) {
 			auth.WriteError(w, 409, "node_cluster_owned", "remove cluster membership before deleting the node")

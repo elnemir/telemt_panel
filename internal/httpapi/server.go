@@ -580,6 +580,8 @@ func (s *Server) Handler() http.Handler {
 	mux.Handle("POST /api/node-installs/preview", protect(sessionOnly(s.handlePreviewNodeInstall)))
 	mux.Handle("POST /api/node-installs/{install_id}/apply", protect(sessionOnly(s.handleApplyNodeInstall)))
 	mux.Handle("GET /api/node-installs/{install_id}", protect(sessionOnly(s.handleNodeInstallStatus)))
+	mux.Handle("GET /api/nodes/{node_id}/upgrade", protect(sessionOnly(s.handleGetNodeUpgrade)))
+	mux.Handle("POST /api/nodes/{node_id}/upgrade", protect(sessionOnly(s.handleStartNodeUpgrade)))
 	mux.Handle("GET /api/nodes/{node_id}", protect(s.handleGetNode))
 	mux.Handle("PUT /api/nodes/{node_id}", protect(s.handleReplaceNode))
 	mux.Handle("DELETE /api/nodes/{node_id}", protect(s.handleDeleteNode))

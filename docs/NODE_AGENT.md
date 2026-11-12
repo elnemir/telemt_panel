@@ -89,7 +89,19 @@ Telemt executable using the startup settings `node_install.telemt_binary_file`,
 and the agent and Telemt share the same unprivileged service identity for the
 live configuration directory. Enrollment checks the file endpoint before
 registration. The pinned stock build continues to use the Control API forms.
-Agent and Telemt binary updates on registered nodes remain unsupported.
+For a managed node with an agent, select **Server → Updates** to update Telemt,
+the agent, or both over SSH. This uses the panel’s installation key and verifies
+the ED25519 fingerprint supplied by the administrator. Telemt uses the pinned
+artifact above and expects its version from `GET /v1/system/info`. The agent
+and its HTTPS gateway use the running panel build.
+The remote systemd transaction saves the live root TOML and previous binaries,
+then checks the pinned Telemt and agent APIs before committing. If file editing
+was available, the configuration graph revision must also match. A failed
+check, disconnect, or timeout triggers rollback. The panel reports rollback as
+confirmed only when both APIs respond with the old state. A hard interruption
+can leave `/opt/telemt-node/.panel-upgrade-pending` for operator recovery; check
+the services and restore from that directory before clearing it. Completed
+snapshots remain in root-only `/opt/telemt-node/upgrade-backup.*`.
 
 For Telemt 3.5.17, `deploy/telemt-3.5.17-config-file.patch` adds the offline
 protocol to upstream commit `66708d2866f3f3a4541c4fa67984d408e71a8af4`.
