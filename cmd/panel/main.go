@@ -150,6 +150,12 @@ func runRuntimeStore(ctx context.Context, base *config.Config, configPath string
 			slog.Warn("using startup config; panel settings override rejected", "err", err)
 			cfg = base
 		}
+		https, err := config.ReadPanelHTTPS(config.TLSSnapshot{Config: cfg}, base.DataDir)
+		if err != nil {
+			slog.Warn("using startup HTTPS settings; panel HTTPS override rejected", "err", err)
+		} else {
+			cfg = https.Config
+		}
 	}
 
 	// Restart confirmation is deferred until every required listener serves.

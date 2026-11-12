@@ -8458,7 +8458,7 @@ paths:
         Receipt expires after five minutes, is single-use, and binds the original file revision.
         PEM certificate/key availability is rechecked at save. ACME apply verifies the exact prepared chain and matching key from the cache, current validity/system trust and cache write permissions without contacting the CA or reissuing. Only the selected endpoint's listen, TLS, public URL, path and enabled flag change; TOML formatting/comments are normalized. First subscription enable creates a missing signing key; existing keys are retained.
         A fixed .bak file retains original bytes; saved file and backup use mode 0600.
-        Requires config-write capability. Restart may be performed manually. Does not restart or change firewall rules.
+        Requires prepare capability. Managed HTTPS uses an override in persistent panel storage and leaves the startup file intact. Restart may be performed manually.
       requestBody:
         required: true
         content:
@@ -8491,7 +8491,7 @@ paths:
         One operation at a time; deadline 110 seconds, canceled on disconnect/shutdown.
         ACME runs in the same executable/UID as a bounded subprocess. Public CA trust is verified.
         No CA directory override is accepted. Public reachability of the new panel port is not verified.
-        An omitted ACME cache uses the active configured cache, otherwise certs beside the startup config.
+        Managed HTTPS uses a persistent ACME cache in the panel data directory. Other installations inherit the existing cache or use certs beside the startup config.
         HTTP behind a reverse proxy is represented by mode http with a loopback listen address.
       requestBody:
         required: true
@@ -8508,6 +8508,14 @@ paths:
                 public_url: { type: string, description: External HTTP(S) origin; a supplied path must match base_path }
                 enabled: { type: boolean, description: Only used for target subscription }
                 confirm_http: { type: boolean, default: false, description: Required true for non-loopback plain HTTP or an explicit external HTTP URL }
+                certificate_upload:
+                  type: object
+                  description: Panel-only PEM upload. Requires authenticated HTTPS or direct loopback and persistent storage. Exclude file paths from tls.
+                  additionalProperties: false
+                  required: [certificate_pem, private_key_pem]
+                  properties:
+                    certificate_pem: { type: string, writeOnly: true, maxLength: 131072, description: Server certificate followed by intermediates in PEM }
+                    private_key_pem: { type: string, writeOnly: true, maxLength: 131072, description: Matching unencrypted PEM private key }
       responses:
         "200":
           description: Prepared; no configuration was saved
@@ -12090,6 +12098,8 @@ components:
             restart: { type: boolean }
             prepare: { type: boolean }
             acme_prepare: { type: boolean, description: Helper support; actual port 80 bind permissions are checked before CA acquisition }
+            managed_https: { type: boolean, description: Uses persistent data storage and inherits the startup listener and URL prefix }
+            certificate_upload: { type: boolean, description: Can prepare PEM uploads over a secure connection }
         manual_hints:
           type: array
           items: { type: string, enum: [edit_startup_config_manually, restart_panel_manually] }
@@ -12181,6 +12191,7 @@ components:
             - tls_listener_unavailable
             - tls_challenge_unavailable
             - tls_cache_unavailable
+            - tls_upload_secure_required
             - tls_certificate_invalid
             - tls_certificate_untrusted
             - tls_acquisition_failed

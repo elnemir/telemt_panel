@@ -36,10 +36,14 @@ type panelOverrides struct {
 
 // ReadPanelOverrides treats an absent file as an empty override.
 func ReadPanelOverrides(dataDir string) ([]byte, error) {
+	return readPanelOverrideFile(dataDir, PanelOverridesName)
+}
+
+func readPanelOverrideFile(dataDir, name string) ([]byte, error) {
 	if dataDir == "" {
 		return nil, nil
 	}
-	path := filepath.Join(dataDir, PanelOverridesName)
+	path := filepath.Join(dataDir, name)
 	info, err := os.Lstat(path)
 	if errors.Is(err, os.ErrNotExist) {
 		return nil, nil

@@ -6,10 +6,10 @@ import {
   getPanelTlsConfigOptions,
   getPanelTlsConfigQueryKey,
   getPanelTlsQueryKey,
-  preparePanelTlsMutation,
   putPanelTlsConfigMutation,
   restartPanelTlsMutation,
 } from "../../lib/api/generated/@tanstack/react-query.gen";
+import { preparePanelTls } from "../../lib/api/generated/sdk.gen";
 import type {
   Error as ApiError,
   PanelTlsCandidate,
@@ -35,6 +35,8 @@ import {
   type PanelAccessDraft,
   type PanelAccessMode,
 } from "./panelAccess.helpers";
+
+const certificateFileLimit = 128 * 1024;
 
 interface PanelAccessFormProps {
   onClose: () => void;
@@ -81,7 +83,14 @@ export function PanelAccessForm({ onClose, target = "panel" }: PanelAccessFormPr
   });
   const settings = query.data;
   const [draftState, setDraft] = useState<PanelAccessDraft | null>(null);
+  const managed = settings?.capabilities.managed_https === true;
+  const canUpload = settings?.capabilities.certificate_upload === true;
+  const secureUpload = window.location.protocol === "https:" || isLoopbackHost(window.location.hostname);
   const draft = draftState ?? (settings ? createPanelAccessDraft(settings, subscription ? "http:" : window.location.protocol) : null);
+  const [source, setSource] = useState<"upload" | "paths">("upload");
+  const [certificate, setCertificate] = useState<File>();
+  const [privateKey, setPrivateKey] = useState<File>();
+  const upload = canUpload && (managed || source === "upload") && draft?.mode === "certificate";
   const [preparedState, setPrepared] = useState<PanelTlsPrepared | null | undefined>(undefined);
   const prepared = preparedState === undefined ? settings?.prepared ?? null : preparedState;
   const [savedState, setSaved] = useState<PanelTlsSaved | null | undefined>(undefined);
@@ -99,7 +108,7 @@ export function PanelAccessForm({ onClose, target = "panel" }: PanelAccessFormPr
   const saved = restartFinished ? null : pendingSaved;
   const restartFailed = settings?.state === "restart_failed" || settings?.error === "tls_restart_failed";
 
-  const prepare = useMutation(preparePanelTlsMutation());
+  const [preparing, setPreparing] = useState(false);
   const apply = useMutation(putPanelTlsConfigMutation());
   const restart = useMutation(restartPanelTlsMutation());
   const activePort = settings ? panelPort(settings.active) : "";
@@ -138,10 +147,16 @@ export function PanelAccessForm({ onClose, target = "panel" }: PanelAccessFormPr
           errors.publicURL = endpoint.invalidURL;
         } else if (draft.mode === "proxy" && url.protocol !== "https:") {
           errors.publicURL = endpoint.proxyURL;
+        } else if ((draft.mode === "certificate" || draft.mode === "acme") && url.protocol !== "https:") {
+          errors.publicURL = copy.certificateInput.httpsURL;
+        } else if (draft.mode === "acme" && draft.domain.trim() && url.hostname.toLowerCase() !== draft.domain.trim().replace(/\.$/, "").toLowerCase()) {
+          errors.publicURL = copy.certificateInput.domainMatch;
+        } else if (managed && basePath !== (draft.basePath ?? "")) {
+          errors.publicURL = copy.certificateInput.samePath;
         }
       } catch { errors.publicURL = endpoint.invalidURL; }
     }
-    if (!draft.host.trim()) errors.host = copy.validation.listen;
+    if (!managed && !draft.host.trim()) errors.host = copy.validation.listen;
     if (!/^\d+$/.test(draft.port) || !Number.isInteger(port) || port < 1 || port > 65535 || (draft.mode === "acme" && port === 80)) {
       errors.port = copy.fieldLimits.port;
     }
@@ -153,13 +168,18 @@ export function PanelAccessForm({ onClose, target = "panel" }: PanelAccessFormPr
         errors.domain = copy.fieldLimits.invalidDomain;
       }
     }
-    if (draft.mode === "certificate") {
+    if (upload) {
+      if (!draft.publicURL?.trim()) errors.publicURL = copy.certificateInput.httpsURL;
+      if (!secureUpload) errors.certFile = copy.certificateInput.secure;
+      else if (!certificate?.size || certificate.size > certificateFileLimit) errors.certFile = copy.certificateInput.fileLimit;
+      if (!privateKey?.size || privateKey.size > certificateFileLimit) errors.keyFile = copy.certificateInput.fileLimit;
+    } else if (draft.mode === "certificate") {
       if (!draft.certFile.trim()) errors.certFile = copy.validation.certificate;
       if (!draft.keyFile.trim()) errors.keyFile = copy.validation.certificate;
     }
     if (requiresHttpConfirmation && !draft.httpConfirmed) errors.httpConfirmed = copy.validation.httpConfirmation;
     return errors;
-  }, [copy.fieldLimits, copy.validation, draft, requiresHttpConfirmation, endpoint.invalidURL, endpoint.pathRequired, endpoint.proxyURL, subscription]);
+  }, [certificate, copy.certificateInput, copy.fieldLimits, copy.validation, draft, endpoint, managed, privateKey, requiresHttpConfirmation, secureUpload, subscription, upload]);
 
   const fieldError = (key: keyof PanelAccessDraft) => checked ? validation[key] : undefined;
 
@@ -171,6 +191,8 @@ export function PanelAccessForm({ onClose, target = "panel" }: PanelAccessFormPr
 
   function selectMode(mode: PanelAccessMode) {
     setChecked(false);
+    setCertificate(undefined);
+    setPrivateKey(undefined);
     setDraft((current) => {
       current ??= draft;
       if (!current) return null;
@@ -189,17 +211,40 @@ export function PanelAccessForm({ onClose, target = "panel" }: PanelAccessFormPr
     event.preventDefault();
     if (preparation.current) return;
     setChecked(true);
-    if (!draft || Object.keys(validation).length) return;
+    if (!draft || Object.keys(validation).length || (upload && !secureUpload)) return;
     setFormError(null);
     const controller = new AbortController();
     preparation.current = controller;
+    setPreparing(true);
     try {
-      const result = await prepare.mutateAsync({ ...options, body: buildPanelTlsPrepareBody(draft), signal: controller.signal });
-      if (!controller.signal.aborted) setPrepared(result);
+      const body = buildPanelTlsPrepareBody(draft);
+      if (managed && settings) {
+        body.listen = (settings.configured ?? settings.active).listen;
+        delete body.tls.acme_cache_dir;
+      }
+      if (upload && certificate && privateKey) {
+        const [certificatePEM, privateKeyPEM] = await Promise.all([certificate.text(), privateKey.text()]);
+        if (controller.signal.aborted) return;
+        if (!certificatePEM.includes("-----BEGIN CERTIFICATE-----") ||
+          !/-----BEGIN (?:RSA |EC )?PRIVATE KEY-----/.test(privateKeyPEM)) {
+          setFormError({ summary: copy.certificateInput.invalidPEM });
+          return;
+        }
+        delete body.tls.cert_file;
+        delete body.tls.key_file;
+        body.certificate_upload = { certificate_pem: certificatePEM, private_key_pem: privateKeyPEM };
+      }
+      const result = await preparePanelTls({ ...options, body, signal: controller.signal, throwOnError: true });
+      if (!controller.signal.aborted) {
+        setPrepared(result.data);
+        setCertificate(undefined);
+        setPrivateKey(undefined);
+      }
     } catch (error) {
       if (!controller.signal.aborted) setFormError(mutationError(error, strings));
     } finally {
       if (preparation.current === controller) preparation.current = null;
+      if (!controller.signal.aborted) setPreparing(false);
     }
   }
 
@@ -284,28 +329,28 @@ export function PanelAccessForm({ onClose, target = "panel" }: PanelAccessFormPr
             null
           ) : (
             <form className="space-y-4" onSubmit={onPrepare} noValidate>
-              <fieldset disabled={prepare.isPending} className="min-w-0 space-y-4">
+              <fieldset disabled={preparing} className="min-w-0 space-y-4">
               {subscription && <label className="flex min-h-11 items-center gap-3 rounded-xl bg-surface-2 p-3 text-sm font-semibold"><input type="checkbox" checked={draft.enabled ?? false} onChange={(event) => edit({ enabled: event.target.checked })} className="h-5 w-5 accent-accent" />{endpoint.enable}</label>}
               <div className="space-y-3 rounded-xl border border-border p-3">
                 <SettingsField label={endpoint.publicURL} limits={copy.fieldLimits.url} error={fieldError("publicURL")}>
                   {(attrs) => <Input {...attrs} value={draft.publicURL ?? ""} placeholder={subscription ? "https://links.example.com/access-7k2/" : "https://admin.example.com/admin-9r4/"}
                     autoCapitalize="none" autoCorrect="off" onChange={(event) => edit({ publicURL: event.target.value })}
-                    onBlur={() => edit(splitAccessURL(draft.publicURL ?? "", draft.basePath ?? ""))} />}
+                    onBlur={() => { if (!managed) edit(splitAccessURL(draft.publicURL ?? "", draft.basePath ?? "")); }} />}
                 </SettingsField>
                 <SettingsField label={endpoint.path} limits={copy.fieldLimits.path} error={fieldError("basePath")}>
                   {(attrs) => <Input {...attrs} value={draft.basePath ?? ""} placeholder={subscription ? "/sub" : "/admin-9r4"} autoCapitalize="none" autoCorrect="off"
-                    onChange={(event) => edit({ basePath: event.target.value })} />}
+                    readOnly={managed} onChange={(event) => edit({ basePath: event.target.value })} />}
                 </SettingsField>
-                <p className="text-xs leading-relaxed text-text-muted">{endpoint.addressNote}</p>
+                <p className="text-xs leading-relaxed text-text-muted">{managed ? copy.certificateInput.managed : endpoint.addressNote}</p>
               </div>
               <fieldset className="space-y-2">
                 <legend className="mb-2 text-sm font-semibold text-text">{copy.modeLegend}</legend>
-                {(Object.keys(copy.accessModes) as PanelAccessMode[]).map((mode) => {
+                {(Object.keys(copy.accessModes) as PanelAccessMode[]).filter((mode) => !managed || mode === "certificate" || mode === "acme").map((mode) => {
                   const disabled = mode === "acme" && !settings.capabilities.acme_prepare;
                   return (
                     <label key={mode} className={`flex min-h-11 items-start gap-3 rounded-xl border px-3 py-2.5 ${draft.mode === mode ? "border-accent bg-accent/10" : "border-border bg-surface-2"} ${disabled ? "opacity-50" : ""}`}>
                       <input type="radio" name="panel-access-mode" value={mode} checked={draft.mode === mode} disabled={disabled} onChange={() => selectMode(mode)} className="mt-0.5 h-5 w-5 shrink-0 accent-accent" />
-                      <span><span className="block text-sm font-semibold text-text">{copy.accessModes[mode]}</span><span className="mt-0.5 block text-xs leading-relaxed text-text-muted">{modeDescriptions[mode]}</span></span>
+                      <span><span className="block text-sm font-semibold text-text">{copy.accessModes[mode]}{mode === "acme" && " · Let’s Encrypt"}</span><span className="mt-0.5 block text-xs leading-relaxed text-text-muted">{modeDescriptions[mode]}</span></span>
                     </label>
                   );
                 })}
@@ -318,9 +363,40 @@ export function PanelAccessForm({ onClose, target = "panel" }: PanelAccessFormPr
                 </SettingsField>}
                 <SettingsField label={copy.port} limits={copy.fieldLimits.port} error={fieldError("port")}>
                   {(attrs) => <Input {...attrs} value={draft.port} onChange={(event) => edit({ port: event.target.value })}
-                    type="number" inputMode="numeric" min={1} max={65535} step={1} required />}
+                    type="number" inputMode="numeric" min={1} max={65535} step={1} readOnly={managed} required />}
                 </SettingsField>
-                {draft.mode === "certificate" && (
+                {draft.mode === "certificate" && canUpload && !managed && (
+                  <fieldset className="space-y-2">
+                    <legend className="mb-1 text-sm font-semibold text-text">{copy.certificateInput.source}</legend>
+                    {(["upload", "paths"] as const).map((value) => (
+                      <label key={value} className="flex min-h-11 items-center gap-2 text-sm">
+                        <input type="radio" name="certificate-source" value={value} checked={source === value}
+                          className="h-5 w-5 accent-accent" onChange={() => {
+                            setSource(value);
+                            setCertificate(undefined);
+                            setPrivateKey(undefined);
+                            setChecked(false);
+                            setFormError(null);
+                          }} />
+                        {copy.certificateInput[value]}
+                      </label>
+                    ))}
+                  </fieldset>
+                )}
+                {upload && (
+                  <div className="space-y-3">
+                    {!secureUpload && <p role="status" className="text-sm text-warning-text">{copy.certificateInput.secure}</p>}
+                    <SettingsField label={copy.certificateInput.certificate} limits={copy.certificateInput.certificateHelp} error={fieldError("certFile")}>
+                      {(attrs) => <Input {...attrs} type="file" accept=".pem,.crt,.cer" disabled={!secureUpload}
+                        className="py-1.5" onChange={(event) => setCertificate(event.target.files?.[0])} required />}
+                    </SettingsField>
+                    <SettingsField label={copy.certificateInput.privateKey} limits={copy.certificateInput.privateKeyHelp} error={fieldError("keyFile")}>
+                      {(attrs) => <Input {...attrs} type="file" accept=".pem,.key" disabled={!secureUpload}
+                        className="py-1.5" onChange={(event) => setPrivateKey(event.target.files?.[0])} required />}
+                    </SettingsField>
+                  </div>
+                )}
+                {draft.mode === "certificate" && !upload && (
                   <div className="space-y-3">
                     <SettingsField label={copy.certPath} limits={copy.fieldLimits.pem} error={fieldError("certFile")}>
                       {(attrs) => <Input {...attrs} monospace value={draft.certFile} onChange={(event) => edit({ certFile: event.target.value })}
@@ -332,7 +408,7 @@ export function PanelAccessForm({ onClose, target = "panel" }: PanelAccessFormPr
                     </SettingsField>
                   </div>
                 )}
-                <details className="rounded-lg bg-surface-2 px-3 py-2">
+                {!managed && <details className="rounded-lg bg-surface-2 px-3 py-2">
                   <summary className="min-h-11 cursor-pointer py-3 text-sm font-semibold text-text">{copy.advanced}</summary>
                   <div className="space-y-3 pb-2">
                     <SettingsField label={copy.listenHost} limits={copy.fieldLimits.host} error={fieldError("host")}>
@@ -343,7 +419,7 @@ export function PanelAccessForm({ onClose, target = "panel" }: PanelAccessFormPr
                     </SettingsField>}
 
                   </div>
-                </details>
+                </details>}
               </div>
 
               {networkWarnings.length > 0 && <section className="rounded-xl border border-warning/30 bg-warning/8 px-3 py-2.5 text-sm text-warning-text" data-network-warnings><h3 className="font-semibold text-text">{copy.networkWarnings}</h3><ul className="mt-1.5 space-y-1">{networkWarnings.map((warning) => <li key={warning}>• {warning}</li>)}</ul></section>}
@@ -353,7 +429,7 @@ export function PanelAccessForm({ onClose, target = "panel" }: PanelAccessFormPr
               {draft.mode === "proxy" && <p className="rounded-xl bg-surface-2 px-3 py-2.5 text-sm text-text-muted">{copy.proxyConfigurationNote}</p>}
               {(draft.mode === "acme" || draft.mode === "certificate") && isLoopbackHost(draft.host) && <p className="rounded-xl bg-surface-2 px-3 py-2.5 text-sm text-text-muted">{copy.loopbackHttpsNote}</p>}
               {formError && <FormErrorBlock error={formError} />}
-              <Button className="w-full" type="submit" disabled={prepare.isPending}>{prepare.isPending ? copy.preparing : draft.mode === "acme" && (!subscription || draft.enabled) ? copy.prepareAcme : copy.prepare}</Button>
+              <Button className="w-full" type="submit" disabled={preparing || (upload && !secureUpload) || (draft.mode === "acme" && !settings.capabilities.acme_prepare)}>{preparing ? copy.preparing : draft.mode === "acme" && (!subscription || draft.enabled) ? copy.prepareAcme : copy.prepare}</Button>
               </fieldset>
             </form>
           )}
@@ -372,7 +448,7 @@ export function PanelAccessForm({ onClose, target = "panel" }: PanelAccessFormPr
               )}
               <ul className="space-y-1.5">{prepared.warnings.map((warning) => <li key={warning}>• {warningLabels[warning]}</li>)}</ul>
               {!prepared.warnings.includes("public_reachability_unverified") && <p>{copy.certificateCheckNote}</p>}
-              {prepared.warnings.includes("toml_formatting") ? <p>{copy.restartSeparate}</p> : <p>{copy.saveDisclosure}</p>}
+              <p>{copy.restartSeparate}</p>
               {formError && <FormErrorBlock error={formError} />}
               <div className="grid gap-2 sm:grid-cols-2">
                 <Button variant="secondary" className="w-full" type="button" disabled={apply.isPending} onClick={() => setPrepared(null)}>{copy.editSettings}</Button>

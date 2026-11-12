@@ -47,7 +47,9 @@ export function createPanelAccessDraft(settings: PanelTlsSettings, browserProtoc
   const candidate = settings.configured ?? settings.active;
   const { host, port } = splitPanelListen(candidate.listen);
   return {
-    mode: panelAccessMode(candidate, browserProtocol),
+    mode: settings.capabilities.managed_https && candidate.tls.mode === "http"
+      ? "certificate"
+      : panelAccessMode(candidate, browserProtocol),
     host,
     port,
     domain: candidate.tls.acme_domain ?? "",

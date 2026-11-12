@@ -11,9 +11,12 @@ vi.mock("../../lib/api/generated/@tanstack/react-query.gen", () => ({
   getPanelTlsConfigOptions: () => ({ queryKey: ["panel-tls-config"], queryFn: api.load }),
   getPanelTlsConfigQueryKey: () => ["panel-tls-config"],
   getPanelTlsQueryKey: () => ["panel-tls"],
-  preparePanelTlsMutation: () => ({ mutationFn: api.prepare }),
   putPanelTlsConfigMutation: () => ({ mutationFn: api.save }),
   restartPanelTlsMutation: () => ({ mutationFn: api.restart }),
+}));
+
+vi.mock("../../lib/api/generated/sdk.gen", () => ({
+  preparePanelTls: async ({ throwOnError: _throwOnError, ...options }: Record<string, unknown>) => ({ data: await api.prepare(options) }),
 }));
 
 const editable = (): PanelTlsSettings => ({
@@ -161,7 +164,7 @@ describe("PanelAccessForm", () => {
     expect(api.prepare).toHaveBeenCalledWith({
       body: { base_path: "", public_url: "", enabled: false, listen: "0.0.0.0:8080", tls: { mode: "http" }, confirm_http: true },
       signal: expect.any(AbortSignal),
-    }, expect.anything());
+    });
   });
 
   it("requires HTTP confirmation when a proxy listener is changed to a public bind", async () => {
@@ -185,7 +188,7 @@ describe("PanelAccessForm", () => {
     expect(api.prepare).toHaveBeenCalledWith({
       body: { base_path: "", public_url: "", enabled: false, listen: "0.0.0.0:8080", tls: { mode: "http" }, confirm_http: true },
       signal: expect.any(AbortSignal),
-    }, expect.anything());
+    });
   });
 
   it("shows provider firewall guidance as soon as the port changes", async () => {

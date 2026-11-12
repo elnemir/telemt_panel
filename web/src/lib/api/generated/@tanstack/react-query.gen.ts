@@ -2955,7 +2955,7 @@ export const getPanelTlsConfigOptions = (options?: Options<GetPanelTlsConfigData
 });
 
 /**
- * Atomically save the exact normalized candidate returned by preparation. Receipt expires after five minutes, is single-use, and binds the original file revision. PEM certificate/key availability is rechecked at save. ACME apply verifies the exact prepared chain and matching key from the cache, current validity/system trust and cache write permissions without contacting the CA or reissuing. Only the selected endpoint's listen, TLS, public URL, path and enabled flag change; TOML formatting/comments are normalized. First subscription enable creates a missing signing key; existing keys are retained. A fixed .bak file retains original bytes; saved file and backup use mode 0600. Requires config-write capability. Restart may be performed manually. Does not restart or change firewall rules.
+ * Atomically save the exact normalized candidate returned by preparation. Receipt expires after five minutes, is single-use, and binds the original file revision. PEM certificate/key availability is rechecked at save. ACME apply verifies the exact prepared chain and matching key from the cache, current validity/system trust and cache write permissions without contacting the CA or reissuing. Only the selected endpoint's listen, TLS, public URL, path and enabled flag change; TOML formatting/comments are normalized. First subscription enable creates a missing signing key; existing keys are retained. A fixed .bak file retains original bytes; saved file and backup use mode 0600. Requires prepare capability. Managed HTTPS uses an override in persistent panel storage and leaves the startup file intact. Restart may be performed manually.
  *
  */
 export const putPanelTlsConfigMutation = (options?: Partial<Options<PutPanelTlsConfigData>>): UseMutationOptions<PutPanelTlsConfigResponse, PutPanelTlsConfigError, Options<PutPanelTlsConfigData>> => {
@@ -2973,7 +2973,7 @@ export const putPanelTlsConfigMutation = (options?: Partial<Options<PutPanelTlsC
 };
 
 /**
- * Validate and acquire certificates before saving, with current access kept alive. One operation at a time; deadline 110 seconds, canceled on disconnect/shutdown. ACME runs in the same executable/UID as a bounded subprocess. Public CA trust is verified. No CA directory override is accepted. Public reachability of the new panel port is not verified. An omitted ACME cache uses the active configured cache, otherwise certs beside the startup config. HTTP behind a reverse proxy is represented by mode http with a loopback listen address.
+ * Validate and acquire certificates before saving, with current access kept alive. One operation at a time; deadline 110 seconds, canceled on disconnect/shutdown. ACME runs in the same executable/UID as a bounded subprocess. Public CA trust is verified. No CA directory override is accepted. Public reachability of the new panel port is not verified. Managed HTTPS uses a persistent ACME cache in the panel data directory. Other installations inherit the existing cache or use certs beside the startup config. HTTP behind a reverse proxy is represented by mode http with a loopback listen address.
  *
  */
 export const preparePanelTlsMutation = (options?: Partial<Options<PreparePanelTlsData>>): UseMutationOptions<PreparePanelTlsResponse, PreparePanelTlsError, Options<PreparePanelTlsData>> => {

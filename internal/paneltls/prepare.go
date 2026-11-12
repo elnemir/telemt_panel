@@ -7,6 +7,7 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/json"
+	"encoding/pem"
 	"errors"
 	"fmt"
 	"io"
@@ -204,15 +205,7 @@ func prepareCandidate(ctx context.Context, c config.TLSCandidate, activeListen s
 		if err != nil {
 			return nil, &PrepareError{"tls_certificate_invalid", "cannot read a matching certificate/key pair as the panel service user"}
 		}
-		domain := ""
-		if c.PublicURL != "" {
-			public, err := url.Parse(c.PublicURL)
-			if err != nil {
-				return nil, err
-			}
-			domain = public.Hostname()
-		}
-		return verifyChain(tlsConfig.Certificates[0].Certificate, domain, false, nil)
+		return verifyCandidateCertificate(c, tlsConfig.Certificates[0].Certificate)
 	case "acme":
 		if err := checkCache(c.TLS.AcmeCacheDir); err != nil {
 			return nil, &PrepareError{"tls_cache_unavailable", "ACME cache is not writable as the panel service user; choose persistent storage"}
@@ -253,6 +246,49 @@ func prepareCandidate(ctx context.Context, c config.TLSCandidate, activeListen s
 	default:
 		return nil, &PrepareError{"tls_invalid_candidate", "unsupported TLS mode"}
 	}
+}
+
+// PrepareUploadedCertificate verifies an in-memory pair and returns a canonical
+// combined PEM for storage. Re-encoding prevents unrelated PEM blocks from
+// altering which pair the runtime selects when both paths point to one file.
+func PrepareUploadedCertificate(ctx context.Context, c config.TLSCandidate, activeListen string, certPEM, keyPEM []byte) (*CertificateInfo, []byte, error) {
+	listener := c
+	listener.TLS.Mode = "http"
+	if _, err := PrepareCandidate(ctx, listener, activeListen, nil, nil); err != nil {
+		return nil, nil, err
+	}
+	invalid := &PrepareError{"tls_certificate_invalid", "upload a certificate chain and its matching unencrypted PEM private key"}
+	pair, err := tls.X509KeyPair(certPEM, keyPEM)
+	if err != nil {
+		return nil, nil, invalid
+	}
+	info, err := verifyCandidateCertificate(c, pair.Certificate)
+	if err != nil {
+		return nil, nil, err
+	}
+	privateDER, err := x509.MarshalPKCS8PrivateKey(pair.PrivateKey)
+	if err != nil {
+		return nil, nil, invalid
+	}
+	defer clear(privateDER)
+	var combined bytes.Buffer
+	for _, cert := range pair.Certificate {
+		_ = pem.Encode(&combined, &pem.Block{Type: "CERTIFICATE", Bytes: cert})
+	}
+	_ = pem.Encode(&combined, &pem.Block{Type: "PRIVATE KEY", Bytes: privateDER})
+	return info, combined.Bytes(), nil
+}
+
+func verifyCandidateCertificate(c config.TLSCandidate, chain [][]byte) (*CertificateInfo, error) {
+	domain := ""
+	if c.PublicURL != "" {
+		public, err := url.Parse(c.PublicURL)
+		if err != nil {
+			return nil, err
+		}
+		domain = public.Hostname()
+	}
+	return verifyChain(chain, domain, false, nil)
 }
 
 func canReuseActiveListener(candidate, active string) bool {

@@ -27,7 +27,7 @@ func TestDecodeTLSBodyPreservesTransportContract(t *testing.T) {
 			}
 			w := httptest.NewRecorder()
 			r := httptest.NewRequest(http.MethodPost, "/", strings.NewReader(tc.body))
-			ok := decodeTLSBody(w, r, &got)
+			ok := decodeTLSBody(w, r, &got, 16<<10)
 			if tc.message == "" {
 				if !ok || got.Value != 7 {
 					t.Fatalf("ok=%v value=%d body=%s", ok, got.Value, w.Body.String())
