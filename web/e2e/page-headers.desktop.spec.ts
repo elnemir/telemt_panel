@@ -2,7 +2,7 @@ import { test, expect } from "./fixtures";
 
 const pages = [
   "/overview", "/people", "/journal", "/pulse", "/server",
-  "/server/settings", "/server/config", "/server/platform", "/server/security", "/server/updates",
+  "/panel", "/panel/updates", "/server/node-settings", "/server/config", "/server/platform", "/server/security", "/server/updates",
   "/pulse/diag/connections", "/pulse/diag/dc", "/pulse/diag/me", "/pulse/diag/upstreams",
   "/pulse/diag/nat", "/pulse/diag/security", "/pulse/diag/events", "/pulse/diag/counters",
   "/web", "/people/alice", "/people?create=true", "/people?schedule=true",
@@ -47,7 +47,7 @@ for (const locale of ["ru", "en"] as const) {
             expect(geometry!.clipping,path).toBe(false);
           }).toPass({timeout:5000});
           expect(await page.evaluate(() => document.documentElement.scrollWidth - innerWidth), path).toBeLessThanOrEqual(1);
-          if (["/overview", "/people", "/journal", "/pulse/diag/connections", "/server/settings"].includes(path)) {
+          if (["/overview", "/people", "/journal", "/pulse/diag/connections", "/panel"].includes(path)) {
             await page.screenshot({ path: testInfo.outputPath(`${path.replaceAll("/", "-")}-${width}.png`) });
           }
         }

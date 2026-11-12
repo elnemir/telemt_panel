@@ -4,6 +4,67 @@ export type ClientOptions = {
     baseUrl: `${string}://${string}` | `${string}://{subscription_origin}` | (string & {});
 };
 
+export type PanelConfigSettings = {
+    /**
+     * Opaque revision for this runtime and saved override.
+     */
+    revision: string;
+    active: PanelConfigValues;
+    saved: PanelConfigValues;
+    startup: PanelConfigValues;
+    writable: boolean;
+    saved_valid: boolean;
+    restart_required: boolean;
+    /**
+     * Host-specific manual instruction, if available.
+     */
+    restart_command?: string;
+};
+
+export type PanelConfigSettingsRequest = {
+    revision: string;
+    settings: PanelConfigChanges;
+};
+
+export type PanelConfigValues = {
+    session_ttl: string;
+    map_timeout_secs: number;
+    customer_portal_enabled: boolean;
+    email_enabled: boolean;
+    telegram_enabled: boolean;
+};
+
+/**
+ * Omitted fields inherit the startup configuration.
+ */
+export type PanelConfigChanges = {
+    /**
+     * Positive Go duration, for example 48h or 1h30m.
+     */
+    session_ttl?: string;
+    map_timeout_secs?: number;
+    customer_portal_enabled?: boolean;
+    email_enabled?: boolean;
+    telegram_enabled?: boolean;
+};
+
+export type AdminAccountInfo = {
+    username: string;
+    /**
+     * Protected administrator configured in TOML.
+     */
+    owner: boolean;
+    /**
+     * Account associated with the current session.
+     */
+    current: boolean;
+};
+
+/**
+ * 12 or more characters, with a UTF-8 length of at most 72 bytes.
+ */
+export type NewAdminPassword = string;
+
 export type UserCopyOptions = {
     limits: boolean;
     expiration: boolean;
@@ -8722,6 +8783,129 @@ export type GetPanelTlsResponses = {
 
 export type GetPanelTlsResponse = GetPanelTlsResponses[keyof GetPanelTlsResponses];
 
+export type GetPanelConfigSettingsData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/settings/panel-config';
+};
+
+export type GetPanelConfigSettingsErrors = {
+    /**
+     * No valid session
+     */
+    401: Error;
+    /**
+     * Panel settings are unavailable, changed, invalid, or write durability is unconfirmed.
+     */
+    403: Error;
+    /**
+     * Panel settings are unavailable, changed, invalid, or write durability is unconfirmed.
+     */
+    500: Error;
+};
+
+export type GetPanelConfigSettingsError = GetPanelConfigSettingsErrors[keyof GetPanelConfigSettingsErrors];
+
+export type GetPanelConfigSettingsResponses = {
+    /**
+     * Panel configuration form values
+     */
+    200: PanelConfigSettings;
+};
+
+export type GetPanelConfigSettingsResponse = GetPanelConfigSettingsResponses[keyof GetPanelConfigSettingsResponses];
+
+export type SavePanelConfigSettingsData = {
+    body: PanelConfigSettingsRequest;
+    path?: never;
+    query?: never;
+    url: '/api/settings/panel-config';
+};
+
+export type SavePanelConfigSettingsErrors = {
+    /**
+     * Invalid input
+     */
+    400: Error;
+    /**
+     * No valid session
+     */
+    401: Error;
+    /**
+     * Panel settings are unavailable, changed, invalid, or write durability is unconfirmed.
+     */
+    403: Error;
+    /**
+     * Panel settings are unavailable, changed, invalid, or write durability is unconfirmed.
+     */
+    409: Error;
+    /**
+     * Panel settings are unavailable, changed, invalid, or write durability is unconfirmed.
+     */
+    422: Error;
+    /**
+     * Panel settings are unavailable, changed, invalid, or write durability is unconfirmed.
+     */
+    500: Error;
+};
+
+export type SavePanelConfigSettingsError = SavePanelConfigSettingsErrors[keyof SavePanelConfigSettingsErrors];
+
+export type SavePanelConfigSettingsResponses = {
+    /**
+     * Saved panel settings
+     */
+    200: PanelConfigSettings;
+};
+
+export type SavePanelConfigSettingsResponse = SavePanelConfigSettingsResponses[keyof SavePanelConfigSettingsResponses];
+
+export type PreviewPanelConfigSettingsData = {
+    body: PanelConfigSettingsRequest;
+    path?: never;
+    query?: never;
+    url: '/api/settings/panel-config/preview';
+};
+
+export type PreviewPanelConfigSettingsErrors = {
+    /**
+     * Invalid input
+     */
+    400: Error;
+    /**
+     * No valid session
+     */
+    401: Error;
+    /**
+     * Panel settings are unavailable, changed, invalid, or write durability is unconfirmed.
+     */
+    403: Error;
+    /**
+     * Panel settings are unavailable, changed, invalid, or write durability is unconfirmed.
+     */
+    409: Error;
+    /**
+     * Panel settings are unavailable, changed, invalid, or write durability is unconfirmed.
+     */
+    422: Error;
+    /**
+     * Panel settings are unavailable, changed, invalid, or write durability is unconfirmed.
+     */
+    500: Error;
+};
+
+export type PreviewPanelConfigSettingsError = PreviewPanelConfigSettingsErrors[keyof PreviewPanelConfigSettingsErrors];
+
+export type PreviewPanelConfigSettingsResponses = {
+    /**
+     * Validated effective settings
+     */
+    200: PanelConfigValues;
+};
+
+export type PreviewPanelConfigSettingsResponse = PreviewPanelConfigSettingsResponses[keyof PreviewPanelConfigSettingsResponses];
+
 export type GetPanelTlsConfigData = {
     body?: never;
     path?: never;
@@ -9027,11 +9211,193 @@ export type GetMeResponses = {
          */
         auth_disabled?: boolean;
         username: string;
+        /**
+         * False for password-only administrators. Omitted for the configured account.
+         */
+        passkey_management?: boolean;
         passkeys: Array<PasskeyInfo>;
     };
 };
 
 export type GetMeResponse = GetMeResponses[keyof GetMeResponses];
+
+export type ListAdminAccountsData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/auth/admins';
+};
+
+export type ListAdminAccountsErrors = {
+    /**
+     * No valid session
+     */
+    401: Error;
+    /**
+     * Authentication disabled, request rejected, durable state required, password verification failed, or account protected.
+     */
+    403: Error;
+};
+
+export type ListAdminAccountsError = ListAdminAccountsErrors[keyof ListAdminAccountsErrors];
+
+export type ListAdminAccountsResponses = {
+    /**
+     * Accounts and persistence availability
+     */
+    200: {
+        accounts: Array<AdminAccountInfo>;
+        writable: boolean;
+    };
+};
+
+export type ListAdminAccountsResponse = ListAdminAccountsResponses[keyof ListAdminAccountsResponses];
+
+export type CreateAdminAccountData = {
+    body: {
+        username: string;
+        current_password: string;
+        new_password: NewAdminPassword;
+    };
+    path?: never;
+    query?: never;
+    url: '/api/auth/admins';
+};
+
+export type CreateAdminAccountErrors = {
+    /**
+     * Invalid input
+     */
+    400: Error;
+    /**
+     * No valid session
+     */
+    401: Error;
+    /**
+     * Authentication disabled, request rejected, durable state required, password verification failed, or account protected.
+     */
+    403: Error;
+    /**
+     * Administrator already exists or the managed administrator limit was reached
+     */
+    409: Error;
+    /**
+     * Too many requests
+     */
+    429: Error;
+    /**
+     * Internal panel error
+     */
+    500: Error;
+};
+
+export type CreateAdminAccountError = CreateAdminAccountErrors[keyof CreateAdminAccountErrors];
+
+export type CreateAdminAccountResponses = {
+    /**
+     * Account created
+     */
+    204: void;
+};
+
+export type CreateAdminAccountResponse = CreateAdminAccountResponses[keyof CreateAdminAccountResponses];
+
+export type DeleteAdminAccountData = {
+    body: {
+        current_password: string;
+    };
+    path: {
+        username: string;
+    };
+    query?: never;
+    url: '/api/auth/admins/{username}/delete';
+};
+
+export type DeleteAdminAccountErrors = {
+    /**
+     * Invalid input
+     */
+    400: Error;
+    /**
+     * No valid session
+     */
+    401: Error;
+    /**
+     * Authentication disabled, request rejected, durable state required, password verification failed, or account protected.
+     */
+    403: Error;
+    /**
+     * Not found
+     */
+    404: Error;
+    /**
+     * Too many requests
+     */
+    429: Error;
+    /**
+     * Internal panel error
+     */
+    500: Error;
+};
+
+export type DeleteAdminAccountError = DeleteAdminAccountErrors[keyof DeleteAdminAccountErrors];
+
+export type DeleteAdminAccountResponses = {
+    /**
+     * Account deleted and sessions revoked
+     */
+    204: void;
+};
+
+export type DeleteAdminAccountResponse = DeleteAdminAccountResponses[keyof DeleteAdminAccountResponses];
+
+export type ChangeAdminPasswordData = {
+    body: {
+        current_password: string;
+        new_password: NewAdminPassword;
+    };
+    path?: never;
+    query?: never;
+    url: '/api/auth/password';
+};
+
+export type ChangeAdminPasswordErrors = {
+    /**
+     * Invalid input
+     */
+    400: Error;
+    /**
+     * No valid session
+     */
+    401: Error;
+    /**
+     * Authentication disabled, request rejected, durable state required, password verification failed, or account protected.
+     */
+    403: Error;
+    /**
+     * Not found
+     */
+    404: Error;
+    /**
+     * Too many requests
+     */
+    429: Error;
+    /**
+     * Internal panel error
+     */
+    500: Error;
+};
+
+export type ChangeAdminPasswordError = ChangeAdminPasswordErrors[keyof ChangeAdminPasswordErrors];
+
+export type ChangeAdminPasswordResponses = {
+    /**
+     * Password changed and sessions revoked
+     */
+    204: void;
+};
+
+export type ChangeAdminPasswordResponse = ChangeAdminPasswordResponses[keyof ChangeAdminPasswordResponses];
 
 export type RevokeOtherSessionsData = {
     body?: never;

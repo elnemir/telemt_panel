@@ -1,7 +1,6 @@
-import { useState } from "react";
+import { useId, useState } from "react";
 import type { TelemtConfigCatalog, TelemtConfigField } from "../../lib/api/generated/types.gen";
 import { useStrings, type Dict } from "../../i18n";
-import { cn } from "../../lib/cn";
 import { Input } from "../../ui/Input";
 import { Select } from "../../ui/Select";
 import { Toggle } from "../../ui/Toggle";
@@ -9,6 +8,8 @@ import { fieldInstances, setConfigValue, type ConfigFieldInstance } from "./conf
 import { configFieldDescription, configFieldLabel } from "./configFieldPresentation";
 import { formatConfigNumber } from "./configNumber.helpers";
 import { HelpHint } from "../../ui/HelpHint";
+import { ConfigMapControl } from "./ConfigMapControl";
+import { configIntegerMax, isConfigIPAddress, isConfigNetwork, isConfigSocketAddress, parseConfigNumber } from "./configInputValidation";
 
 export function GenericFields({ fields, sections, advanced, catalog, onChange }: {
   fields: TelemtConfigField[];
@@ -67,42 +68,91 @@ export function ConfigFieldRow({ instance, advanced, groupName, hint, onChange }
 
 export function FieldControl({ field, value, label, onChange }: { field: TelemtConfigField; value: unknown; label: string; onChange: (value: unknown) => void }) {
   const copy = useStrings().server.config.catalog;
+  const hintID = useId();
   if (field.kind === "boolean") {
-    return <div className="flex min-h-11 items-center justify-between gap-3 sm:justify-end"><span className="text-meta text-text-muted sm:hidden">{value === true ? copy.enabled : copy.disabled}</span><Toggle checked={value === true} onChange={onChange} aria-label={label} /></div>;
+    return <div className="grid gap-1 sm:justify-items-end">
+      <Toggle checked={value === true} onChange={onChange} aria-label={label} aria-describedby={hintID} />
+      <p id={hintID} className="text-xs text-text-muted">{copy.booleanLimit}</p>
+    </div>;
   }
   if (field.kind === "enum") {
-    return <Select value={value === false ? "false" : String(value ?? "")} onChange={(event) => onChange(enumValue(field, event.target.value))} aria-label={label}>{value === undefined && <option value="">{copy.unset}</option>}{field.options?.map((option) => <option key={option} value={option}>{option}</option>)}</Select>;
+    return <div className="grid gap-1">
+      <Select value={value === false ? "false" : String(value ?? "")} onChange={(event) => onChange(enumValue(field, event.target.value))} aria-label={label} aria-describedby={hintID}>
+        {value === undefined && <option value="">{copy.unset}</option>}
+        {field.options?.map((option) => <option key={option} value={option}>{option}</option>)}
+      </Select>
+      <p id={hintID} className="text-xs text-text-muted">{copy.enumLimit}</p>
+    </div>;
   }
   if (field.kind === "integer" || field.kind === "decimal") {
-    const unsafe = typeof value === "number" && !Number.isSafeInteger(value) && field.kind === "integer";
-    return <div><Input value={formatConfigNumber(value, field.kind === "decimal" ? field.data_type : "")} inputMode={field.kind === "integer" ? "numeric" : "decimal"} monospace disabled={unsafe} aria-label={label} onChange={(event) => { const parsed = Number(event.target.value); if (event.target.value !== "" && Number.isFinite(parsed) && (field.kind !== "integer" || Number.isSafeInteger(parsed))) onChange(parsed); }} />{unsafe && <p className="mt-1 text-micro text-warn">{copy.exactToml}</p>}</div>;
+    const integer = field.kind === "integer";
+    const unsafe = typeof value === "number" && !Number.isSafeInteger(value) && integer;
+    const format = (candidate: unknown) => formatConfigNumber(candidate, integer ? "" : field.data_type);
+    const hint = integer ? copy.integerLimit.replace("{max}", String(configIntegerMax(field.data_type))) : copy.decimalLimit;
+    return <ValidatedInput label={label} value={format(value)} inputMode={integer ? "numeric" : "decimal"} disabled={unsafe}
+      hint={unsafe ? copy.exactToml : hint} parse={(text) => parseConfigNumber(text, integer, field.data_type)} format={format} onChange={onChange} />;
   }
   if (field.kind === "string_list" || field.kind === "integer_list") {
-    const list = Array.isArray(value) ? value : [];
-    return <Input value={list.join(", ")} placeholder={copy.commaSeparated} aria-label={label} onChange={(event) => { const values = event.target.value.split(",").map((item) => item.trim()).filter(Boolean); onChange(field.kind === "integer_list" ? values.map(Number) : values); }} />;
+    const format = (candidate: unknown) => Array.isArray(candidate) ? candidate.join(", ") : "";
+    const integer = field.kind === "integer_list";
+    const cidr = field.data_type === "IpNetwork[]";
+    const fixedLength = /^\[u64; (\d+)\]$/.exec(field.data_type)?.[1];
+    function parse(text: string) {
+      const values = text.split(",").map((item) => item.trim()).filter(Boolean);
+      if (fixedLength && values.length !== Number(fixedLength)) return undefined;
+      if (cidr && values.some((item) => !isConfigNetwork(item))) return undefined;
+      if (!integer) return values;
+      const parsed = values.map((item) => parseConfigNumber(item, true, "u64"));
+      return parsed.includes(undefined) ? undefined : parsed;
+    }
+    const unsafe = integer && Array.isArray(value) && value.some((item) => typeof item === "number" && !Number.isSafeInteger(item));
+    const hint = unsafe ? copy.exactToml : fixedLength ? copy.integerListLimit : cidr ? copy.networkLimit : copy.commaSeparated;
+    return <ValidatedInput label={label} value={format(value)} hint={hint} disabled={unsafe} parse={parse} format={format} onChange={onChange} />;
   }
-  if (field.kind === "map" || field.kind === "structure") {
-    return <JSONControl key={JSON.stringify(value)} label={label} value={value} onChange={onChange} readOnly={field.kind === "structure"} />;
+  if (field.kind === "map") {
+    return <ConfigMapControl label={label} value={value} multiple={field.path === "dc_overrides"} onChange={onChange} />;
   }
-  return <Input type={field.secret ? "password" : "text"} value={typeof value === "string" ? value : value === undefined ? "" : String(value)} placeholder={field.default_value === "—" ? copy.unset : field.default_value} autoCapitalize="off" spellCheck={false} aria-label={label} onChange={(event) => onChange(event.target.value)} />;
+  if (field.kind === "structure") {
+    return <p className="text-xs text-text-muted">{copy.structureHint}</p>;
+  }
+  const text = value === undefined ? "" : String(value);
+  if (field.data_type === "IpAddr" || field.data_type === "SocketAddr") {
+    const ip = field.data_type === "IpAddr";
+    return <ValidatedInput label={label} value={text} hint={ip ? copy.ipLimit : copy.socketLimit}
+      parse={(next) => (ip ? isConfigIPAddress(next) : isConfigSocketAddress(next)) ? next : undefined}
+      format={String} onChange={onChange} />;
+  }
+  return <Input type={field.secret ? "password" : "text"} value={text} placeholder={field.default_value === "—" ? copy.unset : field.default_value}
+    autoCapitalize="off" spellCheck={false} aria-label={label} onChange={(event) => onChange(event.target.value)} />;
 }
 
-function JSONControl({ label, value, onChange, readOnly }: { label: string; value: unknown; onChange: (value: unknown) => void; readOnly: boolean }) {
-  const copy = useStrings().server.config.catalog;
-  const [invalid, setInvalid] = useState(false);
-  const [text, setText] = useState(JSON.stringify(value ?? (readOnly ? null : {})));
+function ValidatedInput({ label, value, hint, parse, format, onChange, inputMode, disabled }: {
+  label: string;
+  value: string;
+  hint: string;
+  parse: (text: string) => unknown;
+  format: (value: unknown) => string;
+  onChange: (value: unknown) => void;
+  inputMode?: "numeric" | "decimal";
+  disabled?: boolean;
+}) {
+  const id = useId();
+  const [draft, setDraft] = useState<{ text: string; accepted: string; invalid: boolean }>();
+  const current = draft?.accepted === value ? draft : undefined;
   return (
-    <div>
-      <textarea
-        className={cn("min-h-20 w-full resize-y rounded-lg border bg-surface-2 px-3 py-2 font-mono text-[13px] leading-relaxed text-text focus-visible:border-accent", invalid ? "border-bad" : "border-border")}
-        value={text}
-        readOnly={readOnly}
-        aria-label={label}
-        onChange={(event) => { setText(event.target.value); setInvalid(false); }}
-        onBlur={(event) => { if (readOnly) return; try { onChange(JSON.parse(event.target.value)); setInvalid(false); } catch { setInvalid(true); } }}
-      />
-      {invalid && <p className="mt-1 text-micro text-bad">{copy.invalidJson}</p>}
-      {readOnly && <p className="mt-1 text-micro text-text-faint">{copy.structureHint}</p>}
+    <div className="grid gap-1">
+      <Input value={current?.text ?? value} inputMode={inputMode} monospace spellCheck={false} autoCapitalize="off" disabled={disabled}
+        aria-label={label} aria-invalid={!!current?.invalid} aria-describedby={id} onChange={(event) => {
+          const text = event.target.value;
+          const parsed = parse(text);
+          if (parsed === undefined) {
+            setDraft({ text, accepted: value, invalid: true });
+          } else {
+            setDraft({ text, accepted: format(parsed), invalid: false });
+            onChange(parsed);
+          }
+        }} />
+      <p id={id} className={current?.invalid ? "text-xs text-error" : "text-xs text-text-muted"}>{hint}</p>
     </div>
   );
 }

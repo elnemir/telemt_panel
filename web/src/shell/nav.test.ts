@@ -26,6 +26,7 @@ const OPERATIONAL_SECTIONS = [
 ] as const;
 const MANAGEMENT_SECTIONS = [
   { to: "/server", labelKey: "server" },
+  { to: "/panel", labelKey: "panel" },
   { to: "/web", labelKey: "web" },
 ] as const;
 const SECTIONS = [...OPERATIONAL_SECTIONS, ...MANAGEMENT_SECTIONS] as const;
@@ -41,7 +42,7 @@ describe("the grouped navigation", () => {
     expect(NAV_ITEMS.map(({ to, labelKey }) => ({ to, labelKey }))).toEqual([...SECTIONS]);
   });
 
-  it("places WEB in the sidebar overview group and Server in management", () => {
+  it("places WEB in the sidebar overview group and Server and Panel in management", () => {
     expect(SIDEBAR_OVERVIEW_NAV_ITEMS.map(({ to }) => to)).toEqual([
       "/overview",
       "/people",
@@ -50,7 +51,7 @@ describe("the grouped navigation", () => {
       "/journal",
       "/web",
     ]);
-    expect(SIDEBAR_MANAGEMENT_NAV_ITEMS.map(({ to }) => to)).toEqual(["/server"]);
+    expect(SIDEBAR_MANAGEMENT_NAV_ITEMS.map(({ to }) => to)).toEqual(["/server", "/panel"]);
   });
 
   it("keeps WEB behind More and four primary destinations on compact navigation", () => {
@@ -60,8 +61,8 @@ describe("the grouped navigation", () => {
       "/pulse",
       "/journal",
     ]);
-    expect(MANAGEMENT_NAV_ITEMS.map(({ to }) => to)).toEqual(["/server", "/web"]);
-    expect(MORE_NAV_ITEMS.map(({ to }) => to)).toEqual(["/geography", "/server", "/web"]);
+    expect(MANAGEMENT_NAV_ITEMS.map(({ to }) => to)).toEqual(["/server", "/panel", "/web"]);
+    expect(MORE_NAV_ITEMS.map(({ to }) => to)).toEqual(["/geography", "/server", "/panel", "/web"]);
   });
 
   it("gives every section its own icon", () => {
@@ -82,6 +83,7 @@ describe("the grouped navigation", () => {
       "География",
       "Журнал",
       "Сервер",
+      "Панель",
       "WEB",
     ]);
   });
@@ -90,6 +92,7 @@ describe("the grouped navigation", () => {
     expect(isNavItemActive("/pulse", "/pulse")).toBe(true);
     expect(isNavItemActive("/pulse", "/pulse/diag/dc")).toBe(true);
     expect(isNavItemActive("/people", "/people/alice")).toBe(true);
+    expect(isNavItemActive("/panel", "/panel/updates")).toBe(true);
     expect(isNavItemActive("/overview", "/overview")).toBe(true);
   });
 

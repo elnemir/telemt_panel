@@ -1,5 +1,5 @@
 import { NodeWorkspace } from "../nodes/NodeSelector";
-import { useEffect, useState, type ReactNode } from "react";
+import { Fragment, useEffect, useState, type ReactNode } from "react";
 import { Link, useRouterState } from "@tanstack/react-router";
 import { cn } from "../lib/cn";
 import { useStrings } from "../i18n";
@@ -18,7 +18,7 @@ import { useLogout } from "../auth/useLogout";
 import { useAuthDisabled } from "../auth/useAuthDisabled";
 import { AuthDisabledNotice } from "../auth/AuthDisabledNotice";
 import { Sheet } from "../ui/Sheet";
-import { IconLogout, IconMore, IconSettings, IconServer, IconJournal } from "../ui/icons";
+import { IconLogout, IconMore, IconServer, IconJournal } from "../ui/icons";
 import { HistoryNotice } from "./HistoryNotice";
 import { PanelLogo } from "../branding/branding";
 import { useBranding } from "../branding/useBranding";
@@ -33,6 +33,8 @@ function BrandMark({ className }: { className?: string }) {
 export function Shell({ children }: { children: ReactNode }) {
   const s = useStrings();
   const pathname = useRouterState({ select: (state) => state.location.pathname });
+  const panelSection = isNavItemActive("/panel", pathname);
+  const Workspace = panelSection ? Fragment : NodeWorkspace;
   const keyboardInset = useKeyboardInset();
   const [mobileMoreOpen, setMobileMoreOpen] = useState(false);
   const [railMoreOpen, setRailMoreOpen] = useState(false);
@@ -81,14 +83,14 @@ export function Shell({ children }: { children: ReactNode }) {
               onClick={() => setRailMoreOpen(false)}
             />
             <div className="fixed bottom-3 left-[72px] z-40 w-64 rounded-xl border border-border bg-surface p-2 shadow-2xl">
-              <SecondaryLinks onNavigate={() => setRailMoreOpen(false)} />
+              <SecondaryLinks pathname={pathname} onNavigate={() => setRailMoreOpen(false)} />
             </div>
           </>
         )}
       </aside>
 
       <div className="flex min-h-0 min-w-0 flex-1 flex-col">
-        <NodeWorkspace>
+        <Workspace>
         <main
           className={cn(
             "flex min-h-0 flex-1 flex-col",
@@ -106,12 +108,12 @@ export function Shell({ children }: { children: ReactNode }) {
             )}
             data-testid="page-frame"
           >
-            <HistoryNotice />
+            {!panelSection && <HistoryNotice />}
             <AuthDisabledNotice />
             {children}
           </div>
         </main>
-        </NodeWorkspace>
+        </Workspace>
 
         <nav
           data-testid="mobile-bottom-nav"
@@ -152,7 +154,7 @@ export function Shell({ children }: { children: ReactNode }) {
         title={s.nav.more}
         placement="bottom"
       >
-        <SecondaryLinks onNavigate={() => setMobileMoreOpen(false)} />
+        <SecondaryLinks pathname={pathname} onNavigate={() => setMobileMoreOpen(false)} />
       </Sheet>
     </div>
   );
@@ -180,7 +182,7 @@ function FullSidebar({ pathname }: { pathname: string }) {
       />
       <div className="mt-5"><p className="px-2.5 pb-1.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-text-faint">{s.shell.platformGroup}</p><PlatformLinks pathname={pathname} /></div>
       <div className="mt-auto flex flex-col gap-2 pt-4">
-        <StatusStrip variant="card" />
+        {!isNavItemActive("/panel", pathname) && <StatusStrip variant="card" />}
         <div className="flex items-center gap-1">
           {!authDisabled && <button
             type="button"
@@ -282,7 +284,7 @@ function BottomLink({ item, active }: { item: NavItem; active: boolean }) {
   );
 }
 
-function SecondaryLinks({ onNavigate }: { onNavigate: () => void }) {
+function SecondaryLinks({ pathname, onNavigate }: { pathname: string; onNavigate: () => void }) {
   const s = useStrings();
   const logout = useLogout();
   const authDisabled = useAuthDisabled();
@@ -294,6 +296,7 @@ function SecondaryLinks({ onNavigate }: { onNavigate: () => void }) {
           key={to}
           to={to}
           role="menuitem"
+          aria-current={isNavItemActive(to, pathname) ? "page" : undefined}
           onClick={onNavigate}
           className="tap-target flex items-center gap-2.5 rounded-[10px] px-2.5 text-sm font-medium text-text-muted transition-colors hover:bg-surface-2 hover:text-text"
         >
@@ -301,15 +304,6 @@ function SecondaryLinks({ onNavigate }: { onNavigate: () => void }) {
           {s.nav[labelKey]}
         </Link>
       ))}
-      <Link
-        to="/server/settings"
-        role="menuitem"
-        onClick={onNavigate}
-        className="tap-target flex items-center gap-2.5 rounded-[10px] px-2.5 text-sm font-medium text-text-muted transition-colors hover:bg-surface-2 hover:text-text"
-      >
-        <IconSettings className="h-5 w-5 shrink-0" />
-        {s.shell.panelSettings}
-      </Link>
       <div className="my-1 border-t border-border" />
       {!authDisabled && <button
         type="button"

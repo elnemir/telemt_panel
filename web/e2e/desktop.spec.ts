@@ -50,7 +50,7 @@ for (const width of [1440, 768, 390]) {
   test(`independent history settings confirm retention without changing other categories at ${width}px`, async ({ page, login }) => {
     await page.setViewportSize({ width, height: 900 });
     await login();
-    await page.goto("/server/settings");
+    await page.goto("/server/node-settings");
     const storage = page.getByTestId("settings-storage");
     const duration = storage.getByLabel("Хранить: Технические метрики", { exact: true });
     await expect(duration).toHaveValue("30");

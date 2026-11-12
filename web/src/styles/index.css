@@ -162,7 +162,7 @@
   .server-hub-glyph::before { top: 20px; transform: rotate(27deg); }
   .server-hub-glyph::after { top: 30px; transform: rotate(-27deg); }
   .server-hub-glyph.is-error i { background: rgb(var(--error)); box-shadow: 0 0 0 5px rgb(var(--error) / .07); }
-  .server-hub-facts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); margin: 0; }
+  .server-hub-facts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); margin: 0; }
   .server-hub-facts > div { min-width: 0; border-left: 1px solid rgb(var(--border)); padding: 1px 13px; }
   .server-hub-facts dt { color: rgb(var(--text-faint)); font-size: 10px; }
   .server-hub-facts dd { margin: 4px 0 2px; overflow: hidden; color: rgb(var(--text)); font-family: var(--font-family-mono); font-size: 14px; font-weight: 800; text-overflow: ellipsis; white-space: nowrap; }
@@ -246,14 +246,6 @@
   .server-hub-platform-main p { max-width: 125px; margin: 0; color: rgb(var(--text-muted)); font-size: 10px; line-height: 1.35; }
   .server-hub-tags { display: flex; flex-wrap: wrap; gap: 6px; border-top: 1px solid rgb(var(--border)); padding-top: 11px; }
   .server-hub-tags span { border-radius: 999px; padding: 5px 7px; color: rgb(var(--text-muted)); background: rgb(var(--surface-3)); font-family: var(--font-family-mono); font-size: 9px; }
-  .server-hub-settings { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 20px; align-items: center; margin-top: 18px; }
-  .server-hub-settings > div { display: flex; flex-direction: column; }
-  .server-hub-settings > div strong { color: rgb(var(--text)); font-family: var(--font-family-mono); font-size: 34px; line-height: 1; }
-  .server-hub-settings > div span { max-width: 78px; margin-top: 4px; color: rgb(var(--text-muted)); font-size: 9px; line-height: 1.3; }
-  .server-hub-settings dl { margin: 0; }
-  .server-hub-settings dl div { display: flex; min-height: 32px; align-items: center; justify-content: space-between; gap: 10px; border-top: 1px solid rgb(var(--border)); }
-  .server-hub-settings dt { color: rgb(var(--text-faint)); font-size: 9px; }
-  .server-hub-settings dd { margin: 0; color: rgb(var(--text-muted)); font-size: 10px; font-weight: 700; }
 
   @media (max-width: 1023px) {
     .server-hub-overview { grid-template-columns: 1fr; gap: 16px; }
@@ -261,7 +253,6 @@
     .server-hub-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     .server-hub-card.is-wide { grid-column: span 2; }
     .server-hub-card:last-child { grid-column: span 2; }
-    .server-hub-settings { grid-template-columns: 110px minmax(0, 1fr); }
   }
 
   @media (max-width: 767px) {
@@ -293,7 +284,6 @@
     .server-hub-update-main { margin-block: 18px 15px; }
     .server-hub-security { margin-top: 13px; }
     .server-hub-platform-main { margin-block: 18px 15px; }
-    .server-hub-settings { grid-template-columns: 86px minmax(0, 1fr); gap: 12px; margin-top: 13px; }
   }
 
   @media (prefers-reduced-motion: reduce) {

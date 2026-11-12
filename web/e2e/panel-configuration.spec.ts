@@ -1,0 +1,38 @@
+import { expect, test } from "./fixtures";
+
+test("panel settings validate fields, preview, and save a pending change", async ({ page, login }) => {
+  await login();
+  await page.goto("/panel");
+  const card = page.getByRole("region", { name: "Конфигурация панели", exact: true });
+  await card.getByRole("button", { name: "Редактировать конфигурацию панели" }).click();
+  const dialog = page.getByRole("dialog", { name: "Конфигурация панели" });
+  const session = dialog.getByLabel("Срок сессии", { exact: true });
+  const map = dialog.getByLabel("Тайм-аут построения карты", { exact: true });
+  const validate = dialog.getByRole("button", { name: "Проверить", exact: true });
+  const save = dialog.getByRole("button", { name: "Сохранить настройки", exact: true });
+  await expect(dialog.locator("textarea")).toHaveCount(0);
+  await expect(map).toHaveAccessibleDescription(/от 1 до 120/);
+  await session.fill("48");
+  await expect(session).toHaveAttribute("aria-invalid", "true");
+  await expect(validate).toBeDisabled();
+  await session.fill("48h");
+  await map.fill("121");
+  await expect(map).toHaveAttribute("aria-invalid", "true");
+  await expect(validate).toBeDisabled();
+  await map.fill("30");
+  await dialog.getByLabel("Клиентский кабинет", { exact: true }).check();
+  await expect(validate).toBeDisabled();
+  await dialog.getByLabel("Клиентский кабинет", { exact: true }).uncheck();
+  await expect(save).toBeDisabled();
+  await validate.click();
+  await expect(dialog.getByText("Значения после перезапуска", { exact: true })).toBeVisible();
+  await save.click();
+  await expect(card.getByText("Требуется перезапуск", { exact: true })).toBeVisible();
+  await dialog.getByText("Активные настройки", { exact: true }).click();
+  await expect(dialog.getByText("10", { exact: true })).toBeVisible();
+  await dialog.getByRole("button", { name: "Использовать стартовые значения" }).click();
+  await expect(map).toHaveValue("10");
+  await validate.click();
+  await save.click();
+  await expect(card.getByText("Требуется перезапуск", { exact: true })).toHaveCount(0);
+});

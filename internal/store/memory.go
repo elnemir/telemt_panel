@@ -40,6 +40,8 @@ type Memory struct {
 	userIPEpoch      atomic.Uint64
 
 	sessions             map[string]Session
+	adminPasswords       map[string]string
+	ownerPassword        string
 	audit                []AuditEntry
 	events               []HistoryEvent
 	journal              map[string][]UpdateJournalEntry
@@ -85,6 +87,9 @@ func (m *Memory) StateDurable() bool { return m.statePath != "" }
 // stateFile is the on-disk shape of the local control-plane state.
 type stateFile struct {
 	Sessions            map[string]Session              `json:"sessions"`
+	AdminSessions       map[string]Session              `json:"admin_sessions,omitempty"`
+	AdminPasswords      map[string]string               `json:"admin_passwords,omitempty"`
+	OwnerPassword       string                          `json:"owner_password,omitempty"`
 	SubpageNonces       map[string]string               `json:"subpage_nonces"`
 	Settings            map[string]string               `json:"settings"`
 	Journal             map[string][]UpdateJournalEntry `json:"journal"`
@@ -115,6 +120,7 @@ func NewMemoryHistory() (*Memory, error) {
 func NewMemory(statePath string) (*Memory, error) {
 	m := &Memory{
 		sessions:            make(map[string]Session),
+		adminPasswords:      make(map[string]string),
 		journal:             make(map[string][]UpdateJournalEntry),
 		metrics:             make(map[string][]MetricPoint),
 		userTraffic:         make(map[string]memoryUserTraffic),
@@ -149,7 +155,16 @@ func NewMemory(statePath string) (*Memory, error) {
 		return nil, fmt.Errorf("store: state file is corrupt: %w", err)
 	}
 	if mf.Sessions != nil {
-		m.sessions = mf.Sessions
+		m.sessions, _ = splitAdminSessions(mf.Sessions)
+	}
+	if mf.AdminPasswords != nil {
+		m.adminPasswords = mf.AdminPasswords
+	}
+	m.ownerPassword = mf.OwnerPassword
+	for id, session := range mf.AdminSessions {
+		if session.Username != "" && m.adminPasswords[session.Username] != "" {
+			m.sessions[id] = session
+		}
 	}
 	if mf.SubpageNonces != nil {
 		m.subpageNonces = mf.SubpageNonces
@@ -207,8 +222,13 @@ func (m *Memory) writeStateLocked() error {
 		return nil
 	}
 
+	// Older binaries treat every entry in sessions as the configured owner.
+	ownerSessions, adminSessions := splitAdminSessions(m.sessions)
 	mf := stateFile{
-		Sessions:            m.sessions,
+		Sessions:            ownerSessions,
+		AdminSessions:       adminSessions,
+		AdminPasswords:      m.adminPasswords,
+		OwnerPassword:       m.ownerPassword,
 		SubpageNonces:       m.subpageNonces,
 		Settings:            m.settings,
 		Journal:             m.journal,

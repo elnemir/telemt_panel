@@ -75,6 +75,7 @@ export function ConfigPage() {
   const [activeReloadId, setActiveReloadId] = useState<number | null>(null);
   const [patchErrorCode, setPatchErrorCode] = useState<string | null>(null);
   const [savePreviewOpen, setSavePreviewOpen] = useState(false);
+  const structuredFields = useRef<HTMLDivElement>(null);
   const toml = useTomlSettingsSession({
     enabled: tab === "toml",
     onApplied: async (result) => {
@@ -248,6 +249,12 @@ export function ConfigPage() {
 
   function save() {
     if (!editor.baseline || !editor.edited || !hasChanges) return;
+    const invalidField = structuredFields.current?.querySelector<HTMLElement>('[aria-invalid="true"]');
+    if (invalidField) {
+      invalidField.focus();
+      pushToast(s.server.config.catalog.fixField, "error");
+      return;
+    }
     setSavePreviewOpen(true);
   }
 
@@ -372,7 +379,9 @@ export function ConfigPage() {
             <DraftSessionActions conflict={!!toml.session.remote || toml.conflict} onDiscard={toml.discard} onCopy={() => void toml.copyDraft()} disabled={toml.patchMutation.isPending || (toml.conflict && !toml.session.remote)} />
           </div>
         ) : tab === "normal" || tab === "advanced" ? (
+          <div ref={structuredFields} className="min-w-0">
           <StructuredSettingsForm
+            key={editor.documentVersion}
             catalog={catalogQuery.data}
             sections={editor.edited}
             mode={tab}
@@ -384,6 +393,7 @@ export function ConfigPage() {
               editor.setEdited(next);
             }}
           />
+          </div>
         ) : (
           <div className="p-3 sm:p-4">
             <Suspense fallback={<Skeleton className="h-[520px] w-full" />}>

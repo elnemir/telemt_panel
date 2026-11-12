@@ -12,9 +12,8 @@ const passwordIdentityKey = "auth.password_identity.v1"
 
 // BindPasswordAuth binds persisted sessions to the configured admin credentials.
 // It runs before serving requests. Legacy sessions have no binding and are
-// revoked once. The config remains the only password source; this fingerprint
-// cannot authenticate a user. Settings export/import carries the binding along
-// with sessions so a different destination account cannot inherit them.
+// revoked once. Changing the config restores the configured password and
+// discards any override. The fingerprint cannot authenticate a user.
 func (m *Memory) BindPasswordAuth(username, passwordHash string) error {
 	raw, _ := json.Marshal([2]string{username, passwordHash})
 	digest := sha256.Sum256(raw)
@@ -26,12 +25,19 @@ func (m *Memory) BindPasswordAuth(username, passwordHash string) error {
 		return nil
 	}
 	sessions, challenges := m.sessions, m.webauthnChallenges
+	ownerPassword, managedPassword := m.ownerPassword, m.adminPasswords[username]
+	m.ownerPassword = ""
+	delete(m.adminPasswords, username)
 	m.sessions = make(map[string]Session)
 	m.webauthnChallenges = make(map[string]WebAuthnChallenge)
 	m.settings[passwordIdentityKey] = identity
 	if err := m.writeStateLocked(); err != nil {
 		if !atomicfile.Published(err) {
 			m.sessions, m.webauthnChallenges = sessions, challenges
+			m.ownerPassword = ownerPassword
+			if managedPassword != "" {
+				m.adminPasswords[username] = managedPassword
+			}
 			if existed {
 				m.settings[passwordIdentityKey] = previous
 			} else {

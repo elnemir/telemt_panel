@@ -39,7 +39,7 @@ describe("PersonIPHistory",()=>{
     window.__BASE_PATH__="/panel";
     await mount();
     expect(container.querySelectorAll('[data-geoip-configure]')).toHaveLength(1);
-    expect(container.querySelector('[data-geoip-configure]')?.getAttribute("href")).toBe("/panel/server/settings#geoip");
+    expect(container.querySelector('[data-geoip-configure]')?.getAttribute("href")).toBe("/panel/panel#geoip");
     delete window.__BASE_PATH__;
     expect(container.querySelectorAll('[data-ip-geo]')).toHaveLength(0);
   });

@@ -22,25 +22,23 @@ func VerifyPassword(hash, password string) bool {
 }
 
 // dummyPasswordHash is a fixed bcrypt hash (cost 10) with no known
-// plaintext. VerifyCredentials compares against it when the username
-// doesn't match, so a bcrypt comparison always runs — and always costs the
-// same — regardless of whether the username is real.
+// plaintext. It keeps password verification expensive when the username
+// does not match an account.
 const dummyPasswordHash = "$2a$10$Ph6q3hjW8AtIjY.5GquOtOrqc7qWvB.h31kXJw0nDJAWSgXRPekmq"
 
-// VerifyCredentials reports whether username/password match the
-// configured admin account (cfgUsername/cfgPasswordHash). It always runs
-// exactly one bcrypt comparison — against cfgPasswordHash when the
-// username matches, otherwise against a fixed dummy hash — so a wrong
-// username and a wrong password take the same time. Without this, the
-// short-circuiting `username == cfgUsername && VerifyPassword(...)` would
-// skip bcrypt entirely on a bad username, letting an attacker distinguish
-// "wrong username" from "wrong password" by response latency.
-func VerifyCredentials(cfgUsername, cfgPasswordHash, username, password string) bool {
-	usernameMatch := username == cfgUsername
-	hash := dummyPasswordHash
-	if usernameMatch {
-		hash = cfgPasswordHash
+// VerifyAccountPassword performs a dummy bcrypt comparison for a missing account.
+func VerifyAccountPassword(hash, password string) bool {
+	if hash == "" {
+		_ = VerifyPassword(dummyPasswordHash, password)
+		return false
 	}
-	passwordOK := VerifyPassword(hash, password)
-	return usernameMatch && passwordOK
+	return VerifyPassword(hash, password)
+}
+
+// VerifyCredentials reports whether a username and password match the account.
+func VerifyCredentials(cfgUsername, cfgPasswordHash, username, password string) bool {
+	if username != cfgUsername {
+		cfgPasswordHash = ""
+	}
+	return VerifyAccountPassword(cfgPasswordHash, password)
 }

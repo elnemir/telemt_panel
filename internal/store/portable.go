@@ -73,16 +73,20 @@ func PortableHistoryEmpty(data PortableData) bool {
 	return portableHistoryEmpty(data)
 }
 
-// ExportData returns a detached copy of all persisted panel state.
+// ExportData returns detached portable state. Managed administrator credentials and sessions stay local.
 func (m *Memory) ExportData() (PortableData, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	m.expireUserIPsLocked(time.Now().Unix())
+	ownerSessions, _ := splitAdminSessions(m.sessions)
+	if m.ownerPassword != "" {
+		ownerSessions = nil
+	}
 	return clonePortableData(PortableData{
 		FormatVersion:        portableFormatVersion,
 		UserIPs:              portableMemoryUserIPs(m.userIPs),
 		UserIPCollection:     portableUserIPCollection(m.userIPCollection),
-		Sessions:             m.sessions,
+		Sessions:             ownerSessions,
 		SubpageNonces:        m.subpageNonces,
 		Settings:             m.settings,
 		Journal:              m.journal,
@@ -146,7 +150,7 @@ func (m *Memory) ImportData(data PortableData) error {
 	}
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	if len(m.userIPs) > 0 || m.userIPCollection.BatchID != "" {
+	if len(m.userIPs) > 0 || m.userIPCollection.BatchID != "" || len(m.adminPasswords) > 0 || m.ownerPassword != "" {
 		return ErrStoreNotEmpty
 	}
 	if len(m.sessions)+len(m.subpageNonces)+len(m.settings)+len(m.journal)+len(m.audit)+len(m.metrics)+len(m.events)+len(m.userTraffic)+len(m.userTrafficBuckets)+len(m.webauthnCredentials)+len(m.webauthnChallenges)+len(m.webauthnUserHandle) != 0 || m.hasTrafficCollector {
@@ -154,7 +158,7 @@ func (m *Memory) ImportData(data PortableData) error {
 	}
 	previousPolicies := m.policies
 	data.Policies = importedStoragePolicies(data, previousPolicies)
-	m.sessions = data.Sessions
+	m.sessions, _ = splitAdminSessions(data.Sessions)
 	m.subpageNonces = data.SubpageNonces
 	m.settings = data.Settings
 	m.journal = data.Journal

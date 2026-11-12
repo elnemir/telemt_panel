@@ -7,7 +7,7 @@ test("panel settings fill both desktop columns and stack access before appearanc
 
   for (const width of [1280, 2560, 768, 390]) {
     await page.setViewportSize({ width, height: 900 });
-    await page.goto("/server/settings");
+    await page.goto("/panel");
     const sessions = page.getByTestId("settings-sessions");
     const transport = page.getByTestId("panel-transport");
     const subscription = page.getByTestId("subscription-transport");

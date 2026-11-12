@@ -8385,6 +8385,59 @@ paths:
             application/json:
               schema: { $ref: "#/components/schemas/PanelTlsStatus" }
         "401": { $ref: "#/components/responses/Unauthorized" }
+  /api/settings/panel-config:
+    get:
+      tags: [settings]
+      operationId: getPanelConfigSettings
+      description: Read the panel's own active, startup, and saved editable settings. This is a global endpoint.
+      responses:
+        "200":
+          description: Panel configuration form values
+          content: { application/json: { schema: { $ref: "#/components/schemas/PanelConfigSettings" } } }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/PanelConfigError" }
+        "500": { $ref: "#/components/responses/PanelConfigError" }
+    put:
+      tags: [settings]
+      operationId: savePanelConfigSettings
+      description: Validate and atomically save overrides against the current revision. The running process keeps its active settings until restart.
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: "#/components/schemas/PanelConfigSettingsRequest" } } }
+      responses:
+        "200":
+          description: Saved panel settings
+          content: { application/json: { schema: { $ref: "#/components/schemas/PanelConfigSettings" } } }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/PanelConfigError" }
+        "409": { $ref: "#/components/responses/PanelConfigError" }
+        "422": { $ref: "#/components/responses/PanelConfigError" }
+        "500": { $ref: "#/components/responses/PanelConfigError" }
+
+  /api/settings/panel-config/preview:
+    post:
+      tags: [settings]
+      operationId: previewPanelConfigSettings
+      description: Validate the draft against the current revision and return normalized effective values without saving.
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: "#/components/schemas/PanelConfigSettingsRequest" } } }
+      responses:
+        "200":
+          description: Validated effective settings
+          content:
+            application/json:
+              schema:
+                type: object
+                $ref: "#/components/schemas/PanelConfigValues"
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/PanelConfigError" }
+        "409": { $ref: "#/components/responses/PanelConfigError" }
+        "422": { $ref: "#/components/responses/PanelConfigError" }
+        "500": { $ref: "#/components/responses/PanelConfigError" }
+
   /api/settings/tls/config:
     parameters:
       - { name: target, in: query, schema: { type: string, enum: [panel, subscription], default: panel } }
@@ -8550,16 +8603,112 @@ paths:
                 properties:
                   auth_disabled: { type: boolean, default: false, description: "When true, access is anonymous with full admin privileges and no session is issued." }
                   username: { type: string }
+                  passkey_management: { type: boolean, description: "False for password-only administrators. Omitted for the configured account." }
                   passkeys:
                     type: array
                     items: { $ref: "#/components/schemas/PasskeyInfo" }
         "401": { $ref: "#/components/responses/Unauthorized" }
 
+  /api/auth/admins:
+    get:
+      tags: [auth]
+      operationId: listAdminAccounts
+      description: Panel administrator identities. Password hashes are excluded.
+      responses:
+        "200":
+          description: Accounts and persistence availability
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [accounts, writable]
+                properties:
+                  accounts:
+                    type: array
+                    items: { $ref: "#/components/schemas/AdminAccountInfo" }
+                  writable: { type: boolean }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/AdminAccountForbidden" }
+    post:
+      tags: [auth]
+      operationId: createAdminAccount
+      description: Create a password-based administrator with full panel access after verifying the caller's password.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [username, current_password, new_password]
+              properties:
+                username: { type: string, pattern: '^[A-Za-z0-9][A-Za-z0-9_.-]{0,63}$' }
+                current_password: { type: string, format: password, writeOnly: true }
+                new_password: { $ref: "#/components/schemas/NewAdminPassword" }
+      responses:
+        "204": { description: Account created }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/AdminAccountForbidden" }
+        "409":
+          description: Administrator already exists or the managed administrator limit was reached
+          content: { application/json: { schema: { $ref: "#/components/schemas/Error" } } }
+        "429": { $ref: "#/components/responses/RateLimited" }
+        "500": { $ref: "#/components/responses/InternalError" }
+
+  /api/auth/admins/{username}/delete:
+    post:
+      tags: [auth]
+      operationId: deleteAdminAccount
+      description: Verify the caller's password, delete the managed administrator, and revoke their sessions. The configured and current accounts are protected.
+      parameters:
+        - { name: username, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [current_password]
+              properties:
+                current_password: { type: string, format: password, writeOnly: true }
+      responses:
+        "204": { description: Account deleted and sessions revoked }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/AdminAccountForbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "429": { $ref: "#/components/responses/RateLimited" }
+        "500": { $ref: "#/components/responses/InternalError" }
+
+  /api/auth/password:
+    put:
+      tags: [auth]
+      operationId: changeAdminPassword
+      description: Change the current administrator's password, revoke all their sessions, and clear their current session cookie.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [current_password, new_password]
+              properties:
+                current_password: { type: string, format: password, writeOnly: true }
+                new_password: { $ref: "#/components/schemas/NewAdminPassword" }
+      responses:
+        "204": { description: Password changed and sessions revoked }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/AdminAccountForbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "429": { $ref: "#/components/responses/RateLimited" }
+        "500": { $ref: "#/components/responses/InternalError" }
+
   /api/auth/sessions:
     get:
       tags: [auth]
       operationId: listSessions
-      description: Active panel sessions, newest first with the current session pinned. Cursor-paged and searchable by browser/User-Agent or IP address.
+      description: Current administrator’s active panel sessions, newest first with the current session pinned. Cursor-paged and searchable by browser/User-Agent or IP address.
       parameters:
         - { name: limit, in: query, schema: { type: integer, minimum: 1, maximum: 100, default: 30 } }
         - { name: cursor, in: query, schema: { type: string }, description: Opaque cursor returned by the previous page }
@@ -8575,7 +8724,7 @@ paths:
     delete:
       tags: [auth]
       operationId: revokeOtherSessions
-      description: Revoke all sessions except the current one.
+      description: Revoke all sessions for the current administrator except the current one.
       responses:
         "204": { description: Revoked }
         "500": { description: "session_revoke_failed — durable revoke failed", content: { application/json: { schema: { $ref: "#/components/schemas/Error" } } } }
@@ -10268,6 +10417,12 @@ components:
     PanelTlsError:
       description: Actionable transport error; current listener stays active. Error code is stable and message contains no key/account data.
       content: { application/json: { schema: { $ref: "#/components/schemas/Error" } } }
+    AdminAccountForbidden:
+      description: Authentication disabled, request rejected, durable state required, password verification failed, or account protected.
+      content: { application/json: { schema: { $ref: "#/components/schemas/Error" } } }
+    PanelConfigError:
+      description: "Panel settings are unavailable, changed, invalid, or write durability is unconfirmed."
+      content: { application/json: { schema: { $ref: "#/components/schemas/Error" } } }
     InternalError:
       description: Internal panel error
       content: { application/json: { schema: { $ref: "#/components/schemas/Error" } } }
@@ -10294,6 +10449,57 @@ components:
       content: { application/json: { schema: { $ref: "#/components/schemas/Error" } } }
 
   schemas:
+    PanelConfigSettings:
+      type: object
+      required: [revision, active, saved, startup, writable, saved_valid, restart_required]
+      properties:
+        revision: { type: string, description: "Opaque revision for this runtime and saved override." }
+        active: { $ref: "#/components/schemas/PanelConfigValues" }
+        saved: { $ref: "#/components/schemas/PanelConfigValues" }
+        startup: { $ref: "#/components/schemas/PanelConfigValues" }
+        writable: { type: boolean }
+        saved_valid: { type: boolean }
+        restart_required: { type: boolean }
+        restart_command: { type: string, description: "Host-specific manual instruction, if available." }
+    PanelConfigSettingsRequest:
+      type: object
+      required: [revision, settings]
+      properties:
+        revision: { type: string }
+        settings: { $ref: "#/components/schemas/PanelConfigChanges" }
+    PanelConfigValues:
+      type: object
+      required: [session_ttl, map_timeout_secs, customer_portal_enabled, email_enabled, telegram_enabled]
+      properties:
+        session_ttl: { type: string }
+        map_timeout_secs: { type: integer, minimum: 1, maximum: 120 }
+        customer_portal_enabled: { type: boolean }
+        email_enabled: { type: boolean }
+        telegram_enabled: { type: boolean }
+    PanelConfigChanges:
+      type: object
+      additionalProperties: false
+      description: Omitted fields inherit the startup configuration.
+      properties:
+        session_ttl: { type: string, description: "Positive Go duration, for example 48h or 1h30m." }
+        map_timeout_secs: { type: integer, minimum: 1, maximum: 120 }
+        customer_portal_enabled: { type: boolean }
+        email_enabled: { type: boolean }
+        telegram_enabled: { type: boolean }
+    AdminAccountInfo:
+      type: object
+      required: [username, owner, current]
+      properties:
+        username: { type: string }
+        owner: { type: boolean, description: "Protected administrator configured in TOML." }
+        current: { type: boolean, description: "Account associated with the current session." }
+    NewAdminPassword:
+      type: string
+      format: password
+      writeOnly: true
+      minLength: 12
+      maxLength: 72
+      description: 12 or more characters, with a UTF-8 length of at most 72 bytes.
     # user-copy schemas start
     UserCopyOptions:
       type: object

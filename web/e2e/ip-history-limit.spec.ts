@@ -14,7 +14,7 @@ test("IP history supports unlimited mode and confirms a lower cap", async ({ pag
     return (await response.json()).max_ips_per_user;
   };
   try {
-    await page.goto("/server/settings");
+    await page.goto("/server/node-settings");
     const storage = page.getByTestId("settings-storage");
     const field = storage.getByRole("spinbutton", { name: "Адресов на пользователя", exact: true });
     const unlimited = storage.getByRole("switch", { name: "Без лимита на пользователя", exact: true });

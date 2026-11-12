@@ -407,7 +407,9 @@ func (s *Server) handleWebAuthnLoginFinish(w http.ResponseWriter, r *http.Reques
 		}
 		return
 	}
-	if err := s.createAuthenticatedSession(w, r, "passkey"); err != nil {
+	s.adminMu.Lock()
+	defer s.adminMu.Unlock()
+	if err := s.createAuthenticatedSession(w, r, s.cfg.Auth.Username, "passkey"); err != nil {
 		slog.Error("WebAuthn login: create session", "err", err)
 		auth.WriteError(w, http.StatusInternalServerError, "internal_error", "could not create session")
 		return
@@ -425,14 +427,17 @@ func recordsSignCount(records []store.WebAuthnCredential, id string) uint32 {
 	return 0
 }
 
-func (s *Server) createAuthenticatedSession(w http.ResponseWriter, r *http.Request, method string) error {
+func (s *Server) createAuthenticatedSession(w http.ResponseWriter, r *http.Request, username, method string) error {
+	if username == s.cfg.Auth.Username {
+		username = ""
+	}
 	token, err := auth.NewToken()
 	if err != nil {
 		return err
 	}
 	now := time.Now()
 	if err := s.st.PutSession(store.Session{
-		IDHash: auth.HashToken(token), Created: now, LastSeen: now,
+		IDHash: auth.HashToken(token), Created: now, LastSeen: now, Username: username,
 		IP: auth.ClientIP(r, s.cfg.TrustedProxyPrefixes), UserAgentLabel: userAgentLabel(r), AuthMethod: method,
 	}); err != nil {
 		return err

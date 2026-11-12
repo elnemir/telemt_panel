@@ -21,6 +21,13 @@ type StateStore interface {
 	DeleteSession(string) error
 	DeleteOtherSessions(string) error
 	ListSessions() ([]Session, error)
+	DeleteAdminSessions(username, keep string) ([]string, error)
+
+	AdminPassword(username, owner, configuredHash string) string
+	ListAdmins() []string
+	CreateAdmin(username, hash string) error
+	ChangeAdminPassword(username, owner, hash string) ([]string, error)
+	DeleteAdmin(username string) ([]string, error)
 
 	GetOrCreateWebAuthnUserHandle([]byte) ([]byte, error)
 	ListWebAuthnCredentials() ([]WebAuthnCredential, error)
@@ -122,6 +129,22 @@ func (s *Composite) DeleteOtherSessions(keep string) error {
 	return s.state.DeleteOtherSessions(keep)
 }
 func (s *Composite) ListSessions() ([]Session, error) { return s.state.ListSessions() }
+func (s *Composite) DeleteAdminSessions(username, keep string) ([]string, error) {
+	return s.state.DeleteAdminSessions(username, keep)
+}
+func (s *Composite) AdminPassword(username, owner, configuredHash string) string {
+	return s.state.AdminPassword(username, owner, configuredHash)
+}
+func (s *Composite) ListAdmins() []string { return s.state.ListAdmins() }
+func (s *Composite) CreateAdmin(username, hash string) error {
+	return s.state.CreateAdmin(username, hash)
+}
+func (s *Composite) ChangeAdminPassword(username, owner, hash string) ([]string, error) {
+	return s.state.ChangeAdminPassword(username, owner, hash)
+}
+func (s *Composite) DeleteAdmin(username string) ([]string, error) {
+	return s.state.DeleteAdmin(username)
+}
 
 func (s *Composite) GetOrCreateWebAuthnUserHandle(candidate []byte) ([]byte, error) {
 	return s.state.GetOrCreateWebAuthnUserHandle(candidate)

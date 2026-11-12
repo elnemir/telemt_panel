@@ -14,7 +14,7 @@ for (const width of [360, 768, 1440]) {
       await route.fulfill({ response, json: { ...await response.json(), active_store: "memory", history_temporary: true } });
     });
 
-    for (const path of ["/overview", "/people", "/server/settings"]) {
+    for (const path of ["/overview", "/people", "/server/node-settings"]) {
       await page.goto(path);
       const notice = page.locator("details").filter({ hasText: "SQLite недоступна · история временная" });
       const summary = notice.locator("summary");

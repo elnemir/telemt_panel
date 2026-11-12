@@ -6,6 +6,7 @@ export interface ToggleProps {
   disabled?: boolean;
   /** Required: the switch has no visible label of its own. */
   "aria-label": string;
+  "aria-describedby"?: string;
   className?: string;
 }
 
@@ -20,6 +21,7 @@ export function Toggle({ checked, onChange, disabled, className, ...rest }: Togg
       role="switch"
       aria-checked={checked}
       aria-label={rest["aria-label"]}
+      aria-describedby={rest["aria-describedby"]}
       disabled={disabled}
       onClick={() => onChange(!checked)}
       className={cn(

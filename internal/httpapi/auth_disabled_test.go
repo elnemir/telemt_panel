@@ -28,6 +28,7 @@ func TestDisabledAuthenticationAPI(t *testing.T) {
 	}
 	for _, endpoint := range []struct{ method, path string }{
 		{"POST", "/api/auth/login"}, {"POST", "/api/auth/logout"},
+		{"GET", "/api/auth/admins"}, {"POST", "/api/auth/admins"}, {"PUT", "/api/auth/password"}, {"POST", "/api/auth/admins/test/delete"},
 		{"GET", "/api/auth/sessions"}, {"DELETE", "/api/auth/sessions"}, {"DELETE", "/api/auth/sessions/test"},
 		{"POST", "/api/auth/webauthn/register/begin"}, {"POST", "/api/auth/webauthn/register/finish"},
 		{"POST", "/api/auth/webauthn/login/begin"}, {"POST", "/api/auth/webauthn/login/finish"}, {"DELETE", "/api/auth/webauthn/credentials/test"},

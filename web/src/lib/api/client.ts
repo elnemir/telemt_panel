@@ -81,7 +81,7 @@ client.interceptors.response.use((response, request) => {
     queryClient.removeQueries({ queryKey: getMeQueryKey() });
     const router = getRouterInstance();
     if (router) {
-      const redirectTarget = window.location.pathname + window.location.search;
+      const redirectTarget = window.location.pathname + window.location.search + window.location.hash;
       void router.navigate({ to: "/login", search: { redirect: redirectTarget } });
     }
   }

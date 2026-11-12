@@ -72,7 +72,7 @@ for (const width of [390, 1280]) {
             .join(""),
       });
     });
-    await page.goto("/server/settings");
+    await page.goto("/server/node-settings");
     const toggle = page.getByRole("switch", { name: "Разрешить выбор адреса подключения" });
     await expect(toggle).toHaveAttribute("aria-checked", "false");
     await page.goto("/people/alice?tab=access");
@@ -80,7 +80,7 @@ for (const width of [390, 1280]) {
     await expect(page.getByRole("button", { name: "Копировать tg://", exact: true })).toBeVisible();
     await expect(address).toHaveCount(0);
     expect(configReads).toBe(0);
-    await page.goto("/server/settings");
+    await page.goto("/server/node-settings");
     await toggle.click();
     await expect(toggle).toHaveAttribute("aria-checked", "true");
     try {

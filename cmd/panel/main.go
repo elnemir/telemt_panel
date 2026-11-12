@@ -132,13 +132,25 @@ func runRuntime(ctx context.Context, source *config.Source, configPath string) (
 	return runRuntimeStore(ctx, source.Config, configPath, st)
 }
 
-func runRuntimeStore(ctx context.Context, cfg *config.Config, configPath string, st store.Store) (code int) {
+func runRuntimeStore(ctx context.Context, base *config.Config, configPath string, st store.Store) (code int) {
 	defer func() {
 		if err := st.Close(); err != nil {
 			slog.Error("close store", "err", err)
 			code = 1
 		}
 	}()
+
+	cfg := base
+	if !base.Auth.Disabled && !base.Agent.Enabled && base.DataDir != "" {
+		raw, err := config.ReadPanelOverrides(base.DataDir)
+		if err == nil {
+			cfg, err = config.ApplyPanelOverrides(base, raw)
+		}
+		if err != nil {
+			slog.Warn("using startup config; panel settings override rejected", "err", err)
+			cfg = base
+		}
+	}
 
 	// Restart confirmation is deferred until every required listener serves.
 	pending, err := update.ReconcileInterrupted(st, version)
@@ -203,6 +215,7 @@ func runRuntimeStore(ctx context.Context, cfg *config.Config, configPath string,
 	}
 	srv := httpapi.New(cfg, tc, st, hb, version, httpapi.EngineOptions{PanelLifecycleContext: ctx, OnReady: onReady, Nodes: registry, Platform: platformStore, Customer: customerService})
 	srv.SetTLSConfigPath(configPath)
+	srv.SetPanelSettingsBase(base)
 	if err := srv.Run(ctx); err != nil {
 		slog.Error("server", "err", err)
 		return 1

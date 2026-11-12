@@ -15,8 +15,10 @@ type revokeFailureStore struct {
 	err error
 }
 
-func (s revokeFailureStore) DeleteSession(string) error       { return s.err }
-func (s revokeFailureStore) DeleteOtherSessions(string) error { return s.err }
+func (s revokeFailureStore) DeleteSession(string) error { return s.err }
+func (s revokeFailureStore) DeleteAdminSessions(string, string) ([]string, error) {
+	return nil, s.err
+}
 
 func putGuardSession(t *testing.T, st store.StateStore, hash string, now time.Time) {
 	t.Helper()
@@ -112,6 +114,7 @@ func TestSessionGuardDurableRevokeFailurePreservesStreams(t *testing.T) {
 	st := newMemoryStore(t)
 	t.Cleanup(func() { _ = st.Close() })
 	putGuardSession(t, st, "hash", time.Now())
+	putGuardSession(t, st, "keep", time.Now())
 	want := errors.New("durability unavailable")
 	g := NewSessionGuard(revokeFailureStore{st, want}, func() time.Duration { return time.Hour }, time.Now)
 	defer g.Close()

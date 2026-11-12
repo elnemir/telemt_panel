@@ -1,4 +1,5 @@
-import { useEffect,useState } from "react";
+import { useEffect, useState } from "react";
+import { Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { ServerShell } from "../ServerShell";
 import { errorMessage, useStrings } from "../../i18n";
@@ -27,11 +28,11 @@ import { pickLatestRelease } from "./releases.helpers";
 import { formatAuditTimestamp } from "../../journal/timestamp.helpers";
 import { selectUpdateRun } from "./updateRun.helpers";
 
-// UpdatesPage keeps the two update targets in one compact version surface.
-// The active target expands in place; the auto-update policy and the merged
-// journal are separate tasks, not two more copies of the target card.
-export function UpdatesPage() {
+// The two views share the existing release engine and operation lock.
+export function UpdatesPage({ target = "telemt" }: { target?: TargetName }) {
   const s = useStrings();
+  const section = target === "panel" ? "panel" : "server";
+  const title = target === "panel" ? s.panel.updates : s.server.updates.title;
   const queryClient = useQueryClient();
   const connection = useConnectionState();
   const sse = useSnapshot<UpdateTopicEvent>("update");
@@ -52,7 +53,7 @@ export function UpdatesPage() {
 
   if (updatesQuery.isPending || hostQuery.isPending) {
     return (
-      <ServerShell title={s.server.updates.title}>
+      <ServerShell section={section} title={title}>
         <Skeleton className="h-48 w-full" />
       </ServerShell>
     );
@@ -60,7 +61,7 @@ export function UpdatesPage() {
 
   if (updatesQuery.isError) {
     return (
-      <ServerShell title={s.server.updates.title}>
+      <ServerShell section={section} title={title}>
         <ErrorState
           message={errorMessage(
             s,
@@ -73,8 +74,7 @@ export function UpdatesPage() {
   }
 
   const targets = updatesQuery.data.targets.filter(
-    (target): target is typeof target & { target: TargetName } =>
-      target.target === "telemt" || target.target === "panel",
+    (item): item is typeof item & { target: TargetName } => item.target === target,
   );
   const availableCount = targets.filter((target) =>
     Boolean(pickLatestRelease(target.releases)),
@@ -92,7 +92,7 @@ export function UpdatesPage() {
       : s.releasePicker.noNewer;
 
   return (
-    <ServerShell title={s.server.updates.title}>
+    <ServerShell section={section} title={title}>
       <div className="grid items-start gap-2.5 lg:grid-cols-[minmax(0,1fr)_minmax(19rem,22rem)]">
         <div className="contents lg:flex lg:flex-col lg:gap-2.5">
         <Card className="order-1 overflow-hidden !p-0">
@@ -141,7 +141,17 @@ export function UpdatesPage() {
 
         <div className="contents lg:flex lg:flex-col lg:gap-2.5">
         <div className="order-2">
-          <AutoUpdateForm canApply={hostQuery.data?.caps.self_update ?? false} />
+          {target === "panel" ? (
+            <div id="auto-update" className="scroll-mt-24">
+              <AutoUpdateForm canApply={hostQuery.data?.caps.self_update ?? false} />
+            </div>
+          ) : (
+            <Card>
+              <Link to="/panel/updates" hash="auto-update" className="inline-flex min-h-11 items-center font-semibold text-accent">
+                {s.server.updates.autoUpdate.title}
+              </Link>
+            </Card>
+          )}
         </div>
 
         <Card className="order-4 !p-0">

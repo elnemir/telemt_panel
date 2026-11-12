@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ServerShell } from "../ServerShell";
+import { Link } from "@tanstack/react-router";
+import { PageHeader } from "../../ui/PageHeader";
+import { buttonClasses } from "../../ui/buttonStyles";
 import { countLabel, errorMessage, useLocalePreference, useStrings } from "../../i18n";
 import { useTheme } from "../../lib/useTheme";
 import { useDisplayMode } from "../../display-mode";
@@ -20,6 +22,7 @@ import {
   listSessionsOptions,
   listSessionsQueryKey,
   getMeOptions,
+  getHealthOptions,
   revokeSessionMutation,
   revokeOtherSessionsMutation,
 } from "../../lib/api/generated/@tanstack/react-query.gen";
@@ -27,12 +30,11 @@ import type { SessionInfo } from "../../lib/api/generated/types.gen";
 import { sessionDeviceLabel } from "./sessions.helpers";
 import { InterfacePreferences } from "./InterfacePreferences";
 import { BrandingSettings } from "./BrandingSettings";
-import { LinkSettings } from "./LinkSettings";
 import { SessionSheet } from "./SessionSheet";
 import { SessionIcon as SessionGlyph } from "./SessionIcon";
-import { StorageSettings } from "./StorageSettings";
 import { GeoIPSettings } from "./GeoIPSettings";
-import { GeographySettings } from "../../geography/GeographySettings";
+import { PanelConfigSettingsCard } from "./PanelConfigSettingsCard";
+import { AdminAccounts } from "./AdminAccounts";
 import { PasskeySettings } from "./PasskeySettings";
 import { TransportStatus } from "./TransportStatus";
 
@@ -60,6 +62,7 @@ export function SettingsPage() {
   const s = useStrings();
   const queryClient = useQueryClient();
   const meQuery = useQuery(getMeOptions());
+  const version = useQuery(getHealthOptions()).data?.version;
   const authDisabled = meQuery.data?.auth_disabled === true;
   const sessionsQuery = useQuery({...listSessionsOptions({ query: { limit: 4 } }), enabled: !!meQuery.data && !authDisabled});
   const logout = useLogout();
@@ -110,7 +113,11 @@ export function SettingsPage() {
   }
 
   return (
-    <ServerShell title={s.server.settings.title}>
+    <div className="min-w-0">
+      <PageHeader title={s.nav.panel} meta={version && <span className="text-xs text-text-muted">{s.panel.version} {version}</span>} actions={
+        <Link to="/panel/updates" className={buttonClasses("secondary", "sm")}>{s.panel.updates}</Link>
+      } />
+      <div className="flex min-w-0 flex-col gap-2.5">
       <section
         data-testid="settings-hero"
         className="overflow-hidden rounded-2xl border border-accent/30 bg-surface"
@@ -307,7 +314,10 @@ export function SettingsPage() {
             )}
           </section>}
 
-          {!authDisabled && <PasskeySettings passkeys={meQuery.data?.passkeys ?? []} />}
+          {meQuery.data && !authDisabled && meQuery.data.passkey_management !== false && (
+            <PasskeySettings passkeys={meQuery.data.passkeys} />
+          )}
+          {meQuery.data && !authDisabled && <AdminAccounts />}
           <TransportStatus />
           <TransportStatus target="subscription" />
 
@@ -342,15 +352,11 @@ export function SettingsPage() {
         <div className="flex min-w-0 flex-col gap-4">
           <InterfacePreferences />
           <BrandingSettings />
-          <LinkSettings />
+          {meQuery.data && !authDisabled && <PanelConfigSettingsCard />}
         </div>
       </div>
 
-      <div id="storage" className="scroll-mt-24">
-        <StorageSettings />
-      </div>
       <GeoIPSettings />
-      <GeographySettings />
 
       {sessionSheetOpen && (
         <SessionSheet
@@ -401,6 +407,7 @@ export function SettingsPage() {
           onConfirm={() => logout.mutate({})}
         />
       </Sheet>
-    </ServerShell>
+      </div>
+    </div>
   );
 }

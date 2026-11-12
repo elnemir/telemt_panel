@@ -1,7 +1,7 @@
 import { useState, type FormEvent } from "react";
 import { createFileRoute, useRouter } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { getAuthMethodsOptions, loginMutation } from "../lib/api/generated/@tanstack/react-query.gen";
+import { getAuthMethodsOptions, listAdminAccountsQueryKey, listSessionsInfiniteQueryKey, listSessionsQueryKey, loginMutation } from "../lib/api/generated/@tanstack/react-query.gen";
 import type { LoginError } from "../lib/api/generated/types.gen";
 import { webauthnLoginBegin, webauthnLoginFinish } from "../lib/api/generated/sdk.gen";
 import { getMeQueryKey, redirectIfAuthenticated } from "../auth/guards";
@@ -45,14 +45,18 @@ function LoginPage() {
   const [formError, setFormError] = useState<string | null>(null);
   const methodsQuery = useQuery({ ...getAuthMethodsOptions(), staleTime: 30_000, retry: false });
 
+  async function afterLogin() {
+    queryClient.removeQueries({ queryKey: listAdminAccountsQueryKey() });
+    queryClient.removeQueries({ queryKey: listSessionsQueryKey() });
+    queryClient.removeQueries({ queryKey: listSessionsInfiniteQueryKey() });
+    await queryClient.invalidateQueries({ queryKey: getMeQueryKey() });
+    // The redirect comes from a URL search parameter. Validate it before navigating.
+    await router.navigate({ href: safeRedirectTarget(redirect) });
+  }
+
   const mutation = useMutation({
     ...loginMutation(),
-    onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: getMeQueryKey() });
-      // redirect came off the wire (a URL search param) — never navigate to
-      // it raw, see auth/safeRedirect.ts.
-      await router.navigate({ href: safeRedirectTarget(redirect) });
-    },
+    onSuccess: afterLogin,
     onError: (err: LoginError) => {
       setFormError(loginErrorMessage(err, s));
     },
@@ -73,10 +77,7 @@ function LoginPage() {
         throwOnError: true,
       });
     },
-    onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: getMeQueryKey() });
-      await router.navigate({ href: safeRedirectTarget(redirect) });
-    },
+    onSuccess: afterLogin,
     onError: (error) => {
       if (error instanceof DOMException && error.name === "NotAllowedError") {
         setFormError(s.auth.passkeyCancelled);

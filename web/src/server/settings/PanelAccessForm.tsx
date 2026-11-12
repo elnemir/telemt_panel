@@ -22,6 +22,7 @@ import { Button } from "../../ui/Button";
 import { Input } from "../../ui/Input";
 import { Sheet } from "../../ui/Sheet";
 import { Skeleton } from "../../ui/Skeleton";
+import { SettingsField } from "../../ui/SettingsField";
 import {
   buildPanelTlsPrepareBody,
   createPanelAccessDraft,
@@ -118,24 +119,49 @@ export function PanelAccessForm({ onClose, target = "panel" }: PanelAccessFormPr
     return warnings;
   }, [activePort, copy.acmePort80, copy.firewallWarning, copy.publicBindWarning, draft, settings]);
 
-  const validationError = useMemo(() => {
-    if (!draft) return undefined;
+  const [checked, setChecked] = useState(false);
+  const validation = useMemo(() => {
+    const errors: Partial<Record<keyof PanelAccessDraft, string>> = {};
+    if (!draft) return errors;
     const port = Number(draft.port);
-    if (subscription && draft.enabled && draft.mode === "proxy" && !draft.publicURL?.trim()) return endpoint.proxyURL;
-    if (subscription && !splitAccessURL(draft.publicURL ?? "", draft.basePath ?? "").basePath.replace(/\//g, "")) return endpoint.pathRequired;
+    const basePath = splitAccessURL(draft.publicURL ?? "", draft.basePath ?? "").basePath.replace(/\/+$/, "");
+    if (subscription && !basePath.replace(/\//g, "")) errors.basePath = endpoint.pathRequired;
+    else if (basePath && (!/^[A-Za-z0-9._~/-]+$/.test(basePath) ||
+      basePath.replace(/^\//, "").split("/").some((part) => !part || part === "." || part === ".."))) {
+      errors.basePath = copy.fieldLimits.invalidPath;
+    }
+    if (subscription && draft.enabled && draft.mode === "proxy" && !draft.publicURL?.trim()) errors.publicURL = endpoint.proxyURL;
     if (draft.publicURL) {
       try {
         const url = new URL(draft.publicURL);
-        if (!["https:", "http:"].includes(url.protocol) || url.username || url.password || url.search || url.hash) return endpoint.invalidURL;
-        if (draft.mode === "proxy" && url.protocol !== "https:") return endpoint.proxyURL;
-      } catch { return endpoint.invalidURL; }
+        if (!["https:", "http:"].includes(url.protocol) || url.username || url.password || url.search || url.hash || url.port === "0") {
+          errors.publicURL = endpoint.invalidURL;
+        } else if (draft.mode === "proxy" && url.protocol !== "https:") {
+          errors.publicURL = endpoint.proxyURL;
+        }
+      } catch { errors.publicURL = endpoint.invalidURL; }
     }
-    if (!draft.host.trim() || !Number.isInteger(port) || port < 1 || port > 65535) return copy.validation.listen;
-    if (draft.mode === "acme" && !draft.domain.trim()) return copy.validation.domain;
-    if (draft.mode === "certificate" && (!draft.certFile.trim() || !draft.keyFile.trim())) return copy.validation.certificate;
-    if (requiresHttpConfirmation && !draft.httpConfirmed) return copy.validation.httpConfirmation;
-    return undefined;
-  }, [copy.validation, draft, requiresHttpConfirmation, endpoint.invalidURL, endpoint.pathRequired, endpoint.proxyURL, subscription]);
+    if (!draft.host.trim()) errors.host = copy.validation.listen;
+    if (!/^\d+$/.test(draft.port) || !Number.isInteger(port) || port < 1 || port > 65535 || (draft.mode === "acme" && port === 80)) {
+      errors.port = copy.fieldLimits.port;
+    }
+    if (draft.mode === "acme") {
+      const domain = draft.domain.trim().replace(/\.$/, "");
+      if (!domain) errors.domain = copy.validation.domain;
+      else if (domain.length > 253 || !domain.includes(".") || /^\d+(?:\.\d+){3}$/.test(domain) ||
+        domain.split(".").some((part) => !/^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/i.test(part))) {
+        errors.domain = copy.fieldLimits.invalidDomain;
+      }
+    }
+    if (draft.mode === "certificate") {
+      if (!draft.certFile.trim()) errors.certFile = copy.validation.certificate;
+      if (!draft.keyFile.trim()) errors.keyFile = copy.validation.certificate;
+    }
+    if (requiresHttpConfirmation && !draft.httpConfirmed) errors.httpConfirmed = copy.validation.httpConfirmation;
+    return errors;
+  }, [copy.fieldLimits, copy.validation, draft, requiresHttpConfirmation, endpoint.invalidURL, endpoint.pathRequired, endpoint.proxyURL, subscription]);
+
+  const fieldError = (key: keyof PanelAccessDraft) => checked ? validation[key] : undefined;
 
   function edit(change: Partial<PanelAccessDraft>) {
     setDraft((current) => current || draft ? { ...(current ?? draft!), ...change } : null);
@@ -144,6 +170,7 @@ export function PanelAccessForm({ onClose, target = "panel" }: PanelAccessFormPr
   }
 
   function selectMode(mode: PanelAccessMode) {
+    setChecked(false);
     setDraft((current) => {
       current ??= draft;
       if (!current) return null;
@@ -161,10 +188,8 @@ export function PanelAccessForm({ onClose, target = "panel" }: PanelAccessFormPr
   async function onPrepare(event: FormEvent) {
     event.preventDefault();
     if (preparation.current) return;
-    if (!draft || validationError) {
-      setFormError({ summary: validationError ?? copy.validation.listen });
-      return;
-    }
+    setChecked(true);
+    if (!draft || Object.keys(validation).length) return;
     setFormError(null);
     const controller = new AbortController();
     preparation.current = controller;
@@ -262,10 +287,15 @@ export function PanelAccessForm({ onClose, target = "panel" }: PanelAccessFormPr
               <fieldset disabled={prepare.isPending} className="min-w-0 space-y-4">
               {subscription && <label className="flex min-h-11 items-center gap-3 rounded-xl bg-surface-2 p-3 text-sm font-semibold"><input type="checkbox" checked={draft.enabled ?? false} onChange={(event) => edit({ enabled: event.target.checked })} className="h-5 w-5 accent-accent" />{endpoint.enable}</label>}
               <div className="space-y-3 rounded-xl border border-border p-3">
-                <label className="block text-sm font-medium">{endpoint.publicURL}<Input className="mt-1.5" value={draft.publicURL ?? ""} placeholder={subscription ? "https://links.example.com/access-7k2/" : "https://admin.example.com/admin-9r4/"} autoCapitalize="none" autoCorrect="off" onChange={(event) => edit({ publicURL: event.target.value })} onBlur={() => {
-                  edit(splitAccessURL(draft.publicURL ?? "", draft.basePath ?? ""));
-                }} /></label>
-                <label className="block text-sm font-medium">{endpoint.path}<Input className="mt-1.5" value={draft.basePath ?? ""} placeholder={subscription ? "/sub" : "/admin-9r4"} autoCapitalize="none" autoCorrect="off" onChange={(event) => edit({ basePath: event.target.value })} /></label>
+                <SettingsField label={endpoint.publicURL} limits={copy.fieldLimits.url} error={fieldError("publicURL")}>
+                  {(attrs) => <Input {...attrs} value={draft.publicURL ?? ""} placeholder={subscription ? "https://links.example.com/access-7k2/" : "https://admin.example.com/admin-9r4/"}
+                    autoCapitalize="none" autoCorrect="off" onChange={(event) => edit({ publicURL: event.target.value })}
+                    onBlur={() => edit(splitAccessURL(draft.publicURL ?? "", draft.basePath ?? ""))} />}
+                </SettingsField>
+                <SettingsField label={endpoint.path} limits={copy.fieldLimits.path} error={fieldError("basePath")}>
+                  {(attrs) => <Input {...attrs} value={draft.basePath ?? ""} placeholder={subscription ? "/sub" : "/admin-9r4"} autoCapitalize="none" autoCorrect="off"
+                    onChange={(event) => edit({ basePath: event.target.value })} />}
+                </SettingsField>
                 <p className="text-xs leading-relaxed text-text-muted">{endpoint.addressNote}</p>
               </div>
               <fieldset className="space-y-2">
@@ -282,19 +312,36 @@ export function PanelAccessForm({ onClose, target = "panel" }: PanelAccessFormPr
               </fieldset>
 
               <div className="space-y-3 rounded-xl border border-border p-3">
-                {draft.mode === "acme" && <label className="block text-sm font-medium text-text">{copy.domain}<Input className="mt-1.5" value={draft.domain} onChange={(event) => edit({ domain: event.target.value })} placeholder="panel.example.com" autoCapitalize="none" autoCorrect="off" required /></label>}
-                <label className="block text-sm font-medium text-text">{copy.port}<Input className="mt-1.5" value={draft.port} onChange={(event) => edit({ port: event.target.value })} inputMode="numeric" pattern="[0-9]*" required /></label>
+                {draft.mode === "acme" && <SettingsField label={copy.domain} limits={copy.fieldLimits.domain} error={fieldError("domain")}>
+                  {(attrs) => <Input {...attrs} value={draft.domain} onChange={(event) => edit({ domain: event.target.value })}
+                    placeholder="panel.example.com" autoCapitalize="none" autoCorrect="off" required />}
+                </SettingsField>}
+                <SettingsField label={copy.port} limits={copy.fieldLimits.port} error={fieldError("port")}>
+                  {(attrs) => <Input {...attrs} value={draft.port} onChange={(event) => edit({ port: event.target.value })}
+                    type="number" inputMode="numeric" min={1} max={65535} step={1} required />}
+                </SettingsField>
                 {draft.mode === "certificate" && (
                   <div className="space-y-3">
-                    <label className="block text-sm font-medium text-text">{copy.certPath}<Input className="mt-1.5" monospace value={draft.certFile} onChange={(event) => edit({ certFile: event.target.value })} placeholder="/etc/ssl/panel/fullchain.pem" required /></label>
-                    <label className="block text-sm font-medium text-text">{copy.keyPath}<Input className="mt-1.5" monospace value={draft.keyFile} onChange={(event) => edit({ keyFile: event.target.value })} placeholder="/etc/ssl/panel/privkey.pem" required /></label>
+                    <SettingsField label={copy.certPath} limits={copy.fieldLimits.pem} error={fieldError("certFile")}>
+                      {(attrs) => <Input {...attrs} monospace value={draft.certFile} onChange={(event) => edit({ certFile: event.target.value })}
+                        placeholder="/etc/ssl/panel/fullchain.pem" required />}
+                    </SettingsField>
+                    <SettingsField label={copy.keyPath} limits={copy.fieldLimits.pem} error={fieldError("keyFile")}>
+                      {(attrs) => <Input {...attrs} monospace value={draft.keyFile} onChange={(event) => edit({ keyFile: event.target.value })}
+                        placeholder="/etc/ssl/panel/privkey.pem" required />}
+                    </SettingsField>
                   </div>
                 )}
                 <details className="rounded-lg bg-surface-2 px-3 py-2">
                   <summary className="min-h-11 cursor-pointer py-3 text-sm font-semibold text-text">{copy.advanced}</summary>
                   <div className="space-y-3 pb-2">
-                    <label className="block text-sm font-medium text-text">{copy.listenHost}<Input className="mt-1.5" monospace value={draft.host} onChange={(event) => edit({ host: event.target.value })} required /></label>
-                    {draft.mode === "acme" && <label className="block text-sm font-medium text-text">{copy.cachePath}<Input className="mt-1.5" monospace value={draft.cacheDir} onChange={(event) => edit({ cacheDir: event.target.value })} /></label>}
+                    <SettingsField label={copy.listenHost} limits={copy.fieldLimits.host} error={fieldError("host")}>
+                      {(attrs) => <Input {...attrs} monospace value={draft.host} onChange={(event) => edit({ host: event.target.value })} required />}
+                    </SettingsField>
+                    {draft.mode === "acme" && <SettingsField label={copy.cachePath} limits={copy.fieldLimits.cache}>
+                      {(attrs) => <Input {...attrs} monospace value={draft.cacheDir} onChange={(event) => edit({ cacheDir: event.target.value })} />}
+                    </SettingsField>}
+
                   </div>
                 </details>
               </div>
@@ -302,6 +349,7 @@ export function PanelAccessForm({ onClose, target = "panel" }: PanelAccessFormPr
               {networkWarnings.length > 0 && <section className="rounded-xl border border-warning/30 bg-warning/8 px-3 py-2.5 text-sm text-warning-text" data-network-warnings><h3 className="font-semibold text-text">{copy.networkWarnings}</h3><ul className="mt-1.5 space-y-1">{networkWarnings.map((warning) => <li key={warning}>• {warning}</li>)}</ul></section>}
               {draft.mode === "acme" && <div className="rounded-xl border border-accent/20 bg-accent/8 px-3 py-2.5 text-sm text-text-muted"><p>{copy.acmeActionNotice}</p><a className="mt-2 inline-block font-semibold text-accent underline underline-offset-2" href="https://letsencrypt.org/repository/" target="_blank" rel="noreferrer">{copy.acmeTerms}</a></div>}
               {requiresHttpConfirmation && <label className="flex min-h-11 items-start gap-3 rounded-xl border border-warning/30 bg-warning/8 px-3 py-2.5 text-sm text-warning-text"><input type="checkbox" className="mt-0.5 h-5 w-5 shrink-0 accent-accent" checked={draft.httpConfirmed} onChange={(event) => edit({ httpConfirmed: event.target.checked })} /><span>{subscription ? endpoint.httpWarning : copy.httpConfirmation}</span></label>}
+              {fieldError("httpConfirmed") && <p role="alert" className="text-sm text-error">{fieldError("httpConfirmed")}</p>}
               {draft.mode === "proxy" && <p className="rounded-xl bg-surface-2 px-3 py-2.5 text-sm text-text-muted">{copy.proxyConfigurationNote}</p>}
               {(draft.mode === "acme" || draft.mode === "certificate") && isLoopbackHost(draft.host) && <p className="rounded-xl bg-surface-2 px-3 py-2.5 text-sm text-text-muted">{copy.loopbackHttpsNote}</p>}
               {formError && <FormErrorBlock error={formError} />}

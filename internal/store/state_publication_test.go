@@ -150,3 +150,59 @@ func TestCompositePublishedImportFailureRetainsVisibleHistory(t *testing.T) {
 		t.Fatalf("imported history rolled back after state became visible: %+v error=%v", points, err)
 	}
 }
+
+func TestAdminPasswordAndRevocationsSharePublication(t *testing.T) {
+	for _, tc := range []struct {
+		name    string
+		publish bool
+	}{
+		{"failure before rename", false},
+		{"failure after rename", true},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			path := filepath.Join(t.TempDir(), "state.json")
+			state, err := NewState(path)
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer state.Close()
+			if err := state.CreateAdmin("managed", "original-hash"); err != nil {
+				t.Fatal(err)
+			}
+			if err := state.PutSession(Session{IDHash: "managed-session", Username: "managed"}); err != nil {
+				t.Fatal(err)
+			}
+			cause := errors.New("injected write failure")
+			state.publishState = func(dest string, mode os.FileMode, write func(io.Writer) error) (bool, error) {
+				if !tc.publish {
+					return false, cause
+				}
+				if _, err := atomicfile.Write(dest, mode, write); err != nil {
+					return false, err
+				}
+				return true, cause
+			}
+			removed, err := state.ChangeAdminPassword("managed", "owner", "rotated-hash")
+			if !errors.Is(err, cause) || (len(removed) == 1) != tc.publish {
+				t.Fatalf("removed=%v error=%v", removed, err)
+			}
+			reopened, err := NewState(path)
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer reopened.Close()
+			wantHash := "original-hash"
+			if tc.publish {
+				wantHash = "rotated-hash"
+			}
+			for _, source := range []*Memory{state, reopened} {
+				if source.AdminPassword("managed", "owner", "") != wantHash {
+					t.Fatal("unexpected password state")
+				}
+				if _, exists, err := source.GetSession("managed-session"); err != nil || exists == tc.publish {
+					t.Fatal("password and session states diverged")
+				}
+			}
+		})
+	}
+}

@@ -13,7 +13,7 @@ export type AuditFamily = "session" | "person" | "removal" | "config" | "update"
 // (a newer backend adding "user.something") still lands in a sensible
 // family instead of the generic fallback.
 export function auditActionFamily(action: string): AuditFamily {
-  if (action === "user.delete") return "removal";
+  if (action === "user.delete" || action === "admin.delete") return "removal";
   if (action === "login" || action === "login.failed" || action === "logout") return "session";
 
   const domain = action.split(".")[0];
@@ -22,6 +22,7 @@ export function auditActionFamily(action: string): AuditFamily {
     case "quota":
     case "traffic":
       return "person";
+    case "admin":
     case "secret":
     case "sublink":
     case "web":

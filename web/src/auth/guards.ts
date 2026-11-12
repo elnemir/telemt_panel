@@ -12,14 +12,8 @@ export { getMeQueryKey };
 // session model — RequireSession's 401 dropped straight to the client, no
 // separate "checking session" screen in between).
 //
-// currentPath must be a same-app path+search (pathname + search string),
-// NEVER a full href — it round-trips through the `redirect` search param
-// and back out through safeRedirectTarget on the other end (login.tsx /
-// redirectIfAuthenticated below); storing a full href here would still be
-// safe on its own, but every caller is expected to pass a path (see
-// _authed.tsx: `location.pathname + location.searchStr`), and running it
-// through safeRedirectTarget here too is one more layer of defense in
-// depth against a caller getting that wrong.
+// currentPath is a same-app path with optional search and anchor. Validate it
+// before putting it in the login URL and again before navigating back.
 export async function requireAuth(queryClient: QueryClient, currentPath: string): Promise<void> {
   try {
     await queryClient.ensureQueryData(getMeOptions());

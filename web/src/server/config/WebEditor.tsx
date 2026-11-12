@@ -2,7 +2,7 @@ import { useState, type ReactNode } from "react";
 import {withBasePath} from "../../lib/base-path";
 import {isWebBasePath} from "../../people/connectionLinks";
 import type { TelemtConfigField } from "../../lib/api/generated/types.gen";
-import { useStrings } from "../../i18n";
+import { useStrings, type Dict } from "../../i18n";
 import { cn } from "../../lib/cn";
 import { Input } from "../../ui/Input";
 import { Select } from "../../ui/Select";
@@ -13,6 +13,7 @@ import { configFieldDescription, configFieldLabel } from "./configFieldPresentat
 import { RouteChoice, SectionHeading, AddRecordButton, RecordListEmpty, RecordIconButton } from "./ConfigEditorControls";
 import { GenericFields, ConfigFieldRow } from "./ConfigFieldControls";
 import { asRecordArray } from "./configRecords";
+import { isConfigHostname, isConfigIPAddress, isConfigSocketAddress } from "./configInputValidation";
 
 const WEB_CARRIERS = ["https", "https-lanes", "websocket", "websocket-lanes"] as const;
 
@@ -292,14 +293,21 @@ function WebVhostFields({ fieldsByPath, sections, vhostIndex, vhost, profiles, a
     const field = fieldsByPath.get(catalogPath);
     if (!field) return null;
     const label = configFieldLabel(field, labels);
+    const value = String(getConfigValue(sections, concretePath) ?? "");
+    const hint = webFieldLimit(catalogPath, copy);
+    const errorID = `web-vhost-${vhostIndex}-${concretePath.split(".").at(-1)}-error`;
+    const invalid = value !== "" && !validWebField(catalogPath, value, getConfigValue(sections, "web.allow_wildcard_hosts") === true);
     return (
       <div key={concretePath} className="grid min-h-[74px] gap-2 border-b border-border/75 py-3.5 sm:grid-cols-[minmax(180px,1fr)_minmax(170px,225px)] sm:items-center sm:gap-4">
         <div className="min-w-0">
           <strong className="text-sm font-semibold text-text">{label}</strong>
-          <p className="mt-1 text-meta leading-relaxed text-text-muted">{catalogPath==="web.vhosts[].base_path"?copy.webBasePathHint:advanced ? configFieldDescription(field, { restart: copy.applyRestart, conditional: copy.applyConditional, reload: copy.applyReload }) : `${copy.currentValue} · ${field.data_type}`}</p>
+          <p id={errorID} className={cn("mt-1 text-meta leading-relaxed", invalid ? "text-error" : "text-text-muted")}>
+            {hint ?? (advanced ? configFieldDescription(field, { restart: copy.applyRestart, conditional: copy.applyConditional, reload: copy.applyReload }) : `${copy.currentValue} · ${field.data_type}`)}
+          </p>
           {advanced && <code className="mt-1 block break-all font-mono text-micro text-accent/80">{concretePath}</code>}
         </div>
-        <Input value={String(getConfigValue(sections, concretePath) ?? "")} placeholder={placeholder} autoCapitalize="off" spellCheck={false} aria-label={label} onChange={(event) => onChange(setConfigValue(sections, concretePath, event.target.value))} />
+        <Input value={value} placeholder={placeholder} autoCapitalize="off" spellCheck={false} aria-label={label}
+          aria-describedby={errorID} aria-invalid={invalid} onChange={(event) => onChange(setConfigValue(sections, concretePath, event.target.value))} />
       </div>
     );
   };
@@ -441,4 +449,47 @@ function newWebVhost(): Record<string, unknown> {
     },
     profiles: [],
   };
+}
+
+
+function webFieldLimit(path: string, copy: Dict["server"]["config"]["catalog"]): string | undefined {
+  switch (path) {
+    case "web.vhosts[].host": return copy.webHostLimit;
+    case "web.vhosts[].base_path": return copy.webBasePathHint;
+    case "web.vhosts[].public_addr": return copy.webPublicAddressLimit;
+    case "web.vhosts[].decoy.upstream": return copy.webOriginLimit;
+    case "web.vhosts[].decoy.directory": return copy.webDirectoryLimit;
+    case "web.vhosts[].decoy.index": return copy.webIndexLimit;
+    default: return undefined;
+  }
+}
+
+function validWebField(path: string, value: string, allowWildcard: boolean): boolean {
+  switch (path) {
+    case "web.vhosts[].host": {
+      const host = value.trim();
+      if (allowWildcard && host === "*") return true;
+      const input = allowWildcard && host.startsWith("*.") ? host.slice(2) : host;
+      if (!input.includes(".") || /[:/?#@\\]/.test(input) || input.endsWith(".")) return false;
+      try {
+        const normalized = new URL(`http://${input}/`).hostname;
+        return isConfigHostname(normalized) && !isConfigIPAddress(normalized);
+      } catch { return false; }
+    }
+    case "web.vhosts[].base_path":
+      return isWebBasePath(value);
+    case "web.vhosts[].public_addr":
+      return isConfigSocketAddress(value) && /:0*443$/.test(value);
+    case "web.vhosts[].decoy.upstream":
+      try {
+        const url = new URL(value);
+        return /^http:\/\/[^/?#\s]+\/?$/i.test(value) && !url.username && !url.password && url.port !== "0";
+      } catch { return false; }
+    case "web.vhosts[].decoy.directory":
+      return value.startsWith("/");
+    case "web.vhosts[].decoy.index":
+      return value !== "." && value !== ".." && !value.includes("/") && !value.includes("\\");
+    default:
+      return true;
+  }
 }

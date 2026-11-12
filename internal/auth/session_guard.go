@@ -39,24 +39,35 @@ func (g *SessionGuard) cancelLocked(hash string) {
 }
 
 func (g *SessionGuard) checkLocked(hash string) error {
+	_, err := g.activeLocked(hash)
+	return err
+}
+
+func (g *SessionGuard) Active(hash string) (store.Session, error) {
+	g.mu.Lock()
+	defer g.mu.Unlock()
+	return g.activeLocked(hash)
+}
+
+func (g *SessionGuard) activeLocked(hash string) (store.Session, error) {
 	if g.closed {
-		return ErrSessionExpired
+		return store.Session{}, ErrSessionExpired
 	}
 	session, ok, err := g.st.GetSession(hash)
 	if err != nil {
-		return err
+		return store.Session{}, err
 	}
 	if !ok {
 		g.cancelLocked(hash)
-		return ErrSessionExpired
+		return store.Session{}, ErrSessionExpired
 	}
 	if SessionExpired(g.now().Sub(session.LastSeen), g.ttl()) {
 		// Expiry itself denies access even if opportunistic deletion fails.
 		_ = g.st.DeleteSession(hash)
 		g.cancelLocked(hash)
-		return ErrSessionExpired
+		return store.Session{}, ErrSessionExpired
 	}
-	return nil
+	return session, nil
 }
 
 // Check validates current durable state and TTL without extending LastSeen.
@@ -114,29 +125,27 @@ func (g *SessionGuard) Revoke(hash string) error {
 	return nil
 }
 
-// RevokeOthers deletes and cancels other sessions under the registration lock.
-// A new valid session registered after deletion remains valid.
+// RevokeOthers revokes only sessions belonging to the caller's administrator.
 func (g *SessionGuard) RevokeOthers(keep string) error {
+	return g.ApplyAdminChange(keep, func(session store.Session) ([]string, error) {
+		return g.st.DeleteAdminSessions(session.Username, keep)
+	})
+}
+
+// ApplyAdminChange checks the actor and cancels sessions removed by the same
+// durable account change. The store returns IDs even on post-publication errors.
+func (g *SessionGuard) ApplyAdminChange(actor string, change func(store.Session) ([]string, error)) error {
 	g.mu.Lock()
 	defer g.mu.Unlock()
-	if err := g.st.DeleteOtherSessions(keep); err != nil {
+	session, err := g.activeLocked(actor)
+	if err != nil {
 		return err
 	}
-	for hash := range g.streams {
-		if hash == keep {
-			continue
-		}
-		// Login can create a new session while durable deletion completes.
-		// Cancel only hashes no longer present in the confirmed store state.
-		_, ok, err := g.st.GetSession(hash)
-		if err != nil {
-			return err
-		}
-		if !ok {
-			g.cancelLocked(hash)
-		}
+	removed, err := change(session)
+	for _, hash := range removed {
+		g.cancelLocked(hash)
 	}
-	return nil
+	return err
 }
 
 // Close stops registration and cancels all streams. It is idempotent.

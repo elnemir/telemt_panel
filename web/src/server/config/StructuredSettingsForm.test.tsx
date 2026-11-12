@@ -169,9 +169,9 @@ describe("StructuredSettingsForm record editors", () => {
     act(() => root.render(<StructuredSettingsForm catalog={catalog("tls", fields)} sections={sections} mode="normal" onChange={() => {}} />));
 
     const s = getStrings().server.config.catalog;
-    expect(container.querySelectorAll(`input[aria-label^="${s.tlsDomain} "]`)).toHaveLength(3);
-    expect(container.querySelectorAll(`input[aria-label^="${s.sniDomain} "]`)).toHaveLength(3);
-    expect(container.querySelectorAll(`input[aria-label^="${s.maskTarget} "]`)).toHaveLength(3);
+    const inputLabels = [...container.querySelectorAll("input")].map((input) => input.labels?.[0]?.textContent);
+    expect(inputLabels.filter((label) => label?.startsWith(s.tlsDomain))).toHaveLength(3);
+    expect(inputLabels).toEqual(expect.arrayContaining(["one.example", "two.example", "three.example", s.sniKey, s.mapAddress]));
     expect(container.querySelector("textarea")).toBeNull();
   });
 

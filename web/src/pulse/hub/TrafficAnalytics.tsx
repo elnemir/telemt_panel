@@ -85,7 +85,7 @@ function TrafficReport({ report, monthBytes }: { report: TrafficSummary; monthBy
           <h3 className="text-[14px] font-semibold text-text">{s.hub.userTraffic.historyDisabled}</h3>
           <p className="mt-1 max-w-2xl text-[13px] leading-relaxed text-text-muted">{s.hub.userTraffic.historyDisabledHint}</p>
           <Link
-            to="/server/settings"
+            to="/server/node-settings"
             hash="storage"
             className="mt-3 inline-flex min-h-11 items-center justify-center rounded-lg bg-accent/10 px-3 text-[13px] font-semibold text-accent transition-colors hover:bg-accent/20 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
           >

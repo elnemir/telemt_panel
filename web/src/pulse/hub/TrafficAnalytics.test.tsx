@@ -98,7 +98,7 @@ describe("TrafficAnalytics", () => {
     expect(view.textContent).toContain("Накопительный учёт работает");
     expect(view.textContent).toContain("История трафика отключена");
     expect(view.textContent).toContain("История начнёт накапливаться после включения");
-    expect(view.querySelector('a[href="/server/settings#storage"]')?.textContent).toBe("Настроить хранение");
+    expect(view.querySelector('a[href="/server/node-settings#storage"]')?.textContent).toBe("Настроить хранение");
     expect(view.querySelector('[role="group"]')).toBeNull();
     expect(view.querySelector("svg")).toBeNull();
     expect(view.textContent).not.toContain("Сегодня (UTC)");
@@ -161,6 +161,6 @@ describe("TrafficAnalytics", () => {
     const { view } = await renderAnalytics(disabledReports());
     expect(view.textContent).toContain("Traffic history is disabled");
     expect(view.textContent).toContain("Cumulative tracking is active");
-    expect(view.querySelector('a[href="/server/settings#storage"]')?.textContent).toBe("Storage settings");
+    expect(view.querySelector('a[href="/server/node-settings#storage"]')?.textContent).toBe("Storage settings");
   });
 });

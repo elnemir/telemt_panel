@@ -69,7 +69,7 @@ export function SublinkPanel({ username, compact = false }: SublinkPanelProps) {
   }
 
   if (!query.data.enabled) {
-    return <div className="space-y-3"><p className="text-meta text-text-muted">{s.people.share.unavailableModule}</p><Link to="/server/settings" className="inline-flex min-h-11 items-center rounded-lg bg-surface-2 px-3 text-sm font-semibold text-accent">{s.server.settings.transport.configure}</Link></div>;
+    return <div className="space-y-3"><p className="text-meta text-text-muted">{s.people.share.unavailableModule}</p><Link to="/panel" className="inline-flex min-h-11 items-center rounded-lg bg-surface-2 px-3 text-sm font-semibold text-accent">{s.server.settings.transport.configure}</Link></div>;
   }
 
   if (confirming) {

@@ -66,7 +66,11 @@ func (s *Server) handleLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if !auth.VerifyCredentials(s.cfg.Auth.Username, s.cfg.Auth.PasswordHash, req.Username, req.Password) {
+	hash := s.adminPassword(req.Username)
+	verified := auth.VerifyAccountPassword(hash, req.Password)
+	s.adminMu.Lock()
+	defer s.adminMu.Unlock()
+	if !verified || hash != s.adminPassword(req.Username) {
 		finish(true)
 		s.appendAudit(r, "login.failed", truncateAuditSubject(req.Username), "ip="+ip)
 		auth.WriteError(w, http.StatusUnauthorized, "invalid_credentials", "invalid username or password")
@@ -74,7 +78,7 @@ func (s *Server) handleLogin(w http.ResponseWriter, r *http.Request) {
 	}
 	finish(false)
 
-	if err := s.createAuthenticatedSession(w, r, "password"); err != nil {
+	if err := s.createAuthenticatedSession(w, r, req.Username, "password"); err != nil {
 		slog.Error("login: create session", "err", err)
 		auth.WriteError(w, http.StatusInternalServerError, "internal_error", "could not create session")
 		return
@@ -112,9 +116,10 @@ type passkeyInfo struct {
 
 // meResponse mirrors the /api/auth/me 200 response.
 type meResponse struct {
-	AuthDisabled bool          `json:"auth_disabled"`
-	Username     string        `json:"username"`
-	Passkeys     []passkeyInfo `json:"passkeys"`
+	AuthDisabled      bool          `json:"auth_disabled"`
+	Username          string        `json:"username"`
+	Passkeys          []passkeyInfo `json:"passkeys"`
+	PasskeyManagement *bool         `json:"passkey_management,omitempty"`
 }
 
 // handleMe implements GET /api/auth/me.
@@ -124,6 +129,11 @@ func (s *Server) handleMe(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	username, _ := auth.UsernameFromContext(r.Context())
+	if username != s.cfg.Auth.Username {
+		passkeyManagement := false
+		writeJSON(w, http.StatusOK, meResponse{Username: username, Passkeys: []passkeyInfo{}, PasskeyManagement: &passkeyManagement})
+		return
+	}
 	credentials, err := s.st.ListWebAuthnCredentials()
 	if err != nil {
 		slog.Error("me: list WebAuthn credentials", "err", err)
@@ -194,6 +204,7 @@ func decodeSessionCursor(cursor string) (int, error) {
 // expired on use never shows up as a live device in the list.
 func (s *Server) handleListSessions(w http.ResponseWriter, r *http.Request) {
 	current, _ := auth.SessionIDHashFromContext(r.Context())
+	owner := s.sessionUsername(r)
 	limit := defaultSessionPageSize
 	if raw := r.URL.Query().Get("limit"); raw != "" {
 		parsed, err := strconv.Atoi(raw)
@@ -229,6 +240,9 @@ func (s *Server) handleListSessions(w http.ResponseWriter, r *http.Request) {
 	ttl := s.cfg.Auth.SessionTTLDuration()
 	active := make([]store.Session, 0, len(sessions))
 	for _, sess := range sessions {
+		if sess.Username != owner {
+			continue
+		}
 		if auth.SessionExpired(now.Sub(sess.LastSeen), ttl) {
 			if err := s.sessions.Revoke(sess.IDHash); err != nil {
 				slog.Error("list sessions: delete expired", "err", err)
@@ -309,13 +323,13 @@ func (s *Server) handleRevokeOtherSessions(w http.ResponseWriter, r *http.Reques
 func (s *Server) handleRevokeSession(w http.ResponseWriter, r *http.Request) {
 	sessionID := r.PathValue("sessionId")
 
-	_, ok, err := s.st.GetSession(sessionID)
+	session, ok, err := s.st.GetSession(sessionID)
 	if err != nil {
 		slog.Error("revoke session: lookup", "err", err)
 		auth.WriteError(w, http.StatusInternalServerError, "internal_error", "could not revoke session")
 		return
 	}
-	if !ok {
+	if !ok || session.Username != s.sessionUsername(r) {
 		auth.WriteError(w, http.StatusNotFound, "not_found", "session not found")
 		return
 	}

@@ -29,6 +29,8 @@ type Info struct {
 // SHA-256 of the opaque session token. Hashing happens in internal/auth,
 // not here; the store only ever sees the hash.
 type Session struct {
+	// Empty identifies the configuration-owned administrator.
+	Username       string `json:"Username,omitempty"`
 	IDHash         string
 	Created        time.Time
 	LastSeen       time.Time

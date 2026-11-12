@@ -2,10 +2,8 @@ import type { ComponentType, ReactNode } from "react";
 import { PageHeader } from "../ui/PageHeader";
 import { Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { fill, useLocale, useStrings, type Dict } from "../i18n";
-import { countLabel, formatNumber, plural } from "../i18n/plural";
-import { useDisplayMode } from "../display-mode";
-import { useTheme } from "../lib/useTheme";
+import { fill, useStrings, type Dict } from "../i18n";
+import { countLabel, formatNumber } from "../i18n/plural";
 import { useSnapshot } from "../realtime";
 import type { RuntimeTopic, SecurityTopic } from "../realtime/topics";
 import type { TopicSnapshot } from "../realtime/types";
@@ -15,7 +13,6 @@ import {
   getTelemtConfigOptions,
   getTelemtInfoOptions,
   getUpdatesOptions,
-  listSessionsOptions,
 } from "../lib/api/generated/@tanstack/react-query.gen";
 import {
   IconChevronRight,
@@ -43,28 +40,22 @@ type CardTone = "blue" | "green" | "amber" | "neutral" | "violet";
 
 export function ServerMenu() {
   const s = useStrings();
-  const locale = useLocale();
-  const { mode } = useDisplayMode();
-  const [theme] = useTheme();
   const infoQuery = useQuery(getTelemtInfoOptions());
   const configQuery = useQuery(getTelemtConfigOptions());
   const updatesQuery = useQuery(getUpdatesOptions());
   const autoUpdateQuery = useQuery(getAutoUpdateOptions());
   const hostQuery = useQuery(getHostOptions());
-  const sessionsQuery = useQuery(listSessionsOptions({ query: { limit: 1 } }));
   const security = useSnapshot<SecurityTopic>("security");
   const runtime = useSnapshot<RuntimeTopic>("runtime");
 
   const hub = s.server.hub;
   const targets = updatesQuery.data?.targets;
   const telemtTarget = targets?.find((target) => target.target === "telemt");
-  const panelTarget = targets?.find((target) => target.target === "panel");
   const telemtRelease = newestAvailableRelease(telemtTarget);
-  const panelRelease = newestAvailableRelease(panelTarget);
-  const activeRun = activeUpdateRun(targets);
+  const activeRun = activeUpdateRun(telemtTarget ? [telemtTarget] : undefined);
   const telemtUnavailable =
     infoQuery.isError || infoQuery.data?.reachable === false;
-  const hasUpdates = Boolean(telemtRelease || panelRelease);
+  const hasUpdates = Boolean(telemtRelease);
   const config = summarizeServerConfig(configQuery.data);
   const capabilityCount = hostCapabilityCount(hostQuery.data?.caps);
   const manualActions = capabilityCount.total - capabilityCount.available;
@@ -96,8 +87,6 @@ export function ServerMenu() {
 
   const telemtVersion =
     infoQuery.data?.version ?? telemtTarget?.current_version ?? "—";
-  const panelVersion = panelTarget?.current_version ?? "—";
-  const sessionCount = sessionsQuery.data?.total;
 
   return (
     <div className="server-hub">
@@ -131,18 +120,6 @@ export function ServerMenu() {
                   : hub.currentVersion
             }
             attention={Boolean(telemtRelease) || telemtUnavailable}
-          />
-          <SummaryFact
-            label={hub.panel}
-            value={panelVersion}
-            detail={
-              panelRelease
-                ? hostQuery.data?.caps.self_update
-                  ? `${hub.available} ${panelRelease.version}`
-                  : hub.manualInstall
-                : hub.currentVersion
-            }
-            attention={Boolean(panelRelease && hostQuery.data?.caps.self_update)}
           />
           <SummaryFact
             label={hub.control}
@@ -225,7 +202,6 @@ export function ServerMenu() {
             </div>
           )}
           <div className="server-hub-update-secondary">
-            <span>{hub.panel}<b>{panelTarget?.current_version ?? "—"}</b></span>
             <span>{hub.autoUpdate}<b>{autoUpdateLabel(autoUpdateQuery.data, hub)}</b></span>
           </div>
         </HubCard>
@@ -284,23 +260,13 @@ export function ServerMenu() {
         </HubCard>
 
         <HubCard
-          to="/server/settings"
+          to="/server/node-settings"
           title={s.server.menu.settings.title}
-          eyebrow={hub.panel}
+          eyebrow="Telemt"
           Icon={IconSettings}
           tone="violet"
         >
-          <div className="server-hub-settings">
-            <div>
-              <strong>{sessionCount === undefined ? "—" : formatNumber(s, sessionCount)}</strong>
-              <span>{sessionCount === undefined ? hub.noData : plural(s, sessionCount, hub.activeSessions)}</span>
-            </div>
-            <dl>
-              <div><dt>{hub.interface}</dt><dd>{s.displayMode[mode]}</dd></div>
-              <div><dt>{s.language.label}</dt><dd>{s.language[locale]}</dd></div>
-              <div><dt>{s.theme.toggle}</dt><dd>{s.theme[theme]}</dd></div>
-            </dl>
-          </div>
+          <p className="text-sm text-text-muted">{s.server.menu.settings.description}</p>
         </HubCard>
       </div>
     </div>
@@ -312,7 +278,7 @@ function SummaryFact({ label, value, detail, attention = false }: { label: strin
 }
 
 function HubCard({ to, title, eyebrow, Icon, tone, state, wide = false, attention = false, active = false, children }: {
-  to: "/server/files" | "/server/config" | "/server/updates" | "/server/security" | "/server/platform" | "/server/settings";
+  to: "/server/files" | "/server/config" | "/server/updates" | "/server/security" | "/server/platform" | "/server/node-settings";
   title: string;
   eyebrow: string;
   Icon: ComponentType<IconProps>;
@@ -373,7 +339,7 @@ function SecurityRow({ label, value, ok = false }: { label: string; value: strin
 
 function autoUpdateLabel(data: { telemt: "off" | "check" | "apply"; panel: "off" | "check" | "apply" } | undefined, hub: Dict["server"]["hub"]) {
   if (!data) return hub.noData;
-  return data.telemt === "off" && data.panel === "off" ? hub.off : hub.configured;
+  return data.telemt === "off" ? hub.off : hub.configured;
 }
 
 function securityApiLabel(data: SecurityTopic | null, hub: Dict["server"]["hub"]) {

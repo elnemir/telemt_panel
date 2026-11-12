@@ -20,6 +20,14 @@ export function nodeNavigationURL(href: string, id: string): string {
   return url.href;
 }
 
+// Keep the document scope on links rendered outside TanStack Router.
+export function withDocumentNode(path: string): string {
+  if (documentNodeId === "default") return path;
+  const url = new URL(path, window.location.origin);
+  url.searchParams.set("node", documentNodeId);
+  return url.pathname + url.search + url.hash;
+}
+
 // Preserve existing default-node recovery keys; other nodes never read them.
 export function nodeStorageKey(key: string, basePath = "", nodeId = documentNodeId): string {
   return nodeId === "default" ? key : `${key}:node:${encodeURIComponent(basePath)}:${nodeId}`;

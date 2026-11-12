@@ -19,7 +19,7 @@ export function NodeWorkspace({ children }: { children: ReactNode }) {
   const [editor, setEditor] = useState<Node | "new" | null>(null);
   const path = useRouterState({select: state => state.location.pathname});
   const empty = registry.data?.nodes.length === 0;
-  const globalSettings = path === "/server/settings" || path === "/nodes" || path === "/clusters" || path === "/billing";
+  const globalSettings = path === "/nodes" || path === "/clusters" || path === "/billing";
   const selected = registry.data?.nodes.find(n => n.id === documentNodeId);
   const navigate = (id: string) => {
     if (id !== documentNodeId && window.confirm(t.switchConfirm)) window.location.assign(nodeNavigationURL(window.location.href, id));
@@ -40,7 +40,7 @@ export function NodeWorkspace({ children }: { children: ReactNode }) {
       {registry.data?.state_durable === false && <p className="text-sm text-warn">{t.temporary}</p>}
       {registry.isError && <p role="alert" className="text-sm text-warn">{t.loadError} <Button size="sm" variant="secondary" onClick={() => void registry.refetch()}>{t.retry}</Button></p>}
     </section>
-    {registry.data && (!selected || !selected.enabled) && !globalSettings ? <main className="min-h-0 flex-1 overflow-y-auto p-4 pb-20"><p role="alert" className="text-warn">{empty ? t.empty : t.missing}</p><Link to="/server/settings" className="mt-4 inline-block text-accent">{t.panelSettings}</Link></main> : children}
+    {registry.data && (!selected || !selected.enabled) && !globalSettings ? <main className="min-h-0 flex-1 overflow-y-auto p-4 pb-20"><p role="alert" className="text-warn">{empty ? t.empty : t.missing}</p><Link to="/panel" className="mt-4 inline-block text-accent">{t.panelSettings}</Link></main> : children}
     {editor && <NodeEditor key={editor === "new" ? "new" : `${editor.id}:${editor.revision}`} node={editor === "new" ? undefined : editor} close={() => setEditor(null)} />}
   </>;
 }

@@ -5,6 +5,7 @@ import { PageHeader } from "../ui/PageHeader";
 import { Button } from "../ui/Button";
 import { Sheet } from "../ui/Sheet";
 import { withBasePath } from "../lib/base-path";
+import { withDocumentNode } from "../nodes/scope";
 import { validateGeographySearch, type GeographySearch } from "./search";
 import { useGeography } from "./useGeography";
 import { buildMapModel } from "./mapModel";
@@ -181,7 +182,7 @@ export function GeographyView({
       {base && !base.geoip.available && (
         <div className="geo-banner">
           {s.geoipOff}
-          <a href={withBasePath("/server/settings#geoip")}>{s.configure}</a>
+          <a href={withDocumentNode(withBasePath("/panel#geoip"))}>{s.configure}</a>
         </div>
       )}
       <div className="geo-workspace">

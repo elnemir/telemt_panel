@@ -52,6 +52,9 @@ type Server struct {
 	quotaResets        *quotareset.Manager
 	quotaSchedules     *quotareset.Scheduler
 	access             *panelAccess
+	panelSettingsMu    sync.Mutex
+	panelSettingsBase  *config.Config
+	panelSettingsEpoch string
 	tlsManager         *paneltls.Manager
 	subTLSManager      *paneltls.Manager
 	cfg                *config.Config
@@ -66,6 +69,7 @@ type Server struct {
 	st                 store.Store
 	hub                *hub.Hub
 	limiter            *auth.Limiter
+	adminMu            sync.Mutex
 	sessions           *auth.SessionGuard
 	subSvc             *subpage.Service
 	subIndex           *subpage.Index
@@ -512,6 +516,10 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("GET /api/auth/methods", s.handleAuthMethods)
 	mux.Handle("POST /api/auth/logout", protect(sessionOnly(s.handleLogout)))
 	mux.Handle("GET /api/auth/me", protect(s.handleMe))
+	mux.Handle("GET /api/auth/admins", protect(sessionOnly(s.handleListAdmins)))
+	mux.Handle("POST /api/auth/admins", protect(sessionOnly(s.handleCreateAdmin)))
+	mux.Handle("POST /api/auth/admins/{username}/delete", protect(sessionOnly(s.handleDeleteAdmin)))
+	mux.Handle("PUT /api/auth/password", protect(sessionOnly(s.handleChangeAdminPassword)))
 	mux.Handle("GET /api/settings/tls", protect(func(w http.ResponseWriter, r *http.Request) {
 		subscription, ok := accessTarget(w, r)
 		if !ok {
@@ -523,6 +531,9 @@ func (s *Server) Handler() http.Handler {
 		}
 		writeJSON(w, http.StatusOK, s.tlsManager.Status())
 	}))
+	mux.Handle("GET /api/settings/panel-config", protect(sessionOnly(s.handleGetPanelSettings)))
+	mux.Handle("POST /api/settings/panel-config/preview", protect(sessionOnly(s.handlePreviewPanelSettings)))
+	mux.Handle("PUT /api/settings/panel-config", protect(sessionOnly(s.handlePutPanelSettings)))
 	mux.Handle("GET /api/settings/tls/config", protect(s.handleGetTLSConfig))
 	mux.Handle("POST /api/settings/tls/prepare", protect(s.handlePrepareTLS))
 	mux.Handle("PUT /api/settings/tls/config", protect(s.handlePutTLSConfig))
@@ -530,11 +541,11 @@ func (s *Server) Handler() http.Handler {
 	mux.Handle("GET /api/auth/sessions", protect(sessionOnly(s.handleListSessions)))
 	mux.Handle("DELETE /api/auth/sessions", protect(sessionOnly(s.handleRevokeOtherSessions)))
 	mux.Handle("DELETE /api/auth/sessions/{sessionId}", protect(sessionOnly(s.handleRevokeSession)))
-	mux.Handle("POST /api/auth/webauthn/register/begin", protect(sessionOnly(s.handleWebAuthnRegisterBegin)))
-	mux.Handle("POST /api/auth/webauthn/register/finish", protect(sessionOnly(s.handleWebAuthnRegisterFinish)))
+	mux.Handle("POST /api/auth/webauthn/register/begin", protect(sessionOnly(s.ownerPasskeys(s.handleWebAuthnRegisterBegin))))
+	mux.Handle("POST /api/auth/webauthn/register/finish", protect(sessionOnly(s.ownerPasskeys(s.handleWebAuthnRegisterFinish))))
 	mux.HandleFunc("POST /api/auth/webauthn/login/begin", sessionOnly(s.handleWebAuthnLoginBegin))
 	mux.HandleFunc("POST /api/auth/webauthn/login/finish", sessionOnly(s.handleWebAuthnLoginFinish))
-	mux.Handle("DELETE /api/auth/webauthn/credentials/{credentialId}", protect(sessionOnly(s.handleWebAuthnCredentialDelete)))
+	mux.Handle("DELETE /api/auth/webauthn/credentials/{credentialId}", protect(sessionOnly(s.ownerPasskeys(s.handleWebAuthnCredentialDelete))))
 
 	s.registerPlatformRoutes(mux, protect)
 	s.registerBillingRoutes(mux, protect)

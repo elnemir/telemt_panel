@@ -49,7 +49,8 @@ func RequireSession(st store.StateStore, cfg *config.Config, guards ...*SessionG
 			}
 
 			idHash := HashToken(cookie.Value)
-			if err := guard.Check(idHash); err != nil {
+			session, err := guard.Active(idHash)
+			if err != nil {
 				writeSessionExpired(w)
 				return
 			}
@@ -58,7 +59,11 @@ func RequireSession(st store.StateStore, cfg *config.Config, guards ...*SessionG
 			_ = st.TouchSession(idHash, now)
 			SetSessionCookie(w, r, cfg, cookie.Value)
 
-			ctx := context.WithValue(r.Context(), ctxUsername, cfg.Auth.Username)
+			username := session.Username
+			if username == "" {
+				username = cfg.Auth.Username
+			}
+			ctx := context.WithValue(r.Context(), ctxUsername, username)
 			ctx = context.WithValue(ctx, ctxSessionIDHash, idHash)
 			next.ServeHTTP(w, r.WithContext(ctx))
 		})

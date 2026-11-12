@@ -77,6 +77,20 @@ describe("numeric config controls", () => {
     expect(onChange).toHaveBeenCalledExactlyOnceWith(0.75);
   });
 
+  it("keeps a rejected unsigned value visible and does not stage it", () => {
+    const onChange = vi.fn();
+    act(() => root.render(<FieldControl field={numberField("u8", "integer")} value={12} label="Value" onChange={onChange} />));
+    const input = container.querySelector("input")!;
+    act(() => {
+      Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")!.set!.call(input, "256");
+      input.dispatchEvent(new Event("input", { bubbles: true }));
+    });
+    expect(input.value).toBe("256");
+    expect(input.getAttribute("aria-invalid")).toBe("true");
+    expect(container.textContent).toContain("255");
+    expect(onChange).not.toHaveBeenCalled();
+  });
+
   it("retains the original ratio when another field is edited and saved", () => {
     const ratio = 0.800000011920929;
     const fields = [numberField("f32"), { ...numberField("u64", "integer"), path: "general.middle_proxy_pool_size" }];
