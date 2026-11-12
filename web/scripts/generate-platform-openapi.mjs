@@ -19,6 +19,8 @@ const paths={
  '/api/clusters/{cluster_id}':{get:op('getCluster',cid,null,200,ref('ClusterDetail'),'Cluster membership and revision.'),put:op('renameCluster',[...cid,match],object({name:string}),204,null,'Rename using the cluster revision.'),delete:op('deleteCluster',[...cid,match],null,204,null,'Delete only an empty cluster with no identities or members.')},
  '/api/clusters/{cluster_id}/routing':{get:op('getClusterRouting',cid,null,200,ref('ClusterRouting'),'Saved desired ingress policy; not an applied status.'),put:op('putClusterRouting',[...cid,match],ref('IngressConfig'),204,null,'Replace complete active-member routing inventory using cluster CAS. Does not deploy ingress.')},
  '/api/clusters/{cluster_id}/routing/export':{get:{...op('exportClusterRouting',[...cid,match],null,200,null,'Export deterministic HAProxy configuration. Reject stale membership; validate and apply separately.'),responses:{200:{description:'HAProxy configuration, not yet applied.',content:{'text/plain':{schema:string}}},...errors}}},
+ '/api/clusters/{cluster_id}/configuration':{get:op('getClusterConfiguration',cid,null,200,ref('ClusterConfiguration'),'Cluster configuration template and per-node publication status.'),put:op('putClusterConfiguration',[...cid,match],ref('ClusterConfigurationInput'),202,null,'Capture reviewed settings from an active member and queue all active nodes.'),delete:op('deleteClusterConfiguration',[...cid,match],null,204,null,'Stop managing the template; keep the values already saved on nodes.')},
+ '/api/clusters/{cluster_id}/configuration/preview':{post:op('previewClusterConfiguration',cid,ref('ClusterConfigurationSelection'),200,ref('ClusterConfigurationPreview'),'Read selected shared fields from an active member without writing.')},
  '/api/clusters/{cluster_id}/members':{post:op('addClusterMember',[...cid,match],object({node_id:string}),204,null,'Join one enabled registered node to this cluster; enqueue non-revoked identities transactionally.')},
  '/api/clusters/{cluster_id}/members/{member_id}':{delete:op('removeClusterMember',[...cid,param('member_id'),match],null,202,null,'Request removal. Disable managed accounts with per-node retirement credentials and verify before releasing membership. Failure keeps ownership reserved.')},
  '/api/clusters/{cluster_id}/identities':{get:op('listClusterIdentities',[...cid,{name:'offset',in:'query',schema:{type:'integer',minimum:0,default:0}}],null,200,array(ref('ClusterIdentity')),'Up to 100 identities ordered by username; use offset for the next page.'),post:op('createClusterIdentity',[...cid,match],ref('ClusterIdentityInput'),201,ref('ClusterIdentity'),'Persist desired identity and delivery jobs. Does not assert successful delivery. If-Match is the cluster revision.')},
@@ -27,6 +29,12 @@ const paths={
 };
 const nullableLimit={type:['integer','null'],format:'uint64',minimum:0};
 const schemas={
+ ClusterConfigurationSelection:object({source_node_id:string,fields:{...array(string),minItems:1,maxItems:32,uniqueItems:true}}),
+ ClusterConfigurationInput:object({source_node_id:string,fields:{...array(string),minItems:1,maxItems:32,uniqueItems:true},source_revision:string}),
+ ClusterConfigurationPreview:object({source_revision:string,settings:{type:'object',additionalProperties:{}}}),
+ ClusterConfigurationTemplate:object({source_node_id:string,revision:integer,settings:{type:'object',additionalProperties:{}}}),
+ ClusterConfigurationJob:object({node_id:string,desired_revision:integer,applied_revision:integer,status:{type:'string',enum:['pending','applied','conflict','unavailable']},last_code:string}),
+ ClusterConfiguration:object({revision:integer,fields:array(string),template:{anyOf:[ref('ClusterConfigurationTemplate'),{type:'null'}]},jobs:array(ref('ClusterConfigurationJob'))}),
  IngressTarget:object({node_id:string,native_address:string,web_address:string,weight:{type:'integer',minimum:1,maximum:256},drain:boolean}),
  IngressConfig:object({domain:string,native_port:{type:'integer',minimum:1,maximum:65535},web_port:{type:'integer',enum:[443],description:'Current Telemt bridge uses HTTPS port 443.'},native_balance:{type:'string',enum:['roundrobin','leastconn','source']},targets:{type:'array',minItems:1,maxItems:64,items:ref('IngressTarget')}}),
  ClusterRouting:object({revision:integer,config:{anyOf:[ref('IngressConfig'),{type:'null'}]}}),
@@ -43,9 +51,9 @@ const schemas={
 };
 function replaceBlock(name,indent,value,before){
  const start=indent+'# '+name+' start\n',end=indent+'# '+name+' end\n';
- const a=source.indexOf(start);if(a>=0){const b=source.indexOf(end,a);if(b<0)throw Error('missing block end');source=source.slice(0,a)+source.slice(b+end.length);}
- if(!source.includes(before))throw Error('missing insertion marker');
  const text=dump(value,{lineWidth:110,noRefs:true}).trimEnd().split('\n').map(line=>indent+line).join('\n')+'\n';
+ const a=source.indexOf(start);if(a>=0){const b=source.indexOf(end,a);if(b<0)throw Error('missing block end');source=source.slice(0,a)+start+text+end+source.slice(b+end.length);return;}
+ if(!source.includes(before))throw Error('missing insertion marker');
  source=source.replace(before,start+text+end+before);
 }
 replaceBlock('platform paths','  ',paths,'  /api/nodes:');

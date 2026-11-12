@@ -82,7 +82,7 @@ func TestBillingMigrationPreservesD1AndRejectsWrongKeyBeforeDDL(t *testing.T) {
 		t.Fatal(e)
 	}
 	defer current.Close()
-	if e = current.db.QueryRow("PRAGMA user_version").Scan(&version); e != nil || version != 4 {
+	if e = current.db.QueryRow("PRAGMA user_version").Scan(&version); e != nil || version != 5 {
 		t.Fatal(version, e)
 	}
 	got, e := current.GetIdentity(ctx, i.ID)

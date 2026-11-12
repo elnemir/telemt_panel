@@ -30,6 +30,18 @@ test("cluster membership, identity delivery, guarded node writes, rotation and r
   await expect(page.getByLabel("Нода",{exact:true})).toHaveValue("");
  }
 
+ await page.getByRole("button",{name:"Создать шаблон",exact:true}).click();
+ const configuration=page.getByRole("dialog",{name:"Общие настройки нод",exact:true});
+ await configuration.getByLabel("Нода-источник",{exact:true}).selectOption(node.id);
+ await configuration.getByRole("checkbox",{name:"Таймаут рукопожатия, с",exact:true}).check();
+ await configuration.getByRole("button",{name:"Предпросмотр",exact:true}).click();
+ await expect(configuration.getByRole("definition").filter({hasText:"10"})).toBeVisible();
+ await configuration.getByRole("button",{name:"Сохранить и применить ко всем нодам",exact:true}).click();
+ await expect(configuration).not.toBeVisible();
+ const shared=page.getByRole("region",{name:"Общие настройки нод",exact:true});
+ await expect(shared.getByText("Таймаут рукопожатия, с",{exact:true})).toBeVisible();
+ await expect(shared.getByRole("listitem")).toHaveCount(2);
+
  await page.getByRole("button",{name:"Балансировка подключений",exact:true}).click();
  const routingSheet=page.getByRole("dialog",{name:"Балансировка подключений",exact:true});
  await expect(routingSheet.getByLabel("Порт WEB HTTPS",{exact:true})).toHaveValue("443");

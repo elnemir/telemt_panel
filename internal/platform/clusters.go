@@ -160,6 +160,10 @@ func (s *Store) AddMember(ctx context.Context, clusterID string, revision int64,
 		 SELECT id,?,revision,'pending',?,? FROM identities WHERE cluster_id=? AND revoked=0`, nodeID, now, now, clusterID); e != nil {
 			return e
 		}
+		if _, e := tx.ExecContext(ctx, `INSERT INTO cluster_config_jobs(node_id,desired_revision,next_attempt)
+			SELECT ?,revision,? FROM cluster_config_templates WHERE cluster_id=?`, nodeID, now, clusterID); e != nil {
+			return e
+		}
 		if e := bumpCluster(ctx, tx, clusterID, now); e != nil {
 			return e
 		}

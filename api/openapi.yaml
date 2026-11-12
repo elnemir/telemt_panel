@@ -2810,6 +2810,264 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+  /api/clusters/{cluster_id}/configuration:
+    get:
+      operationId: getClusterConfiguration
+      tags:
+        - clusters
+      description: Cluster configuration template and per-node publication status.
+      parameters:
+        - name: cluster_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Cluster configuration template and per-node publication status.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClusterConfiguration'
+        '400':
+          description: Rejected or unavailable; fetch the current revision before retrying.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Rejected or unavailable; fetch the current revision before retrying.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Rejected or unavailable; fetch the current revision before retrying.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Rejected or unavailable; fetch the current revision before retrying.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: Rejected or unavailable; fetch the current revision before retrying.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '428':
+          description: Rejected or unavailable; fetch the current revision before retrying.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '503':
+          description: Rejected or unavailable; fetch the current revision before retrying.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    put:
+      operationId: putClusterConfiguration
+      tags:
+        - clusters
+      description: Capture reviewed settings from an active member and queue all active nodes.
+      parameters:
+        - name: cluster_id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: If-Match
+          in: header
+          required: true
+          description: Positive revision of the cluster or identity owning this operation.
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ClusterConfigurationInput'
+      responses:
+        '202':
+          description: Capture reviewed settings from an active member and queue all active nodes.
+        '400':
+          description: Rejected or unavailable; fetch the current revision before retrying.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Rejected or unavailable; fetch the current revision before retrying.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Rejected or unavailable; fetch the current revision before retrying.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Rejected or unavailable; fetch the current revision before retrying.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: Rejected or unavailable; fetch the current revision before retrying.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '428':
+          description: Rejected or unavailable; fetch the current revision before retrying.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '503':
+          description: Rejected or unavailable; fetch the current revision before retrying.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    delete:
+      operationId: deleteClusterConfiguration
+      tags:
+        - clusters
+      description: Stop managing the template; keep the values already saved on nodes.
+      parameters:
+        - name: cluster_id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: If-Match
+          in: header
+          required: true
+          description: Positive revision of the cluster or identity owning this operation.
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Stop managing the template; keep the values already saved on nodes.
+        '400':
+          description: Rejected or unavailable; fetch the current revision before retrying.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Rejected or unavailable; fetch the current revision before retrying.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Rejected or unavailable; fetch the current revision before retrying.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Rejected or unavailable; fetch the current revision before retrying.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: Rejected or unavailable; fetch the current revision before retrying.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '428':
+          description: Rejected or unavailable; fetch the current revision before retrying.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '503':
+          description: Rejected or unavailable; fetch the current revision before retrying.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /api/clusters/{cluster_id}/configuration/preview:
+    post:
+      operationId: previewClusterConfiguration
+      tags:
+        - clusters
+      description: Read selected shared fields from an active member without writing.
+      parameters:
+        - name: cluster_id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ClusterConfigurationSelection'
+      responses:
+        '200':
+          description: Read selected shared fields from an active member without writing.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClusterConfigurationPreview'
+        '400':
+          description: Rejected or unavailable; fetch the current revision before retrying.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Rejected or unavailable; fetch the current revision before retrying.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Rejected or unavailable; fetch the current revision before retrying.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Rejected or unavailable; fetch the current revision before retrying.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: Rejected or unavailable; fetch the current revision before retrying.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '428':
+          description: Rejected or unavailable; fetch the current revision before retrying.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '503':
+          description: Rejected or unavailable; fetch the current revision before retrying.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
   /api/clusters/{cluster_id}/members:
     post:
       operationId: addClusterMember
@@ -11505,6 +11763,114 @@ components:
             type: string
     # customer schemas end
     # platform schemas start
+    ClusterConfigurationSelection:
+      type: object
+      required:
+        - source_node_id
+        - fields
+      properties:
+        source_node_id:
+          type: string
+        fields:
+          type: array
+          items:
+            type: string
+          minItems: 1
+          maxItems: 32
+          uniqueItems: true
+    ClusterConfigurationInput:
+      type: object
+      required:
+        - source_node_id
+        - fields
+        - source_revision
+      properties:
+        source_node_id:
+          type: string
+        fields:
+          type: array
+          items:
+            type: string
+          minItems: 1
+          maxItems: 32
+          uniqueItems: true
+        source_revision:
+          type: string
+    ClusterConfigurationPreview:
+      type: object
+      required:
+        - source_revision
+        - settings
+      properties:
+        source_revision:
+          type: string
+        settings:
+          type: object
+          additionalProperties: {}
+    ClusterConfigurationTemplate:
+      type: object
+      required:
+        - source_node_id
+        - revision
+        - settings
+      properties:
+        source_node_id:
+          type: string
+        revision:
+          type: integer
+          format: int64
+        settings:
+          type: object
+          additionalProperties: {}
+    ClusterConfigurationJob:
+      type: object
+      required:
+        - node_id
+        - desired_revision
+        - applied_revision
+        - status
+        - last_code
+      properties:
+        node_id:
+          type: string
+        desired_revision:
+          type: integer
+          format: int64
+        applied_revision:
+          type: integer
+          format: int64
+        status:
+          type: string
+          enum:
+            - pending
+            - applied
+            - conflict
+            - unavailable
+        last_code:
+          type: string
+    ClusterConfiguration:
+      type: object
+      required:
+        - revision
+        - fields
+        - template
+        - jobs
+      properties:
+        revision:
+          type: integer
+          format: int64
+        fields:
+          type: array
+          items:
+            type: string
+        template:
+          anyOf:
+            - $ref: '#/components/schemas/ClusterConfigurationTemplate'
+            - type: 'null'
+        jobs:
+          type: array
+          items:
+            $ref: '#/components/schemas/ClusterConfigurationJob'
     IngressTarget:
       type: object
       required:

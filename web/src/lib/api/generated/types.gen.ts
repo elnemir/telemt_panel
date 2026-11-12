@@ -358,6 +358,47 @@ export type CustomerCheckoutForm = {
     };
 };
 
+export type ClusterConfigurationSelection = {
+    source_node_id: string;
+    fields: Array<string>;
+};
+
+export type ClusterConfigurationInput = {
+    source_node_id: string;
+    fields: Array<string>;
+    source_revision: string;
+};
+
+export type ClusterConfigurationPreview = {
+    source_revision: string;
+    settings: {
+        [key: string]: unknown;
+    };
+};
+
+export type ClusterConfigurationTemplate = {
+    source_node_id: string;
+    revision: number;
+    settings: {
+        [key: string]: unknown;
+    };
+};
+
+export type ClusterConfigurationJob = {
+    node_id: string;
+    desired_revision: number;
+    applied_revision: number;
+    status: 'pending' | 'applied' | 'conflict' | 'unavailable';
+    last_code: string;
+};
+
+export type ClusterConfiguration = {
+    revision: number;
+    fields: Array<string>;
+    template: ClusterConfigurationTemplate | null;
+    jobs: Array<ClusterConfigurationJob>;
+};
+
 export type IngressTarget = {
     node_id: string;
     native_address: string;
@@ -4498,6 +4539,220 @@ export type ExportClusterRoutingResponses = {
 };
 
 export type ExportClusterRoutingResponse = ExportClusterRoutingResponses[keyof ExportClusterRoutingResponses];
+
+export type DeleteClusterConfigurationData = {
+    body?: never;
+    headers: {
+        /**
+         * Positive revision of the cluster or identity owning this operation.
+         */
+        'If-Match': string;
+    };
+    path: {
+        cluster_id: string;
+    };
+    query?: never;
+    url: '/api/clusters/{cluster_id}/configuration';
+};
+
+export type DeleteClusterConfigurationErrors = {
+    /**
+     * Rejected or unavailable; fetch the current revision before retrying.
+     */
+    400: Error;
+    /**
+     * Rejected or unavailable; fetch the current revision before retrying.
+     */
+    401: Error;
+    /**
+     * Rejected or unavailable; fetch the current revision before retrying.
+     */
+    403: Error;
+    /**
+     * Rejected or unavailable; fetch the current revision before retrying.
+     */
+    404: Error;
+    /**
+     * Rejected or unavailable; fetch the current revision before retrying.
+     */
+    409: Error;
+    /**
+     * Rejected or unavailable; fetch the current revision before retrying.
+     */
+    428: Error;
+    /**
+     * Rejected or unavailable; fetch the current revision before retrying.
+     */
+    503: Error;
+};
+
+export type DeleteClusterConfigurationError = DeleteClusterConfigurationErrors[keyof DeleteClusterConfigurationErrors];
+
+export type DeleteClusterConfigurationResponses = {
+    /**
+     * Stop managing the template; keep the values already saved on nodes.
+     */
+    204: void;
+};
+
+export type DeleteClusterConfigurationResponse = DeleteClusterConfigurationResponses[keyof DeleteClusterConfigurationResponses];
+
+export type GetClusterConfigurationData = {
+    body?: never;
+    path: {
+        cluster_id: string;
+    };
+    query?: never;
+    url: '/api/clusters/{cluster_id}/configuration';
+};
+
+export type GetClusterConfigurationErrors = {
+    /**
+     * Rejected or unavailable; fetch the current revision before retrying.
+     */
+    400: Error;
+    /**
+     * Rejected or unavailable; fetch the current revision before retrying.
+     */
+    401: Error;
+    /**
+     * Rejected or unavailable; fetch the current revision before retrying.
+     */
+    403: Error;
+    /**
+     * Rejected or unavailable; fetch the current revision before retrying.
+     */
+    404: Error;
+    /**
+     * Rejected or unavailable; fetch the current revision before retrying.
+     */
+    409: Error;
+    /**
+     * Rejected or unavailable; fetch the current revision before retrying.
+     */
+    428: Error;
+    /**
+     * Rejected or unavailable; fetch the current revision before retrying.
+     */
+    503: Error;
+};
+
+export type GetClusterConfigurationError = GetClusterConfigurationErrors[keyof GetClusterConfigurationErrors];
+
+export type GetClusterConfigurationResponses = {
+    /**
+     * Cluster configuration template and per-node publication status.
+     */
+    200: ClusterConfiguration;
+};
+
+export type GetClusterConfigurationResponse = GetClusterConfigurationResponses[keyof GetClusterConfigurationResponses];
+
+export type PutClusterConfigurationData = {
+    body: ClusterConfigurationInput;
+    headers: {
+        /**
+         * Positive revision of the cluster or identity owning this operation.
+         */
+        'If-Match': string;
+    };
+    path: {
+        cluster_id: string;
+    };
+    query?: never;
+    url: '/api/clusters/{cluster_id}/configuration';
+};
+
+export type PutClusterConfigurationErrors = {
+    /**
+     * Rejected or unavailable; fetch the current revision before retrying.
+     */
+    400: Error;
+    /**
+     * Rejected or unavailable; fetch the current revision before retrying.
+     */
+    401: Error;
+    /**
+     * Rejected or unavailable; fetch the current revision before retrying.
+     */
+    403: Error;
+    /**
+     * Rejected or unavailable; fetch the current revision before retrying.
+     */
+    404: Error;
+    /**
+     * Rejected or unavailable; fetch the current revision before retrying.
+     */
+    409: Error;
+    /**
+     * Rejected or unavailable; fetch the current revision before retrying.
+     */
+    428: Error;
+    /**
+     * Rejected or unavailable; fetch the current revision before retrying.
+     */
+    503: Error;
+};
+
+export type PutClusterConfigurationError = PutClusterConfigurationErrors[keyof PutClusterConfigurationErrors];
+
+export type PutClusterConfigurationResponses = {
+    /**
+     * Capture reviewed settings from an active member and queue all active nodes.
+     */
+    202: unknown;
+};
+
+export type PreviewClusterConfigurationData = {
+    body: ClusterConfigurationSelection;
+    path: {
+        cluster_id: string;
+    };
+    query?: never;
+    url: '/api/clusters/{cluster_id}/configuration/preview';
+};
+
+export type PreviewClusterConfigurationErrors = {
+    /**
+     * Rejected or unavailable; fetch the current revision before retrying.
+     */
+    400: Error;
+    /**
+     * Rejected or unavailable; fetch the current revision before retrying.
+     */
+    401: Error;
+    /**
+     * Rejected or unavailable; fetch the current revision before retrying.
+     */
+    403: Error;
+    /**
+     * Rejected or unavailable; fetch the current revision before retrying.
+     */
+    404: Error;
+    /**
+     * Rejected or unavailable; fetch the current revision before retrying.
+     */
+    409: Error;
+    /**
+     * Rejected or unavailable; fetch the current revision before retrying.
+     */
+    428: Error;
+    /**
+     * Rejected or unavailable; fetch the current revision before retrying.
+     */
+    503: Error;
+};
+
+export type PreviewClusterConfigurationError = PreviewClusterConfigurationErrors[keyof PreviewClusterConfigurationErrors];
+
+export type PreviewClusterConfigurationResponses = {
+    /**
+     * Read selected shared fields from an active member without writing.
+     */
+    200: ClusterConfigurationPreview;
+};
+
+export type PreviewClusterConfigurationResponse = PreviewClusterConfigurationResponses[keyof PreviewClusterConfigurationResponses];
 
 export type AddClusterMemberData = {
     body: {

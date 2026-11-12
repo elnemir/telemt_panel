@@ -1,3 +1,4 @@
+import {ClusterConfiguration} from "./ClusterConfiguration";
 import {RoutingEditor} from "./RoutingEditor";
 import {useState} from "react";
 import {useBlocker} from "@tanstack/react-router";
@@ -74,6 +75,7 @@ export function ClustersPage() {
      </li>)}</ul>
      <div className="flex flex-wrap items-end gap-3"><label className="min-w-0 flex-1">{t.node}<Select aria-label={t.node} disabled={busy} value={node} onChange={e=>setNode(e.target.value)}><option value="">{t.chooseNode}</option>{nodes.data?.nodes.filter(n=>n.enabled&&!cluster.data?.members.some(m=>m.node_id===n.id)).map(n=><option key={n.id} value={n.id}>{n.name}</option>)}</Select></label><Button disabled={busy||!node} onClick={()=>run(async()=>{await addClusterMember({path:{cluster_id:c.id},headers,body:{node_id:node},throwOnError:true});setNode("");})}>{t.addNode}</Button></div>
     </section>
+    <ClusterConfiguration key={c.id} clusterID={c.id} revision={c.revision} members={cluster.data?.members??[]} names={new Map(nodes.data?.nodes.map(item=>[item.id,item.name]))} changed={refresh}/>
     <section className="workspace-card space-y-4">
      <div className="flex flex-wrap items-center justify-between gap-3"><h2 className="text-lg font-semibold">{t.identities}</h2><Button disabled={busy} onClick={()=>setEditor({clusterID:c.id,revision:c.revision})}>{t.newIdentity}</Button></div>
      <p className="text-sm text-text-muted">{t.identityHint}</p>

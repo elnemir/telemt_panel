@@ -39,6 +39,9 @@ var customerSchema string
 //go:embed quota_schema.sql
 var quotaSchema string
 
+//go:embed cluster_config_schema.sql
+var clusterConfigSchema string
+
 type Store struct {
 	db    *sql.DB
 	seal  cipher.AEAD
@@ -116,7 +119,7 @@ func (s *Store) initialize(ctx context.Context) error {
 		if err := tx.QueryRowContext(ctx, "PRAGMA user_version").Scan(&version); err != nil {
 			return err
 		}
-		if version < 0 || version > 4 {
+		if version < 0 || version > 5 {
 			return ErrSchema
 		}
 		if version == 0 {
@@ -184,6 +187,18 @@ func (s *Store) initialize(ctx context.Context) error {
 				}
 			}
 			if _, err := tx.ExecContext(ctx, "PRAGMA user_version=4"); err != nil {
+				return err
+			}
+		}
+		if version < 5 {
+			for _, statement := range strings.Split(clusterConfigSchema, "-- statement") {
+				if strings.TrimSpace(statement) != "" {
+					if _, err := tx.ExecContext(ctx, statement); err != nil {
+						return err
+					}
+				}
+			}
+			if _, err := tx.ExecContext(ctx, "PRAGMA user_version=5"); err != nil {
 				return err
 			}
 		}

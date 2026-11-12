@@ -832,6 +832,9 @@ func (s *Server) Run(ctx context.Context) error {
 		wg.Go(func() {
 			platform.NewWorker(s.platform, s.withPlatformNode).Run(ctx, func(error) { slog.Error("platform reconciliation state failed") })
 		})
+		wg.Go(func() {
+			platform.NewWorker(s.platform, s.withPlatformNode).RunClusterConfig(ctx, func(error) { slog.Error("cluster configuration reconciliation state failed") })
+		})
 	}
 	wg.Add(1)
 	go func() {

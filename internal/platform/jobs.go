@@ -195,7 +195,8 @@ const workerPoll = time.Second
 func (s *Store) finalizeRemovals(ctx context.Context) error {
 	return s.transaction(ctx, func(tx *sql.Tx) error {
 		rows, e := tx.QueryContext(ctx, `SELECT m.node_id,m.cluster_id FROM cluster_members m WHERE m.state='removing' AND NOT EXISTS
-   (SELECT 1 FROM identity_jobs j WHERE j.node_id=m.node_id AND (j.status<>'applied' OR j.retirement_hash='' OR j.applied_secret_hash<>j.retirement_hash OR j.applied_revision<>j.desired_revision))`)
+   (SELECT 1 FROM identity_jobs j WHERE j.node_id=m.node_id AND (j.status<>'applied' OR j.retirement_hash='' OR j.applied_secret_hash<>j.retirement_hash OR j.applied_revision<>j.desired_revision))
+   AND NOT EXISTS (SELECT 1 FROM cluster_config_jobs j WHERE j.node_id=m.node_id AND j.lease_until>?)`, s.now().Unix())
 		if e != nil {
 			return e
 		}

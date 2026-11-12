@@ -156,6 +156,10 @@ func (c *Client) callStatus(ctx context.Context, method, path string, body any, 
 
 // requestStatus preserves the shared response cap before any typed decoding.
 func (c *Client) requestStatus(ctx context.Context, method, path string, body any, revision string) ([]byte, int, error) {
+	return c.requestConfigRevision(ctx, method, path, body, revision, "")
+}
+
+func (c *Client) requestConfigRevision(ctx context.Context, method, path string, body any, revision, runtimeMatch string) ([]byte, int, error) {
 	var reqBody io.Reader
 	if body != nil {
 		buf, err := json.Marshal(body)
@@ -178,9 +182,12 @@ func (c *Client) requestStatus(ctx context.Context, method, path string, body an
 	if revision != "" {
 		req.Header.Set("If-Match", revision)
 	}
+	if runtimeMatch != "" {
+		req.Header.Set("If-Runtime-Match", runtimeMatch)
+	}
 
 	client := c.http
-	if method == http.MethodPatch && (path == "/v1/config" || strings.HasPrefix(path, "/v1/config?")) {
+	if (method == http.MethodPatch && (path == "/v1/config" || strings.HasPrefix(path, "/v1/config?"))) || path == "/v1/config/validate" {
 		scoped := *client
 		scoped.Timeout = ConfigMutationTimeout
 		client = &scoped
