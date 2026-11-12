@@ -1,8 +1,12 @@
-import { useRef, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useStrings } from "../../i18n";
 import {
   getNodeOptions,
+  getHostOptions,
+  getHostQueryKey,
+  getTelemtServiceQueryKey,
+  getTelemtServiceOptions,
   getNodeUpgradeOptions,
   getNodeUpgradeQueryKey,
   startNodeUpgradeMutation,
@@ -17,6 +21,7 @@ import { Input } from "../../ui/Input";
 import { SettingsField } from "../../ui/SettingsField";
 import { Skeleton } from "../../ui/Skeleton";
 import { StatePill } from "../../ui/StatePill";
+import { needsFullNodeManagement } from "../hub.helpers";
 import { ServerShell } from "../ServerShell";
 
 const scope = { path: { node_id: documentNodeId } };
@@ -35,6 +40,9 @@ export function NodeUpgradePage() {
     refetchInterval: q => q.state.data?.job && activeStates.has(q.state.data.job.state) ? 1500 : false,
   });
   const node = useQuery(getNodeOptions(scope));
+  const host = useQuery({ ...getHostOptions(), enabled: status.data?.available === true });
+  const service = useQuery({ ...getTelemtServiceOptions(), enabled: status.data?.available === true });
+  const [management, setManagement] = useState(true);
   const start = useMutation({
     ...startNodeUpgradeMutation(),
     onSuccess: data => cache.setQueryData(getNodeUpgradeQueryKey(scope), data),
@@ -48,6 +56,14 @@ export function NodeUpgradePage() {
   const last = useRef<NodeUpgradeInput | null>(null);
 
   const job = status.data?.job;
+  useEffect(() => {
+    if (job?.state === "updated") {
+      void cache.invalidateQueries({ queryKey: getHostQueryKey() });
+      void cache.invalidateQueries({ queryKey: getTelemtServiceQueryKey() });
+    }
+  }, [cache, job?.request_id, job?.state]);
+  const showManagement = Boolean(status.data?.telemt_version) && (needsFullNodeManagement(host.data?.caps) || service.data?.status === "unknown");
+  const enableManagement = showManagement && management;
   const busy = start.isPending || (job && activeStates.has(job.state));
   const errorCode = apiErrorCode(start.error);
   const errorText = (code?: string) => t.errors[code as keyof typeof t.errors] ??
@@ -60,14 +76,16 @@ export function NodeUpgradePage() {
       ssh_port: Number(sshPort),
       ssh_user: sshUser,
       host_fingerprint: fingerprint.trim(),
-      telemt: Boolean(status.data.telemt_version) && telemt,
-      agent,
+      telemt: Boolean(status.data.telemt_version) && (telemt || enableManagement),
+      agent: agent || enableManagement,
+      ...(enableManagement ? { enable_management: true } : {}),
     };
     if (!input.telemt && !input.agent) return;
     const previous = last.current;
     const retry = previous && start.isError && !errorCode &&
       previous.ssh_port === input.ssh_port && previous.ssh_user === input.ssh_user &&
-      previous.host_fingerprint === input.host_fingerprint && previous.telemt === input.telemt && previous.agent === input.agent;
+      previous.host_fingerprint === input.host_fingerprint && previous.telemt === input.telemt && previous.agent === input.agent &&
+      previous.enable_management === input.enable_management;
     const body = { ...input, request_id: retry ? previous.request_id : requestID() };
     last.current = body;
     start.mutate({ ...scope, body });
@@ -95,14 +113,23 @@ export function NodeUpgradePage() {
             <fieldset disabled={Boolean(busy)} className="grid gap-4">
               <legend className="sr-only">{t.title}</legend>
               <label className="flex items-start gap-2 text-sm">
-                <input type="checkbox" className="mt-1" checked={Boolean(status.data.telemt_version) && telemt}
-                  disabled={!status.data.telemt_version} onChange={event => setTelemt(event.target.checked)} />
+                <input type="checkbox" className="mt-1" checked={Boolean(status.data.telemt_version) && (telemt || enableManagement)}
+                  disabled={!status.data.telemt_version || enableManagement} onChange={event => setTelemt(event.target.checked)} />
                 <span>Telemt · {status.data.telemt_version ?? t.noArtifact}</span>
               </label>
               <label className="flex items-start gap-2 text-sm">
-                <input type="checkbox" className="mt-1" checked={agent} onChange={event => setAgent(event.target.checked)} />
+                <input type="checkbox" className="mt-1" checked={agent || enableManagement} disabled={enableManagement} onChange={event => setAgent(event.target.checked)} />
                 <span>{t.agent} · {status.data.agent_version ?? "—"}</span>
               </label>
+              {showManagement && (
+                <label className="flex items-start gap-2 text-sm">
+                  <input type="checkbox" className="mt-1" checked={management}
+                    onChange={event => setManagement(event.target.checked)} />
+                  <span>{t.enableManagement}
+                    <small className="mt-1 block text-text-muted">{t.enableManagementHint}</small>
+                  </span>
+                </label>
+              )}
               <div className="grid gap-3 sm:grid-cols-2">
                 <SettingsField label={strings.nodes.install.user} hint={t.userHint}>
                   {attrs => <Input {...attrs} required pattern={String.raw`[a-zA-Z_][a-zA-Z0-9_\-]{0,63}`} maxLength={64} value={sshUser} onChange={event => setSSHUser(event.target.value)} />}
@@ -118,7 +145,7 @@ export function NodeUpgradePage() {
             </fieldset>
             <p className="text-sm text-text-muted">{t.restart}</p>
             {start.isError && <p role="alert" className="text-sm text-error">{errorText(errorCode)}</p>}
-            <Button type="submit" variant="primary" disabled={Boolean(busy) || (!agent && !(status.data.telemt_version && telemt))}>{t.submit}</Button>
+            <Button type="submit" variant="primary" disabled={Boolean(busy) || (!enableManagement && !agent && !(status.data.telemt_version && telemt))}>{t.submit}</Button>
           </form>}
         </Card>}
     </ServerShell>

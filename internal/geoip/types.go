@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net/url"
 	"path/filepath"
+	"strconv"
 )
 
 // Source identifies where GeoIP database files come from.
@@ -16,9 +17,20 @@ const (
 	// SourceCommunity is retained for previously saved configurations and bundles.
 	SourceCommunity Source = "community"
 	// SourceURLs and SourceFiles use locations supplied by the operator.
-	SourceURLs  Source = "urls"
-	SourceFiles Source = "files"
+	SourceURLs    Source = "urls"
+	SourceFiles   Source = "files"
+	SourceMaxMind Source = "maxmind"
+	SourceDBIP    Source = "dbip"
+	SourceIPinfo  Source = "ipinfo"
 )
+
+func (s Source) managed() bool {
+	return s == SourceMaxMind || s == SourceDBIP || s == SourceIPinfo
+}
+
+func (s Source) usesKey() bool {
+	return s == SourceMaxMind || s == SourceIPinfo
+}
 
 // Schedule controls automatic GeoIP database refreshes.
 type Schedule string
@@ -71,12 +83,14 @@ type DatabaseConfig struct {
 
 // Config is the persisted desired GeoIP configuration.
 type Config struct {
-	Enabled  bool           `json:"enabled"`
-	Source   Source         `json:"source"`
-	Schedule Schedule       `json:"schedule"`
-	Country  DatabaseConfig `json:"country"`
-	ASN      DatabaseConfig `json:"asn"`
-	City     DatabaseConfig `json:"city"`
+	Enabled   bool           `json:"enabled"`
+	Source    Source         `json:"source"`
+	Schedule  Schedule       `json:"schedule"`
+	Country   DatabaseConfig `json:"country"`
+	ASN       DatabaseConfig `json:"asn"`
+	City      DatabaseConfig `json:"city"`
+	AccountID string         `json:"account_id,omitempty"`
+	accessKey string
 }
 
 // DefaultConfig returns the initial disabled operator-URL configuration.
@@ -91,7 +105,7 @@ func DefaultConfig() Config {
 // Validate checks configuration values without accessing their locations.
 func (c Config) Validate() error {
 	switch c.Source {
-	case SourceCommunity, SourceURLs, SourceFiles:
+	case SourceCommunity, SourceURLs, SourceFiles, SourceMaxMind, SourceDBIP, SourceIPinfo:
 	default:
 		return fmt.Errorf("%w: unknown source", ErrInvalidConfig)
 	}
@@ -103,7 +117,31 @@ func (c Config) Validate() error {
 	if c.Enabled && !c.Country.Enabled && !c.ASN.Enabled && !c.City.Enabled {
 		return fmt.Errorf("%w: select at least one database", ErrInvalidConfig)
 	}
+	if c.Source == SourceIPinfo && c.City.Enabled {
+		return fmt.Errorf("%w: IPinfo Lite supplies country and ASN only", ErrInvalidConfig)
+	}
+	if c.Source == SourceMaxMind && (c.Enabled || c.AccountID != "") {
+		n, err := strconv.ParseUint(c.AccountID, 10, 64)
+		if err != nil || n == 0 || len(c.AccountID) > 20 {
+			return fmt.Errorf("%w: MaxMind requires a numeric account ID", ErrInvalidConfig)
+		}
+	} else if c.AccountID != "" {
+		return fmt.Errorf("%w: account ID only applies to MaxMind", ErrInvalidConfig)
+	}
+	if c.Source.usesKey() && (c.Enabled || c.accessKey != "") {
+		if !validAccessKey(c.accessKey) {
+			return fmt.Errorf("%w: provider access key is required", ErrInvalidConfig)
+		}
+	} else if c.accessKey != "" {
+		return fmt.Errorf("%w: source does not use an access key", ErrInvalidConfig)
+	}
 	for _, database := range c.databases() {
+		if c.Source.managed() {
+			if database.config.Location != "" {
+				return fmt.Errorf("%w: provider uses built-in download locations", ErrInvalidConfig)
+			}
+			continue
+		}
 		if !database.config.Enabled || c.Source == SourceCommunity {
 			continue
 		}
@@ -126,6 +164,18 @@ func (c Config) Validate() error {
 		}
 	}
 	return nil
+}
+
+func validAccessKey(key string) bool {
+	if len(key) == 0 || len(key) > 512 {
+		return false
+	}
+	for _, char := range key {
+		if char < '!' || char > '~' {
+			return false
+		}
+	}
+	return true
 }
 
 type configuredDatabase struct {
@@ -170,8 +220,9 @@ type Status struct {
 
 // Settings combines desired configuration with runtime status.
 type Settings struct {
-	Config Config `json:"config"`
-	Status Status `json:"status"`
+	Config         Config `json:"config"`
+	Status         Status `json:"status"`
+	AccessKeySaved bool   `json:"access_key_saved,omitempty"`
 }
 
 // Result contains the local enrichment for one IP address.

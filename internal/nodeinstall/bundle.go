@@ -77,24 +77,46 @@ func newBundle(plan Plan, telemtPath, runtimePath string) (bundle, error) {
 	if plan.WithAgent {
 		b.agentID = token(16)
 		b.credentials.Agent = "Bearer " + token(32)
-		configPaths := ""
-		unit := agentUnit
-		if plan.ConfigFiles {
-			configPaths = "config_path = \"/var/lib/private/telemt-node/telemt.toml\"\nconfig_binary = \"/opt/telemt-node/telemt\"\n"
-			// The native editor and the running proxy use the same private
-			// directory, ownership and revision lock.
-			unit = strings.Replace(unit, "StateDirectory=telemt-agent\n", "User=telemt\nStateDirectory=telemt-agent telemt-node\n", 1)
-		}
-		b.files["agent.toml"] = fmt.Sprintf(agentConfig, b.agentID, configPaths)
+		addAgentFiles(b.files, b.agentID, plan.ConfigFiles)
 		b.files["agent.env"] = "TELEMT_AGENT_AUTH=" + strconv.Quote(b.credentials.Agent) + "\n"
-		b.files["telemt-agent.service"] = unit
-		b.files["telemt-node-control.socket"] = controlSocketUnit
-		b.files["telemt-node-control@.service"] = controlServiceUnit
-		b.files["service-control"] = controlScript
 		agentFlag = " --agent"
 	}
 	b.files["telemt-node-gateway.service"] = fmt.Sprintf(gatewayUnit, plan.ManagementPort, plan.PanelPeer, agentFlag)
 	return b, nil
+}
+
+func addAgentFiles(files map[string]string, id string, configFiles bool) {
+	configPaths := ""
+	unit := agentUnit
+	if configFiles {
+		configPaths = "config_path = \"/var/lib/private/telemt-node/telemt.toml\"\nconfig_binary = \"/opt/telemt-node/telemt\"\n"
+		// The editor and the running proxy use the same private directory,
+		// ownership and revision lock.
+		unit = strings.Replace(unit, "StateDirectory=telemt-agent\n", "User=telemt\nStateDirectory=telemt-agent telemt-node\n", 1)
+	}
+	files["agent.toml"] = fmt.Sprintf(agentConfig, id, configPaths)
+	files["telemt-agent.service"] = unit
+	files["telemt-node-control.socket"] = controlSocketUnit
+	files["telemt-node-control@.service"] = controlServiceUnit
+	files["service-control"] = controlScript
+}
+
+func addManagementUpgradeFiles(files map[string]string, id string) {
+	addAgentFiles(files, id, true)
+	basicConfig := fmt.Sprintf(agentConfig, id, "")
+	files["basic-agent.toml"] = basicConfig
+	files["basic-agent.service"] = agentUnit
+	files["basic-service-control"] = strings.Replace(controlScript, controlStatusCase, "", 1)
+	files["legacy-agent.toml"] = strings.NewReplacer(
+		"service_control_socket = \"/run/telemt-node-agent/control.sock\"\n", "",
+		"mode = \"direct\"", "mode = \"manual\"",
+	).Replace(basicConfig)
+	files["legacy-agent.service"] = strings.NewReplacer(
+		"Requires=telemt-node-control.socket\n", "",
+		"After=telemt.service telemt-node-control.socket", "After=telemt.service",
+		"RuntimeDirectory=telemt-node-agent\nRuntimeDirectoryMode=0700\n", "",
+		"BindReadOnlyPaths=/run/telemt-node-control/control.sock:/run/telemt-node-agent/control.sock\n", "",
+	).Replace(agentUnit)
 }
 
 func token(size int) string {
@@ -176,6 +198,7 @@ listen = "127.0.0.1:9091"
 whitelist = ["127.0.0.1/32"]
 auth_header = %s
 read_only = false
+runtime_edge_enabled = true
 
 [access.users]
 initial = "%s"
@@ -314,12 +337,23 @@ RestrictAddressFamilies=AF_UNIX
 TimeoutStartSec=27s
 `
 
+const controlStatusCase = `    status)
+        state=$(systemctl --no-ask-password is-active telemt.service 2>/dev/null) || true
+        case "$state" in
+            active) printf 'running\n' ;;
+            inactive|failed) printf 'stopped\n' ;;
+            *) printf 'unknown\n' ;;
+        esac
+        exit 0
+        ;;
+`
+
 const controlScript = `set -eu
 export PATH=/usr/sbin:/usr/bin:/sbin:/bin
 IFS= read -r -t 2 -n 8 action
 case "$action" in
     ping) ;;
-    start|stop|restart)
+` + controlStatusCase + `    start|stop|restart)
         systemctl --no-ask-password "$action" telemt.service >&2 || exit 1
         ;;
     *) exit 1 ;;

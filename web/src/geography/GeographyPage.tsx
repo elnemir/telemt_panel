@@ -1,3 +1,4 @@
+import { GeoIPCredit } from "./GeoIPCredit";
 import { useMemo, useState } from "react";
 import { useNavigate, useSearch } from "@tanstack/react-router";
 import { useStrings } from "../i18n";
@@ -185,6 +186,7 @@ export function GeographyView({
           <a href={withDocumentNode(withBasePath("/panel#geoip"))}>{s.configure}</a>
         </div>
       )}
+      {base?.geoip.available && <GeoIPCredit className="geo-note mb-3 block" source={base.geoip.active_source} />}
       <div className="geo-workspace">
         <div className="geo-map-column">
           {model ? (

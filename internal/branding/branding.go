@@ -25,6 +25,12 @@ import (
 )
 
 const settingKey = "panel.branding"
+const MaxLogoBytes = 5 << 20
+
+type storedConfig struct {
+	Config
+	UploadedLogo string `json:"uploaded_logo,omitempty"`
+}
 
 // Config is the administrator-only appearance configuration.
 type Config struct {
@@ -57,12 +63,14 @@ type snapshot struct {
 	Settings
 	logo, icon, icon512 []byte
 	mime, version       string
+	uploadedLogo        string
 }
 
 // Manager publishes immutable snapshots after successful persistence.
 type Manager struct {
 	st       settingsStore
 	basePath string
+	dataDir  string
 	mu       sync.Mutex
 	current  atomic.Pointer[snapshot]
 }
@@ -76,18 +84,19 @@ var (
 )
 
 // New restores appearance without making a missing image fatal to login.
-func New(st settingsStore, basePath string) *Manager {
-	m := &Manager{st: st, basePath: basePath}
-	cfg := Config{Title: "Telemt Panel", LogoMode: "default"}
+func New(st settingsStore, basePath, dataDir string) *Manager {
+	m := &Manager{st: st, basePath: basePath, dataDir: dataDir}
+	cfg := storedConfig{Config: Config{Title: "Telemt Panel", LogoMode: "default"}}
 	if raw, ok, err := st.GetSetting(settingKey); err == nil && ok {
-		var saved Config
-		if json.Unmarshal([]byte(raw), &saved) == nil && validate(&saved) == nil {
+		var saved storedConfig
+		if json.Unmarshal([]byte(raw), &saved) == nil && validate(&saved.Config) == nil {
 			cfg = saved
 		}
 	}
 	s, err := m.prepare(cfg)
 	if err != nil {
-		s = m.empty(cfg)
+		s = m.empty(cfg.Config)
+		s.uploadedLogo = cfg.UploadedLogo
 		s.LogoStatus = "unavailable"
 		m.setURLs(s)
 	}
@@ -108,16 +117,20 @@ func (m *Manager) Save(cfg Config) (Settings, error) {
 	if err := validate(&cfg); err != nil {
 		return Settings{}, err
 	}
-	s, err := m.prepare(cfg)
+	record := storedConfig{Config: cfg}
+	if cfg.LogoMode == "upload" {
+		if current := m.current.Load(); current.LogoMode == "upload" {
+			record.UploadedLogo = current.uploadedLogo
+		}
+		if record.UploadedLogo == "" {
+			return Settings{}, ErrRead
+		}
+	}
+	s, err := m.prepare(record)
 	if err != nil {
 		return Settings{}, err
 	}
-	raw, _ := json.Marshal(cfg)
-	if err := m.st.SetSetting(settingKey, string(raw)); err != nil {
-		return Settings{}, err
-	}
-	m.current.Store(s)
-	return s.Settings, nil
+	return m.publish(s)
 }
 
 // Asset returns immutable cached image bytes. Callers must not modify them.
@@ -132,13 +145,22 @@ func (m *Manager) Asset(iconSize int) (body []byte, contentType, version string)
 	return s.logo, s.mime, s.version
 }
 
+// SubscriptionLogo returns the public thumbnail, if a custom logo is active.
+func (m *Manager) SubscriptionLogo() []byte {
+	s := m.current.Load()
+	if s.LogoStatus != "ready" {
+		return nil
+	}
+	return s.icon
+}
+
 func validate(c *Config) error {
 	c.Title = strings.TrimSpace(c.Title)
 	if !utf8.ValidString(c.Title) || utf8.RuneCountInString(c.Title) < 1 || utf8.RuneCountInString(c.Title) > 80 || strings.ContainsFunc(c.Title, unicode.IsControl) {
 		return ErrTitle
 	}
 	switch c.LogoMode {
-	case "default", "hidden":
+	case "default", "hidden", "upload":
 		c.LogoPath = ""
 	case "custom":
 		if !filepath.IsAbs(c.LogoPath) || len(c.LogoPath) > 4096 || strings.ContainsRune(c.LogoPath, 0) {
@@ -160,18 +182,33 @@ func (m *Manager) empty(cfg Config) *snapshot {
 	return s
 }
 
-func (m *Manager) prepare(cfg Config) (*snapshot, error) {
-	s := m.empty(cfg)
-	if cfg.LogoMode == "custom" {
-		body, img, format, err := readImage(cfg.LogoPath)
+func (m *Manager) prepare(cfg storedConfig) (*snapshot, error) {
+	s := m.empty(cfg.Config)
+	if cfg.LogoMode == "custom" || cfg.LogoMode == "upload" {
+		path := cfg.LogoPath
+		if cfg.LogoMode == "upload" {
+			path = m.uploadPath(cfg.UploadedLogo)
+			if path == "" {
+				return nil, ErrRead
+			}
+			s.uploadedLogo = cfg.UploadedLogo
+		}
+		body, img, format, err := readImage(path)
 		if err != nil {
 			return nil, err
 		}
-		s.logo, s.mime = body, "image/"+format
-		s.icon, s.icon512, s.LogoStatus = renderIcon(img, 192), renderIcon(img, 512), "ready"
+		if cfg.LogoMode == "upload" && (format != "png" || logoDigest(body) != cfg.UploadedLogo) {
+			return nil, ErrImage
+		}
+		s.setImage(body, img, format)
 	}
 	m.setURLs(s)
 	return s, nil
+}
+
+func (s *snapshot) setImage(body []byte, img image.Image, format string) {
+	s.logo, s.mime = body, "image/"+format
+	s.icon, s.icon512, s.LogoStatus = renderIcon(img, 192), renderIcon(img, 512), "ready"
 }
 
 func renderIcon(img image.Image, size int) []byte {
@@ -195,6 +232,9 @@ func renderIcon(img image.Image, size int) []byte {
 }
 
 func (m *Manager) setURLs(s *snapshot) {
+	if s.LogoMode == "upload" {
+		s.Public.LogoMode = "custom"
+	}
 	hash := sha256.Sum256(append(append([]byte(s.Config.LogoMode), s.logo...), s.icon...))
 	s.version = hex.EncodeToString(hash[:12])
 	if len(s.logo) > 0 {
@@ -213,27 +253,34 @@ func readImage(path string) ([]byte, image.Image, string, error) {
 	}
 	defer f.Close()
 	info, err := f.Stat()
-	const maxBytes = 5 << 20
 	if err != nil || !info.Mode().IsRegular() {
 		return nil, nil, "", ErrRead
 	}
-	if info.Size() > maxBytes {
+	if info.Size() > MaxLogoBytes {
 		return nil, nil, "", ErrImage
 	}
-	b, err := io.ReadAll(io.LimitReader(f, maxBytes+1))
+	b, err := io.ReadAll(io.LimitReader(f, MaxLogoBytes+1))
 	if err != nil {
 		return nil, nil, "", ErrRead
 	}
-	if len(b) > maxBytes {
+	if len(b) > MaxLogoBytes {
 		return nil, nil, "", ErrImage
+	}
+	img, format, err := decodeImage(b)
+	return b, img, format, err
+}
+
+func decodeImage(b []byte) (image.Image, string, error) {
+	if len(b) > MaxLogoBytes {
+		return nil, "", ErrImage
 	}
 	cfg, format, err := image.DecodeConfig(bytes.NewReader(b))
 	if err != nil || (format != "png" && format != "jpeg" && format != "webp") || cfg.Width < 1 || cfg.Height < 1 || cfg.Width > 4096 || cfg.Height > 4096 || int64(cfg.Width)*int64(cfg.Height) > 8_000_000 {
-		return nil, nil, "", ErrImage
+		return nil, "", ErrImage
 	}
 	img, _, err := image.Decode(bytes.NewReader(b))
-	if err != nil {
-		return nil, nil, "", ErrImage
+	if err != nil || img.Bounds().Dx() != cfg.Width || img.Bounds().Dy() != cfg.Height {
+		return nil, "", ErrImage
 	}
-	return b, img, format, nil
+	return img, format, nil
 }

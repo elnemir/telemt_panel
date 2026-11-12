@@ -4,6 +4,7 @@ import {
   IconGlobe,
   IconMap,
   IconJournal,
+  IconInfo,
   IconPeople,
   IconPulse,
   IconServer,
@@ -40,6 +41,7 @@ export const OPERATIONAL_NAV_ITEMS: readonly NavItem[] = [
 export const MANAGEMENT_NAV_ITEMS: readonly NavItem[] = [
   { to: "/server", labelKey: "server", Icon: IconServer },
   { to: "/panel", labelKey: "panel", Icon: IconSettings },
+  { to: "/documentation", labelKey: "documentation", Icon: IconInfo },
   { to: "/web", labelKey: "web", Icon: IconGlobe },
 ];
 

@@ -18,10 +18,12 @@ import { useLogout } from "../auth/useLogout";
 import { useAuthDisabled } from "../auth/useAuthDisabled";
 import { AuthDisabledNotice } from "../auth/AuthDisabledNotice";
 import { Sheet } from "../ui/Sheet";
-import { IconLogout, IconMore, IconServer, IconJournal } from "../ui/icons";
+import { IconLogout, IconMore, IconServer, IconJournal, IconInfo } from "../ui/icons";
 import { HistoryNotice } from "./HistoryNotice";
 import { PanelLogo } from "../branding/branding";
 import { useBranding } from "../branding/useBranding";
+import { helpTopicForPath } from "../documentation/topics";
+import { buttonClasses } from "../ui/buttonStyles";
 
 function BrandMark({ className }: { className?: string }) {
   const branding = useBranding();
@@ -34,7 +36,9 @@ export function Shell({ children }: { children: ReactNode }) {
   const s = useStrings();
   const pathname = useRouterState({ select: (state) => state.location.pathname });
   const panelSection = isNavItemActive("/panel", pathname);
-  const Workspace = panelSection ? Fragment : NodeWorkspace;
+  const documentationSection = isNavItemActive("/documentation", pathname);
+  const Workspace = panelSection || documentationSection ? Fragment : NodeWorkspace;
+  const helpTopic = helpTopicForPath(pathname);
   const keyboardInset = useKeyboardInset();
   const [mobileMoreOpen, setMobileMoreOpen] = useState(false);
   const [railMoreOpen, setRailMoreOpen] = useState(false);
@@ -108,8 +112,16 @@ export function Shell({ children }: { children: ReactNode }) {
             )}
             data-testid="page-frame"
           >
-            {!panelSection && <HistoryNotice />}
+            {!panelSection && !documentationSection && <HistoryNotice />}
             <AuthDisabledNotice />
+            {helpTopic && (
+              <div className={cn("flex shrink-0 justify-end pb-2", ownsLayout && "px-4 pt-2 sm:px-6")}>
+                <Link to="/documentation/$topic" params={{ topic: helpTopic }}
+                  className={buttonClasses("secondary", "sm")}>
+                  <IconInfo className="h-4 w-4" aria-hidden="true" />{s.documentation.help}
+                </Link>
+              </div>
+            )}
             {children}
           </div>
         </main>

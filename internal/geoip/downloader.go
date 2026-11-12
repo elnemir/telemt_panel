@@ -1,6 +1,8 @@
 package geoip
 
 import (
+	"archive/tar"
+	"compress/gzip"
 	"context"
 	"errors"
 	"io"
@@ -9,6 +11,7 @@ import (
 	"net/netip"
 	"net/url"
 	"os"
+	"path"
 	"strconv"
 	"time"
 )
@@ -19,8 +22,18 @@ const (
 )
 
 type downloader interface {
-	download(context.Context, string, string) (string, error)
+	download(context.Context, downloadRequest, string) (string, error)
 }
+
+type downloadRequest struct {
+	url       string
+	accountID string
+	accessKey string
+	gzip      bool
+	archiveDB string // exact basename of a database in a tar.gz archive
+}
+
+var errDownloadNotFound = errors.New("geoip: download not found")
 
 type ipResolver interface {
 	LookupNetIP(context.Context, string, string) ([]netip.Addr, error)
@@ -40,6 +53,8 @@ func newSecureDownloader() downloader {
 			if len(via) > maxRedirects {
 				return errors.New("geoip: redirect limit exceeded")
 			}
+			request.Header.Del("Authorization")
+			request.Header.Del("Referer")
 			return validateRemoteURL(request.URL.String())
 		},
 	}}
@@ -125,15 +140,21 @@ func validateRemoteURL(raw string) error {
 	return nil
 }
 
-func (d *secureDownloader) download(ctx context.Context, rawURL, destination string) (string, error) {
-	if err := validateRemoteURL(rawURL); err != nil {
+func (d *secureDownloader) download(ctx context.Context, source downloadRequest, destination string) (string, error) {
+	if err := validateRemoteURL(source.url); err != nil {
 		return "", coded(ErrorDownloadFailed, err)
 	}
 	ctx, cancel := context.WithTimeout(ctx, downloadDeadline)
 	defer cancel()
-	request, err := http.NewRequestWithContext(ctx, http.MethodGet, rawURL, nil)
+	request, err := http.NewRequestWithContext(ctx, http.MethodGet, source.url, nil)
 	if err != nil {
 		return "", coded(ErrorDownloadFailed, err)
+	}
+	if source.accountID != "" {
+		request.SetBasicAuth(source.accountID, source.accessKey)
+	}
+	if source.gzip {
+		request.Header.Set("Accept-Encoding", "identity")
 	}
 	response, err := d.client.Do(request)
 	if err != nil {
@@ -141,6 +162,14 @@ func (d *secureDownloader) download(ctx context.Context, rawURL, destination str
 	}
 	defer response.Body.Close()
 	if response.StatusCode != http.StatusOK {
+		switch response.StatusCode {
+		case http.StatusUnauthorized, http.StatusForbidden:
+			if source.accountID != "" || source.accessKey != "" {
+				return "", coded(ErrorProviderAccess, nil)
+			}
+		case http.StatusNotFound:
+			return "", coded(ErrorDownloadFailed, errDownloadNotFound)
+		}
 		return "", coded(ErrorDownloadFailed, nil)
 	}
 	limit := d.maxBytes
@@ -160,16 +189,13 @@ func (d *secureDownloader) download(ctx context.Context, rawURL, destination str
 			_ = os.Remove(destination)
 		}
 	}()
-	written, copyErr := io.Copy(out, io.LimitReader(response.Body, limit+1))
+	copyErr := writeDownload(ctx, out, response.Body, source, limit)
 	closeErr := out.Close()
 	if copyErr != nil {
-		return "", coded(ErrorDownloadFailed, copyErr)
+		return "", copyErr
 	}
 	if closeErr != nil {
 		return "", coded(ErrorActivationFailed, closeErr)
-	}
-	if written > limit {
-		return "", coded(ErrorDownloadTooLarge, nil)
 	}
 	complete = true
 	finalURL := request.URL.String()
@@ -177,4 +203,76 @@ func (d *secureDownloader) download(ctx context.Context, rawURL, destination str
 		finalURL = response.Request.URL.String()
 	}
 	return locationIdentity(finalURL, SourceURLs), nil
+}
+
+func writeDownload(ctx context.Context, out io.Writer, body io.Reader, source downloadRequest, limit int64) error {
+	wire := &io.LimitedReader{R: body, N: limit + 1}
+	var payload io.Reader = wire
+	if source.gzip {
+		gz, err := gzip.NewReader(wire)
+		if err != nil {
+			return coded(ErrorDownloadFailed, err)
+		}
+		defer gz.Close()
+		payload = gz
+		if source.archiveDB != "" {
+			return extractDatabase(ctx, out, gz, wire, source.archiveDB, limit)
+		}
+	}
+	n, err := copyWithContext(ctx, out, io.LimitReader(payload, limit+1))
+	if n > limit || wire.N == 0 {
+		return coded(ErrorDownloadTooLarge, nil)
+	}
+	if err != nil {
+		return coded(ErrorDownloadFailed, err)
+	}
+	return nil
+}
+
+// Only the expected regular MMDB entry is written to our own staging path.
+// Also bound the expanded archive, including entries that are skipped.
+func extractDatabase(ctx context.Context, out io.Writer, gzipStream io.Reader, wire *io.LimitedReader, name string, limit int64) error {
+	expanded := &io.LimitedReader{R: gzipStream, N: limit + (1 << 20) + 1}
+	archive := tar.NewReader(expanded)
+	found := false
+	for {
+		if err := ctx.Err(); err != nil {
+			return coded(ErrorDownloadFailed, err)
+		}
+		entry, err := archive.Next()
+		if wire.N == 0 || expanded.N == 0 {
+			return coded(ErrorDownloadTooLarge, nil)
+		}
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			return coded(ErrorDownloadFailed, err)
+		}
+		if path.Base(entry.Name) != name {
+			continue
+		}
+		if found || entry.Typeflag != tar.TypeReg {
+			return coded(ErrorDatabaseInvalid, nil)
+		}
+		if entry.Size > limit {
+			return coded(ErrorDownloadTooLarge, nil)
+		}
+		if _, err := copyWithContext(ctx, out, archive); err != nil {
+			return coded(ErrorDownloadFailed, err)
+		}
+		found = true
+	}
+	// Read through the gzip footer to check the checksum.
+	_, err := copyWithContext(ctx, io.Discard, expanded)
+	if wire.N == 0 || expanded.N == 0 {
+		return coded(ErrorDownloadTooLarge, nil)
+	}
+	if err != nil {
+		return coded(ErrorDownloadFailed, err)
+	}
+	if !found {
+		return coded(ErrorDatabaseInvalid, nil)
+	}
+	return nil
 }

@@ -55,9 +55,18 @@ func TestNodeInstallAPIAuthAndSingleApply(t *testing.T) {
 	if w := send("POST", preview, cookie, map[string]string{"ssh_password": "not accepted"}); w.Code != 400 {
 		t.Fatalf("unexpected credential field returned %d", w.Code)
 	}
-	w := send("POST", preview, cookie, request)
+	raw, err := json.Marshal(request)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var withoutProfile map[string]any
+	if err := json.Unmarshal(raw, &withoutProfile); err != nil {
+		t.Fatal(err)
+	}
+	delete(withoutProfile, "with_agent")
+	w := send("POST", preview, cookie, withoutProfile)
 	var job nodeInstallJob
-	if w.Code != 200 || json.Unmarshal(w.Body.Bytes(), &job) != nil || job.State != "prepared" || job.ID == "" {
+	if w.Code != 200 || json.Unmarshal(w.Body.Bytes(), &job) != nil || job.State != "prepared" || job.ID == "" || !job.Plan.WithAgent {
 		t.Fatalf("preview status %d, body %s", w.Code, w.Body)
 	}
 	id := job.ID

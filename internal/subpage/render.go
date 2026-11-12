@@ -71,80 +71,18 @@ func renderPageData(w io.Writer, data pageData) error {
 		b.writeString("</p>\n    ")
 	}
 	b.writeString("\n    ")
-	for _, group := range data.Groups {
-		b.writeString("\n    <h3 class=\"caption\">")
-		b.writeString(pageHTMLEscaper.Replace(group.Title))
-		b.writeString("</h3>\n    ")
-		for _, variant := range group.Variants {
-			b.writeString("\n    <div class=\"variant\">\n      ")
-			if variant.Domain != "" {
-				b.writeString("<p class=\"domain\">")
-				b.writeString(pageHTMLEscaper.Replace(variant.Domain))
-				b.writeString("</p>")
+	if data.Appearance != nil && data.shows("qr") && hasConnectionChoice(data.Groups) {
+		renderConnectionPicker(&b, data)
+	} else {
+		for _, group := range data.Groups {
+			b.writeString("\n    <h3 class=\"caption\">")
+			b.writeString(pageHTMLEscaper.Replace(group.Title))
+			b.writeString("</h3>\n    ")
+			for _, variant := range group.Variants {
+				renderConnectionVariant(&b, data, variant)
 			}
-			b.writeString("\n      <a class=\"btn-primary\" href=\"")
-			b.writeString(pageHTMLEscaper.Replace(normalizePageURL(variant.TgURL)))
-			b.writeString("\"><svg width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" fill=\"currentColor\" aria-hidden=\"true\"><path d=\"M21.9 4.6 18.9 19c-.2 1-.8 1.2-1.6.8l-4.6-3.4-2.2 2.1c-.2.3-.5.5-.9.5l.3-4.6L18.3 7c.4-.3-.1-.5-.6-.2L7.4 13.3 3 11.9c-1-.3-1-1 .2-1.4l17.3-6.7c.8-.3 1.5.2 1.4.8z\"></path></svg>")
-			b.writeString(pageHTMLEscaper.Replace(data.S.OpenInTelegram))
-			b.writeString("</a>\n      ")
-			if variant.TMeURL != "" && data.shows("fallback") {
-				b.writeString("<a class=\"btn-secondary\" href=\"")
-				b.writeString(pageHTMLEscaper.Replace(normalizePageURL(variant.TMeURL)))
-				b.writeString("\">")
-				b.writeString(pageHTMLEscaper.Replace(data.S.OpenViaTMe))
-				b.writeString("</a>")
-			}
-			b.writeString("\n      ")
-			if variant.Web {
-				b.writeString("<p class=\"empty\">")
-				b.writeString(pageHTMLEscaper.Replace(data.S.WEBHint))
-				b.writeString("</p>")
-			}
-			if data.shows("qr") {
-				b.writeString("\n      <div class=\"card qr-card\">\n        <img class=\"qr\" src=\"")
-				b.writeString(pageHTMLEscaper.Replace(normalizePageURL(variant.QRDataURI)))
-				b.writeString("\" alt=\"QR\" width=\"256\" height=\"256\">\n        <span class=\"qr-hint\">")
-				b.writeString(pageHTMLEscaper.Replace(data.S.ScanHint))
-				b.writeString("</span>\n      </div>\n      ")
-			}
-			if data.shows("manual") {
-				b.writeString("<details class=\"manual\">\n        <summary>")
-				b.writeString(pageHTMLEscaper.Replace(data.S.ManualParams))
-				b.writeString("</summary>\n        <dl class=\"fields\">\n          <dt>")
-				b.writeString(pageHTMLEscaper.Replace(data.S.FieldServer))
-				b.writeString("</dt>\n          <dd><code>")
-				b.writeString(pageHTMLEscaper.Replace(variant.Server))
-				b.writeString("</code><button type=\"button\" class=\"copy\" data-copy data-copied=\"")
-				b.writeString(pageHTMLEscaper.Replace(data.S.CopiedButton))
-				b.writeString("\">")
-				b.writeString(pageHTMLEscaper.Replace(data.S.CopyButton))
-				b.writeString("</button></dd>\n          ")
-				if variant.Port != "" {
-					b.writeString("<dt>")
-					b.writeString(pageHTMLEscaper.Replace(data.S.FieldPort))
-					b.writeString("</dt>\n          <dd><code>")
-					b.writeString(pageHTMLEscaper.Replace(variant.Port))
-					b.writeString("</code><button type=\"button\" class=\"copy\" data-copy data-copied=\"")
-					b.writeString(pageHTMLEscaper.Replace(data.S.CopiedButton))
-					b.writeString("\">")
-					b.writeString(pageHTMLEscaper.Replace(data.S.CopyButton))
-					b.writeString("</button></dd>\n          ")
-				}
-				b.writeString("\n          <dt>")
-				b.writeString(pageHTMLEscaper.Replace(data.S.FieldSecret))
-				b.writeString("</dt>\n          <dd><code>")
-				b.writeString(pageHTMLEscaper.Replace(variant.Secret))
-				b.writeString("</code><button type=\"button\" class=\"copy\" data-copy data-copied=\"")
-				b.writeString(pageHTMLEscaper.Replace(data.S.CopiedButton))
-				b.writeString("\">")
-				b.writeString(pageHTMLEscaper.Replace(data.S.CopyButton))
-				b.writeString("</button></dd>\n        </dl>\n        <p role=\"status\" data-copy-feedback data-manual=\"")
-				b.writeString(pageHTMLEscaper.Replace(data.S.CopyManually))
-				b.writeString("\"></p>\n      </details>")
-			}
-			b.writeString("\n    </div>\n    ")
+			b.writeString("\n    ")
 		}
-		b.writeString("\n    ")
 	}
 	b.writeString("\n  </section>\n\n")
 	if data.shows("instructions") {
@@ -171,6 +109,76 @@ func renderPageData(w io.Writer, data pageData) error {
 	}
 	b.writeString("</main>\n<script>\ndocument.addEventListener('click', async function (e) {\n  var btn = e.target.closest('[data-copy]');\n  if (!btn) return;\n  var code = btn.previousElementSibling;\n  if (!code) return;\n  var feedback = btn.closest('details').querySelector('[data-copy-feedback]');\n  var copied = false;\n  try {\n    await navigator.clipboard.writeText(code.textContent);\n    copied = true;\n  } catch (_) {\n    \n    var selection = window.getSelection();\n    if (selection) {\n      var range = document.createRange();\n      range.selectNodeContents(code);\n      selection.removeAllRanges();\n      selection.addRange(range);\n      try { copied = document.execCommand('copy'); } catch (_) {}\n    }\n  }\n  feedback.textContent = copied ? '' : feedback.getAttribute('data-manual');\n  if (copied) {\n    var prev = btn.textContent;\n    btn.textContent = btn.getAttribute('data-copied') || prev;\n    setTimeout(function () { btn.textContent = prev; }, 1200);\n  }\n});\n</script>\n</body>\n</html>\n")
 	return b.err
+}
+
+func renderConnectionVariant(b *pageWriter, data pageData, variant linkVariantView) {
+	b.writeString("\n    <div class=\"variant\">\n      ")
+	if variant.Domain != "" {
+		b.writeString("<p class=\"domain\">")
+		b.writeString(pageHTMLEscaper.Replace(variant.Domain))
+		b.writeString("</p>")
+	}
+	b.writeString("\n      <a class=\"btn-primary\" href=\"")
+	b.writeString(pageHTMLEscaper.Replace(normalizePageURL(variant.TgURL)))
+	b.writeString("\"><svg width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" fill=\"currentColor\" aria-hidden=\"true\"><path d=\"M21.9 4.6 18.9 19c-.2 1-.8 1.2-1.6.8l-4.6-3.4-2.2 2.1c-.2.3-.5.5-.9.5l.3-4.6L18.3 7c.4-.3-.1-.5-.6-.2L7.4 13.3 3 11.9c-1-.3-1-1 .2-1.4l17.3-6.7c.8-.3 1.5.2 1.4.8z\"></path></svg>")
+	b.writeString(pageHTMLEscaper.Replace(data.S.OpenInTelegram))
+	b.writeString("</a>\n      ")
+	if variant.TMeURL != "" && data.shows("fallback") {
+		b.writeString("<a class=\"btn-secondary\" href=\"")
+		b.writeString(pageHTMLEscaper.Replace(normalizePageURL(variant.TMeURL)))
+		b.writeString("\">")
+		b.writeString(pageHTMLEscaper.Replace(data.S.OpenViaTMe))
+		b.writeString("</a>")
+	}
+	b.writeString("\n      ")
+	if variant.Web {
+		b.writeString("<p class=\"empty\">")
+		b.writeString(pageHTMLEscaper.Replace(data.S.WEBHint))
+		b.writeString("</p>")
+	}
+	if data.shows("qr") {
+		b.writeString("\n      <div class=\"card qr-card\">\n        <img class=\"qr\" src=\"")
+		b.writeString(pageHTMLEscaper.Replace(normalizePageURL(variant.QRDataURI)))
+		b.writeString("\" alt=\"QR\" width=\"256\" height=\"256\">\n        <span class=\"qr-hint\">")
+		b.writeString(pageHTMLEscaper.Replace(data.S.ScanHint))
+		b.writeString("</span>\n      </div>\n      ")
+	}
+	if data.shows("manual") {
+		b.writeString("<details class=\"manual\">\n        <summary>")
+		b.writeString(pageHTMLEscaper.Replace(data.S.ManualParams))
+		b.writeString("</summary>\n        <dl class=\"fields\">\n          <dt>")
+		b.writeString(pageHTMLEscaper.Replace(data.S.FieldServer))
+		b.writeString("</dt>\n          <dd><code>")
+		b.writeString(pageHTMLEscaper.Replace(variant.Server))
+		b.writeString("</code><button type=\"button\" class=\"copy\" data-copy data-copied=\"")
+		b.writeString(pageHTMLEscaper.Replace(data.S.CopiedButton))
+		b.writeString("\">")
+		b.writeString(pageHTMLEscaper.Replace(data.S.CopyButton))
+		b.writeString("</button></dd>\n          ")
+		if variant.Port != "" {
+			b.writeString("<dt>")
+			b.writeString(pageHTMLEscaper.Replace(data.S.FieldPort))
+			b.writeString("</dt>\n          <dd><code>")
+			b.writeString(pageHTMLEscaper.Replace(variant.Port))
+			b.writeString("</code><button type=\"button\" class=\"copy\" data-copy data-copied=\"")
+			b.writeString(pageHTMLEscaper.Replace(data.S.CopiedButton))
+			b.writeString("\">")
+			b.writeString(pageHTMLEscaper.Replace(data.S.CopyButton))
+			b.writeString("</button></dd>\n          ")
+		}
+		b.writeString("\n          <dt>")
+		b.writeString(pageHTMLEscaper.Replace(data.S.FieldSecret))
+		b.writeString("</dt>\n          <dd><code>")
+		b.writeString(pageHTMLEscaper.Replace(variant.Secret))
+		b.writeString("</code><button type=\"button\" class=\"copy\" data-copy data-copied=\"")
+		b.writeString(pageHTMLEscaper.Replace(data.S.CopiedButton))
+		b.writeString("\">")
+		b.writeString(pageHTMLEscaper.Replace(data.S.CopyButton))
+		b.writeString("</button></dd>\n        </dl>\n        <p role=\"status\" data-copy-feedback data-manual=\"")
+		b.writeString(pageHTMLEscaper.Replace(data.S.CopyManually))
+		b.writeString("\"></p>\n      </details>")
+	}
+	b.writeString("\n    </div>\n    ")
 }
 
 // The trusted-URL normalization rule follows Go html/template/url.go.

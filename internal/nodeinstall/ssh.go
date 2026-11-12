@@ -145,6 +145,9 @@ func preflight(client *ssh.Client, r Request) (Plan, error) {
 }
 
 func (i *Installer) Preview(ctx context.Context, request Request) (Plan, error) {
+	if request.WithAgent && i.fileBinary.Path == "" {
+		return Plan{}, ErrFullArtifact
+	}
 	r, err := normalize(request)
 	if err != nil {
 		return Plan{}, err

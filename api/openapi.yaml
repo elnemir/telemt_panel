@@ -3302,7 +3302,7 @@ paths:
     post:
       tags: [nodes]
       operationId: previewNodeInstall
-      description: Verify the pinned SSH host key and read clean-host prerequisites. Does not install files or services.
+      description: Verify the pinned SSH host key and read clean-host prerequisites. Full management is the default and requires a pinned compatible Telemt build. Does not install files or services.
       requestBody:
         required: true
         content:
@@ -3375,7 +3375,7 @@ paths:
     post:
       tags: [nodes]
       operationId: startNodeUpgrade
-      description: Start an administrator-authorized SSH upgrade with the panel's approved binaries. Verify the pinned node APIs or restore the previous files. An identical repeat for the latest request returns its status.
+      description: Start an administrator-authorized SSH upgrade with the panel's approved binaries. Optionally migrate an installer-owned agent to full management. Verify the pinned node APIs or restore the previous files. An identical repeat for the latest request returns its status.
       requestBody:
         required: true
         content:
@@ -8461,6 +8461,33 @@ paths:
         "401": { $ref: "#/components/responses/Unauthorized" }
         "403": { description: CSRF rejected, content: { application/json: { schema: { $ref: "#/components/schemas/Error" } } } }
         "500": { $ref: "#/components/responses/InternalError" }
+  /api/settings/branding/logo:
+    post:
+      tags: [misc]
+      operationId: uploadBrandingLogo
+      description: Save an uploaded raster as the active panel logo and update the panel title without a restart. Requires a persistent panel data directory.
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [title, file]
+              properties:
+                title: { type: string, minLength: 1, maxLength: 80 }
+                file: { type: string, format: binary, description: PNG, WebP or JPEG up to 5 MiB, 4096 pixels per side and 8 million pixels. }
+      responses:
+        "200":
+          description: Saved appearance
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/BrandingSettings" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { description: CSRF rejected, content: { application/json: { schema: { $ref: "#/components/schemas/Error" } } } }
+        "413": { description: Upload exceeds the size limit, content: { application/json: { schema: { $ref: "#/components/schemas/Error" } } } }
+        "500": { $ref: "#/components/responses/InternalError" }
+        "503": { description: Persistent panel data directory is not configured, content: { application/json: { schema: { $ref: "#/components/schemas/Error" } } } }
   /api/settings/subscription:
     get:
       tags: [settings]
@@ -10303,7 +10330,7 @@ paths:
       description: Persists the complete desired configuration and starts asynchronous atomic application.
       requestBody:
         required: true
-        content: { application/json: { schema: { $ref: "#/components/schemas/GeoIpConfig" } } }
+        content: { application/json: { schema: { $ref: "#/components/schemas/GeoIpConfigRequest" } } }
       responses:
         "202":
           description: Configuration saved; application started, or GeoIP disabled.
@@ -11877,6 +11904,7 @@ components:
         host_fingerprint: { type: string, pattern: '^SHA256:[A-Za-z0-9+/]{43}$' }
         telemt: { type: boolean, description: Apply the approved Telemt artifact, if configured. }
         agent: { type: boolean, description: Update the agent and its HTTPS gateway to the panel build. }
+        enable_management: { type: boolean, default: false, description: Migrate an installer-owned agent profile to the full profile with service control and configuration files. Requires both components. }
         request_id: { type: string, pattern: '^[a-f0-9]{32}$' }
     NodeUpgradeStatus:
       type: object
@@ -11898,7 +11926,7 @@ components:
     NodeInstallInput:
       type: object
       additionalProperties: false
-      required: [name, host, ssh_port, ssh_user, host_fingerprint, proxy_port, management_port, with_agent]
+      required: [name, host, ssh_port, ssh_user, host_fingerprint, proxy_port, management_port]
       properties:
         name: { type: string, minLength: 1, maxLength: 128 }
         host: { type: string, maxLength: 64, description: IPv4 or IPv6 address reachable from the panel for SSH and HTTPS management. }
@@ -11907,7 +11935,7 @@ components:
         host_fingerprint: { type: string, pattern: '^SHA256:[A-Za-z0-9+/]{43}$' }
         proxy_port: { type: integer, minimum: 1, maximum: 65535 }
         management_port: { type: integer, minimum: 1024, maximum: 65535 }
-        with_agent: { type: boolean }
+        with_agent: { type: boolean, default: true, description: Install the full management profile. Set false for a Control API-only installation. }
     NodeInstallPlan:
       type: object
       additionalProperties: false
@@ -12283,7 +12311,7 @@ components:
       required: [title, logo_mode, logo_path]
       properties:
         title: { type: string, minLength: 1, maxLength: 80 }
-        logo_mode: { type: string, enum: [default, custom, hidden] }
+        logo_mode: { type: string, enum: [default, custom, upload, hidden], description: Upload retains an existing uploaded image. Use the upload operation to select a new file. }
         logo_path: { type: string, maxLength: 4096, description: Absolute server path; required for custom mode. PNG/WebP/JPEG, up to 5 MiB, 4096px per side and 8 million pixels. }
     PublicBranding:
       type: object
@@ -12402,6 +12430,7 @@ components:
             - node_install_artifacts
             - node_install_apply
             - node_install_health
+            - node_install_tls_activity
             - node_install_management
             - node_install_registry
             - node_install_unconfirmed
@@ -13671,13 +13700,37 @@ components:
         enabled: { type: boolean, default: false }
         source:
           type: string
-          enum: [community, urls, files]
+          enum: [community, urls, files, maxmind, dbip, ipinfo]
           default: urls
-          description: Operator-supplied HTTPS URLs or local files. Community is retained for legacy settings and bundles; new community downloads are unavailable until redistribution conditions are established.
+          description: Built-in MaxMind GeoLite2, DB-IP Lite and IPinfo Lite providers, or operator-supplied HTTPS URLs or local files. Community is retained for legacy bundles.
         schedule: { type: string, enum: [weekly, daily, manual], default: weekly }
         country: { $ref: "#/components/schemas/GeoIpDatabaseConfig" }
         asn: { $ref: "#/components/schemas/GeoIpDatabaseConfig" }
         city: { $ref: "#/components/schemas/GeoIpDatabaseConfig" }
+        account_id:
+          type: string
+          description: Numeric MaxMind account ID. Omitted for other sources.
+
+    GeoIpConfigRequest:
+      type: object
+      additionalProperties: false
+      required: [enabled, source, schedule, country, asn, city]
+      properties:
+        enabled: { type: boolean }
+        source: { type: string, enum: [community, urls, files, maxmind, dbip, ipinfo] }
+        schedule: { type: string, enum: [weekly, daily, manual] }
+        country: { $ref: "#/components/schemas/GeoIpDatabaseConfig" }
+        asn: { $ref: "#/components/schemas/GeoIpDatabaseConfig" }
+        city: { $ref: "#/components/schemas/GeoIpDatabaseConfig" }
+        account_id:
+          type: string
+          description: Required for enabled MaxMind configurations.
+        access_key:
+          type: string
+          format: password
+          writeOnly: true
+          maxLength: 512
+          description: MaxMind license key or IPinfo token. Omit to reuse the key for the same provider and account.
 
     GeoIpDatabaseConfig:
       type: object
@@ -13687,7 +13740,7 @@ components:
         enabled: { type: boolean }
         location:
           type: string
-          description: Operator URL or absolute server path; may be empty while GeoIP is disabled.
+          description: Operator URL or absolute server path. Empty for a built-in provider.
 
     GeoIpDatabaseStatus:
       type: object
@@ -13729,11 +13782,11 @@ components:
       properties:
         state: { type: string, enum: [disabled, empty, ready, updating, error] }
         available: { type: boolean }
-        active_source: { type: [string, "null"], enum: [community, urls, files, null] }
+        active_source: { type: [string, "null"], enum: [community, urls, files, maxmind, dbip, ipinfo, null] }
         databases: { type: array, items: { $ref: "#/components/schemas/GeoIpDatabaseStatus" } }
         last_error:
           type: [string, "null"]
-          enum: [data_dir_required, source_unavailable, source_unconfirmed, source_not_regular, source_too_large, download_failed, download_too_large, database_invalid, database_type_mismatch, activation_failed, null]
+          enum: [data_dir_required, source_unavailable, source_unconfirmed, source_not_regular, source_too_large, download_failed, download_too_large, provider_access_denied, database_invalid, database_type_mismatch, activation_failed, null]
           description: Stable safe GeoIP error code; never a URL, filesystem path, query, or exception text.
 
     GeoIpSettings:
@@ -13742,6 +13795,9 @@ components:
       properties:
         config: { $ref: "#/components/schemas/GeoIpConfig" }
         status: { $ref: "#/components/schemas/GeoIpStatus" }
+        access_key_saved:
+          type: boolean
+          description: True when a provider access key is stored. The key is never returned.
 
     GeographyRange:
       type: "string"

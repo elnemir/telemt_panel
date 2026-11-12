@@ -549,6 +549,10 @@ export type NodeUpgradeInput = {
      * Update the agent and its HTTPS gateway to the panel build.
      */
     agent: boolean;
+    /**
+     * Migrate an installer-owned agent profile to the full profile with service control and configuration files. Requires both components.
+     */
+    enable_management?: boolean;
     request_id: string;
 };
 
@@ -585,7 +589,10 @@ export type NodeInstallInput = {
     host_fingerprint: string;
     proxy_port: number;
     management_port: number;
-    with_agent: boolean;
+    /**
+     * Install the full management profile. Set false for a Control API-only installation.
+     */
+    with_agent?: boolean;
 };
 
 export type NodeInstallPlan = {
@@ -874,7 +881,10 @@ export type SubscriptionAppearanceSnapshot = {
 
 export type BrandingConfig = {
     title: string;
-    logo_mode: 'default' | 'custom' | 'hidden';
+    /**
+     * Upload retains an existing uploaded image. Use the upload operation to select a new file.
+     */
+    logo_mode: 'default' | 'custom' | 'upload' | 'hidden';
     /**
      * Absolute server path; required for custom mode. PNG/WebP/JPEG
      */
@@ -989,7 +999,7 @@ export type Error = {
      * Machine code. Panel codes actually emitted today (grepped from every WriteError call site): bad_request, invalid_credentials, rate_limited, session_expired, session_revoke_failed, csrf_rejected, auth_disabled, internal_error, not_found, telemt_response_too_large, history_timeout, telemt_unreachable, capability_absent, capability_unavailable, manual_restart_required, update_locked, sublink_unavailable, log_tail_unavailable, log_stream_unavailable, log_source_error, invalid_webauthn_origin, invalid_webauthn_challenge, invalid_webauthn_response, webauthn_credential_exists, passkey_unavailable, quota_reset_busy, quota_confirmation_expired, quota_operation_unavailable, invalid_toml, invalid_config_path, config_unset_unsupported, no_changes, toml_projection_failed. capability_absent (501) vs capability_unavailable (503) are deliberately distinct, not aliases: capability_absent means the route itself doesn't exist on this Telemt build (a bare 404/405 with no error envelope — detected reactively, after attempting the call: rotate-secret, enable/disable, POST /api/telemt/reload, GET /api/telemt/reload/{id}); capability_unavailable means the route exists but the feature behind it is switched off on this Telemt — either known up front from the SDK's cached Capabilities probe (GET/PATCH /api/telemt/config, config_api) or reported by the response itself (GET /api/telemt/tls-fingerprints, whose enabled:false means runtime_edge_enabled is off; read from the response rather than probed so an unreachable Telemt still maps to 502 telemt_unreachable). Reserved for milestones not yet implemented: telemt_auth_failed (superseded on /api/telemt/info by a reachable:false body, not an error status — kept here for /api/telemt/config, M3). A well-formed Telemt *APIError whose status is 4xx and isn't otherwise mapped above is passed through verbatim with Telemt's own code — notably user_exists, last_user_forbidden, read_only, revision_conflict, reload_in_progress, reload_not_found, ambiguous_listeners (the latter two absent from Telemt's own documented error-code table but confirmed against its source, M3), plus any other code in Telemt's own set (07-telemt-sdk.md): bad_request, access_not_editable, section_not_editable, field_not_editable, unauthorized, forbidden, method_not_allowed, config_patch_not_atomic, payload_too_large, api_disabled, maestro_unavailable — except access_not_editable/section_not_editable/field_not_editable/ config_patch_not_atomic/ambiguous_listeners on PATCH /api/telemt/config, which the panel remaps to HTTP 422 regardless of Telemt's own status. The WEB group (Telemt >= 3.5.3, internal/telemt/types_web.go) adds web_runtime_mismatch, web_issuance_enabled, web_operation_in_progress, web_snapshot_busy, web_session_not_found, web_operation_not_found and unsupported_media_type; web_runtime_unavailable is listed because it is Telemt's own code, but the panel remaps it to capability_unavailable (rule R5) so the closed-capability gate is drawn instead of an error. Every code in this enum must carry a message in BOTH dictionaries — web/src/i18n/i18n.test.ts walks this list.
      *
      */
-    code: 'node_registry_unavailable' | 'node_install_invalid' | 'node_install_ssh' | 'node_install_host_key' | 'node_install_unsupported' | 'node_install_existing' | 'node_install_ports' | 'node_install_artifacts' | 'node_install_apply' | 'node_install_health' | 'node_install_management' | 'node_install_registry' | 'node_install_unconfirmed' | 'node_install_disabled' | 'node_install_busy' | 'node_install_not_found' | 'node_install_failed' | 'node_not_found' | 'node_disabled' | 'node_revision_conflict' | 'node_configuration_managed' | 'node_credentials_unavailable' | 'invalid_node' | 'node_registry_full' | 'node_persistence_failed' | 'node_revision_required' | 'invalid_node_revision' | 'node_upstream_unavailable' | 'node_upstream_timeout' | 'node_operation_unavailable' | 'node_agent_unavailable' | 'node_agent_identity_mismatch' | 'invalid_agent_command_key' | 'agent_command_conflict' | 'agent_command_unconfirmed' | 'agent_command_capacity' | 'agent_binding_conflict' | 'config_tool_unavailable' | 'config_backup_unavailable' | 'config_backup_not_found' | 'config_source_unavailable' | 'config_graph_limit' | 'customer_email_delivery_failed' | 'customer_method_unavailable' | 'customer_invalid' | 'customer_auth_failed' | 'payment_configuration_unavailable' | 'payment_signature_invalid' | 'payment_invalid' | 'node_cluster_owned' | 'user_cluster_owned' | 'platform_conflict' | 'platform_invalid' | 'platform_not_found' | 'platform_unavailable' | 'copy_not_found' | 'copy_source_changed' | 'copy_preview_expired' | 'copy_preview_capacity' | 'copy_invalid' | 'copy_source_unavailable' | 'copy_unavailable' | 'config_source_limit' | 'config_source_not_found' | 'config_include_topology_changed' | 'config_validation_unavailable' | 'config_validation_failed' | 'config_preparation_failed' | 'config_request_invalid' | 'config_request_limit' | 'config_editor_invalid' | 'bad_request' | 'tls_invalid_candidate' | 'tls_manual_required' | 'tls_prepare_busy' | 'tls_prepare_unavailable' | 'tls_listener_unavailable' | 'tls_challenge_unavailable' | 'tls_cache_unavailable' | 'tls_upload_secure_required' | 'tls_certificate_invalid' | 'tls_certificate_untrusted' | 'tls_acquisition_failed' | 'tls_prepare_failed' | 'tls_prepare_timeout' | 'tls_config_changed' | 'tls_receipt_invalid' | 'tls_save_failed' | 'tls_restart_not_pending' | 'tls_restart_failed' | 'conflict' | 'confirmation_required' | 'invalid_credentials' | 'rate_limited' | 'session_expired' | 'session_revoke_failed' | 'logs_stream_limit' | 'telemt_response_too_large' | 'csrf_rejected' | 'auth_disabled' | 'quota_reset_busy' | 'invalid_quota_schedule' | 'quota_schedule_conflict' | 'quota_schedule_storage' | 'quota_schedule_unavailable' | 'quota_confirmation_expired' | 'quota_operation_unavailable' | 'internal_error' | 'history_timeout' | 'subscription_settings_invalid' | 'subscription_settings_conflict' | 'branding_invalid_title' | 'branding_invalid_mode' | 'branding_invalid_path' | 'branding_logo_unreadable' | 'branding_invalid_image' | 'not_found' | 'telemt_unreachable' | 'capability_absent' | 'capability_unavailable' | 'manual_restart_required' | 'manual_service_control_required' | 'service_action_unconfirmed' | 'update_locked' | 'update_version_unsupported' | 'sublink_unavailable' | 'log_tail_unavailable' | 'log_stream_unavailable' | 'log_source_error' | 'invalid_webauthn_origin' | 'invalid_webauthn_challenge' | 'invalid_webauthn_response' | 'webauthn_credential_exists' | 'passkey_unavailable' | 'telemt_auth_failed' | 'user_exists' | 'last_user_forbidden' | 'read_only' | 'revision_conflict' | 'invalid_toml' | 'invalid_config_path' | 'config_unset_unsupported' | 'no_changes' | 'toml_projection_failed' | 'reload_in_progress' | 'reload_not_found' | 'ambiguous_listeners' | 'access_not_editable' | 'section_not_editable' | 'field_not_editable' | 'unauthorized' | 'forbidden' | 'method_not_allowed' | 'config_patch_not_atomic' | 'payload_too_large' | 'api_disabled' | 'maestro_unavailable' | 'unsupported_media_type' | 'web_runtime_unavailable' | 'web_snapshot_busy' | 'web_runtime_mismatch' | 'web_issuance_enabled' | 'web_operation_in_progress' | 'web_session_not_found' | 'web_operation_not_found' | 'web_vhost_not_found' | 'web_profile_required';
+    code: 'node_registry_unavailable' | 'node_install_invalid' | 'node_install_ssh' | 'node_install_host_key' | 'node_install_unsupported' | 'node_install_existing' | 'node_install_ports' | 'node_install_artifacts' | 'node_install_apply' | 'node_install_health' | 'node_install_tls_activity' | 'node_install_management' | 'node_install_registry' | 'node_install_unconfirmed' | 'node_install_disabled' | 'node_install_busy' | 'node_install_not_found' | 'node_install_failed' | 'node_not_found' | 'node_disabled' | 'node_revision_conflict' | 'node_configuration_managed' | 'node_credentials_unavailable' | 'invalid_node' | 'node_registry_full' | 'node_persistence_failed' | 'node_revision_required' | 'invalid_node_revision' | 'node_upstream_unavailable' | 'node_upstream_timeout' | 'node_operation_unavailable' | 'node_agent_unavailable' | 'node_agent_identity_mismatch' | 'invalid_agent_command_key' | 'agent_command_conflict' | 'agent_command_unconfirmed' | 'agent_command_capacity' | 'agent_binding_conflict' | 'config_tool_unavailable' | 'config_backup_unavailable' | 'config_backup_not_found' | 'config_source_unavailable' | 'config_graph_limit' | 'customer_email_delivery_failed' | 'customer_method_unavailable' | 'customer_invalid' | 'customer_auth_failed' | 'payment_configuration_unavailable' | 'payment_signature_invalid' | 'payment_invalid' | 'node_cluster_owned' | 'user_cluster_owned' | 'platform_conflict' | 'platform_invalid' | 'platform_not_found' | 'platform_unavailable' | 'copy_not_found' | 'copy_source_changed' | 'copy_preview_expired' | 'copy_preview_capacity' | 'copy_invalid' | 'copy_source_unavailable' | 'copy_unavailable' | 'config_source_limit' | 'config_source_not_found' | 'config_include_topology_changed' | 'config_validation_unavailable' | 'config_validation_failed' | 'config_preparation_failed' | 'config_request_invalid' | 'config_request_limit' | 'config_editor_invalid' | 'bad_request' | 'tls_invalid_candidate' | 'tls_manual_required' | 'tls_prepare_busy' | 'tls_prepare_unavailable' | 'tls_listener_unavailable' | 'tls_challenge_unavailable' | 'tls_cache_unavailable' | 'tls_upload_secure_required' | 'tls_certificate_invalid' | 'tls_certificate_untrusted' | 'tls_acquisition_failed' | 'tls_prepare_failed' | 'tls_prepare_timeout' | 'tls_config_changed' | 'tls_receipt_invalid' | 'tls_save_failed' | 'tls_restart_not_pending' | 'tls_restart_failed' | 'conflict' | 'confirmation_required' | 'invalid_credentials' | 'rate_limited' | 'session_expired' | 'session_revoke_failed' | 'logs_stream_limit' | 'telemt_response_too_large' | 'csrf_rejected' | 'auth_disabled' | 'quota_reset_busy' | 'invalid_quota_schedule' | 'quota_schedule_conflict' | 'quota_schedule_storage' | 'quota_schedule_unavailable' | 'quota_confirmation_expired' | 'quota_operation_unavailable' | 'internal_error' | 'history_timeout' | 'subscription_settings_invalid' | 'subscription_settings_conflict' | 'branding_invalid_title' | 'branding_invalid_mode' | 'branding_invalid_path' | 'branding_logo_unreadable' | 'branding_invalid_image' | 'not_found' | 'telemt_unreachable' | 'capability_absent' | 'capability_unavailable' | 'manual_restart_required' | 'manual_service_control_required' | 'service_action_unconfirmed' | 'update_locked' | 'update_version_unsupported' | 'sublink_unavailable' | 'log_tail_unavailable' | 'log_stream_unavailable' | 'log_source_error' | 'invalid_webauthn_origin' | 'invalid_webauthn_challenge' | 'invalid_webauthn_response' | 'webauthn_credential_exists' | 'passkey_unavailable' | 'telemt_auth_failed' | 'user_exists' | 'last_user_forbidden' | 'read_only' | 'revision_conflict' | 'invalid_toml' | 'invalid_config_path' | 'config_unset_unsupported' | 'no_changes' | 'toml_projection_failed' | 'reload_in_progress' | 'reload_not_found' | 'ambiguous_listeners' | 'access_not_editable' | 'section_not_editable' | 'field_not_editable' | 'unauthorized' | 'forbidden' | 'method_not_allowed' | 'config_patch_not_atomic' | 'payload_too_large' | 'api_disabled' | 'maestro_unavailable' | 'unsupported_media_type' | 'web_runtime_unavailable' | 'web_snapshot_busy' | 'web_runtime_mismatch' | 'web_issuance_enabled' | 'web_operation_in_progress' | 'web_session_not_found' | 'web_operation_not_found' | 'web_vhost_not_found' | 'web_profile_required';
     message: string;
 };
 
@@ -2073,19 +2083,36 @@ export type DestructiveConfirmationRequest = {
 export type GeoIpConfig = {
     enabled: boolean;
     /**
-     * Operator-supplied HTTPS URLs or local files. Community is retained for legacy settings and bundles; new community downloads are unavailable until redistribution conditions are established.
+     * Built-in MaxMind GeoLite2, DB-IP Lite and IPinfo Lite providers, or operator-supplied HTTPS URLs or local files. Community is retained for legacy bundles.
      */
-    source: 'community' | 'urls' | 'files';
+    source: 'community' | 'urls' | 'files' | 'maxmind' | 'dbip' | 'ipinfo';
     schedule: 'weekly' | 'daily' | 'manual';
     country: GeoIpDatabaseConfig;
     asn: GeoIpDatabaseConfig;
     city: GeoIpDatabaseConfig;
+    /**
+     * Numeric MaxMind account ID. Omitted for other sources.
+     */
+    account_id?: string;
+};
+
+export type GeoIpConfigRequest = {
+    enabled: boolean;
+    source: 'community' | 'urls' | 'files' | 'maxmind' | 'dbip' | 'ipinfo';
+    schedule: 'weekly' | 'daily' | 'manual';
+    country: GeoIpDatabaseConfig;
+    asn: GeoIpDatabaseConfig;
+    city: GeoIpDatabaseConfig;
+    /**
+     * Required for enabled MaxMind configurations.
+     */
+    account_id?: string;
 };
 
 export type GeoIpDatabaseConfig = {
     enabled: boolean;
     /**
-     * Operator URL or absolute server path; may be empty while GeoIP is disabled.
+     * Operator URL or absolute server path. Empty for a built-in provider.
      */
     location: string;
 };
@@ -2126,17 +2153,21 @@ export type GeoIpDatabaseProvenance = {
 export type GeoIpStatus = {
     state: 'disabled' | 'empty' | 'ready' | 'updating' | 'error';
     available: boolean;
-    active_source: 'community' | 'urls' | 'files' | null;
+    active_source: 'community' | 'urls' | 'files' | 'maxmind' | 'dbip' | 'ipinfo' | null;
     databases: Array<GeoIpDatabaseStatus>;
     /**
      * Stable safe GeoIP error code; never a URL, filesystem path, query, or exception text.
      */
-    last_error: 'data_dir_required' | 'source_unavailable' | 'source_unconfirmed' | 'source_not_regular' | 'source_too_large' | 'download_failed' | 'download_too_large' | 'database_invalid' | 'database_type_mismatch' | 'activation_failed' | null;
+    last_error: 'data_dir_required' | 'source_unavailable' | 'source_unconfirmed' | 'source_not_regular' | 'source_too_large' | 'download_failed' | 'download_too_large' | 'provider_access_denied' | 'database_invalid' | 'database_type_mismatch' | 'activation_failed' | null;
 };
 
 export type GeoIpSettings = {
     config: GeoIpConfig;
     status: GeoIpStatus;
+    /**
+     * True when a provider access key is stored. The key is never returned.
+     */
+    access_key_saved?: boolean;
 };
 
 export type GeographyRange = 'now' | '24h' | '7d' | '30d';
@@ -2291,6 +2322,23 @@ export type GeoIpLocation = {
     latitude: number;
     longitude: number;
     accuracy_radius_km: number | null;
+};
+
+export type GeoIpConfigRequestWritable = {
+    enabled: boolean;
+    source: 'community' | 'urls' | 'files' | 'maxmind' | 'dbip' | 'ipinfo';
+    schedule: 'weekly' | 'daily' | 'manual';
+    country: GeoIpDatabaseConfig;
+    asn: GeoIpDatabaseConfig;
+    city: GeoIpDatabaseConfig;
+    /**
+     * Required for enabled MaxMind configurations.
+     */
+    account_id?: string;
+    /**
+     * MaxMind license key or IPinfo token. Omit to reuse the key for the same provider and account.
+     */
+    access_key?: string;
 };
 
 export type Username = string;
@@ -9113,6 +9161,57 @@ export type PutBrandingSettingsResponses = {
 
 export type PutBrandingSettingsResponse = PutBrandingSettingsResponses[keyof PutBrandingSettingsResponses];
 
+export type UploadBrandingLogoData = {
+    body: {
+        title: string;
+        /**
+         * PNG
+         */
+        file: Blob | File;
+    };
+    path?: never;
+    query?: never;
+    url: '/api/settings/branding/logo';
+};
+
+export type UploadBrandingLogoErrors = {
+    /**
+     * Invalid input
+     */
+    400: Error;
+    /**
+     * No valid session
+     */
+    401: Error;
+    /**
+     * CSRF rejected
+     */
+    403: Error;
+    /**
+     * Upload exceeds the size limit
+     */
+    413: Error;
+    /**
+     * Internal panel error
+     */
+    500: Error;
+    /**
+     * Persistent panel data directory is not configured
+     */
+    503: Error;
+};
+
+export type UploadBrandingLogoError = UploadBrandingLogoErrors[keyof UploadBrandingLogoErrors];
+
+export type UploadBrandingLogoResponses = {
+    /**
+     * Saved appearance
+     */
+    200: BrandingSettings;
+};
+
+export type UploadBrandingLogoResponse = UploadBrandingLogoResponses[keyof UploadBrandingLogoResponses];
+
 export type GetSubscriptionAppearanceData = {
     body?: never;
     path?: never;
@@ -12349,7 +12448,7 @@ export type GetGeoIpSettingsResponses = {
 export type GetGeoIpSettingsResponse = GetGeoIpSettingsResponses[keyof GetGeoIpSettingsResponses];
 
 export type PutGeoIpSettingsData = {
-    body: GeoIpConfig;
+    body: GeoIpConfigRequestWritable;
     path?: never;
     query?: never;
     url: '/api/settings/geoip';

@@ -2,6 +2,7 @@ package httpapi
 
 import (
 	"errors"
+	"io"
 	"net/http"
 	"strings"
 
@@ -32,7 +33,79 @@ func (s *Server) handlePutBranding(w http.ResponseWriter, r *http.Request) {
 	}
 	cfg := branding.Config{Title: *request.Title, LogoMode: *request.LogoMode, LogoPath: *request.LogoPath}
 	result, err := s.branding.Save(cfg)
+	s.finishBrandingSave(w, r, result, err)
+}
+
+func (s *Server) handleUploadBrandingLogo(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Cache-Control", "no-store")
+	const maxBody = branding.MaxLogoBytes + (16 << 10)
+	if r.ContentLength > maxBody {
+		writeBrandingUploadError(w, &http.MaxBytesError{Limit: maxBody})
+		return
+	}
+	r.Body = http.MaxBytesReader(w, r.Body, maxBody)
+	form, err := r.MultipartReader()
 	if err != nil {
+		writeBrandingUploadError(w, err)
+		return
+	}
+	var title *string
+	var file []byte
+	for {
+		part, err := form.NextPart()
+		if errors.Is(err, io.EOF) {
+			break
+		}
+		if err != nil {
+			writeBrandingUploadError(w, err)
+			return
+		}
+		switch {
+		case part.FormName() == "title" && part.FileName() == "" && title == nil:
+			data, err := io.ReadAll(io.LimitReader(part, 321))
+			if err != nil || len(data) > 320 {
+				writeBrandingUploadError(w, err)
+				return
+			}
+			value := string(data)
+			title = &value
+		case part.FormName() == "file" && part.FileName() != "" && file == nil:
+			file, err = io.ReadAll(io.LimitReader(part, branding.MaxLogoBytes+1))
+			if err != nil || len(file) > branding.MaxLogoBytes {
+				if err == nil {
+					err = &http.MaxBytesError{Limit: branding.MaxLogoBytes}
+				}
+				writeBrandingUploadError(w, err)
+				return
+			}
+		default:
+			writeBrandingUploadError(w, nil)
+			return
+		}
+	}
+	if title == nil || len(file) == 0 {
+		writeBrandingUploadError(w, nil)
+		return
+	}
+	result, err := s.branding.SaveUpload(*title, file)
+	s.finishBrandingSave(w, r, result, err)
+}
+
+func writeBrandingUploadError(w http.ResponseWriter, err error) {
+	var tooLarge *http.MaxBytesError
+	if errors.As(err, &tooLarge) {
+		auth.WriteError(w, http.StatusRequestEntityTooLarge, "branding_logo_too_large", "logo exceeds the upload limit")
+		return
+	}
+	auth.WriteError(w, http.StatusBadRequest, "bad_request", "invalid branding upload")
+}
+
+func (s *Server) finishBrandingSave(w http.ResponseWriter, r *http.Request, result branding.Settings, err error) {
+	if err != nil {
+		if errors.Is(err, branding.ErrUploadStorage) {
+			auth.WriteError(w, http.StatusServiceUnavailable, err.Error(), "logo uploads require persistent panel storage")
+			return
+		}
 		for _, known := range []error{branding.ErrTitle, branding.ErrMode, branding.ErrPath, branding.ErrRead, branding.ErrImage} {
 			if errors.Is(err, known) {
 				auth.WriteError(w, http.StatusBadRequest, known.Error(), "could not apply branding configuration")

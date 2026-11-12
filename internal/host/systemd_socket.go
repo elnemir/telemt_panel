@@ -1,6 +1,7 @@
 package host
 
 import (
+	"bufio"
 	"context"
 	"errors"
 	"io"
@@ -10,7 +11,7 @@ import (
 )
 
 // SystemdSocket controls the installer-owned unit over its private local socket.
-// Status remains an ordinary unprivileged systemctl read.
+// Older helpers can still report status through an unprivileged systemctl read.
 type SystemdSocket struct {
 	*Systemd
 	path string
@@ -21,6 +22,24 @@ func NewSystemdSocket(path string, statusRunner CmdRunner) *SystemdSocket {
 }
 
 func (s *SystemdSocket) Probe(ctx context.Context) error { return s.request(ctx, "ping") }
+
+func (s *SystemdSocket) Status(ctx context.Context, service string) (ServiceStatus, error) {
+	if strings.TrimSuffix(service, ".service") != "telemt" {
+		return StatusUnknown, ErrPrivilegesUnavailable
+	}
+	reply, err := s.exchange(ctx, "status")
+	if err == nil {
+		switch reply {
+		case "running\n":
+			return StatusRunning, nil
+		case "stopped\n":
+			return StatusStopped, nil
+		case "unknown\n":
+			return StatusUnknown, nil
+		}
+	}
+	return s.Systemd.Status(ctx, service)
+}
 
 func (s *SystemdSocket) Start(ctx context.Context, service string) error {
 	return s.control(ctx, service, "start")
@@ -42,29 +61,34 @@ func (s *SystemdSocket) control(ctx context.Context, service, verb string) error
 }
 
 func (s *SystemdSocket) request(ctx context.Context, verb string) error {
+	reply, err := s.exchange(ctx, verb)
+	if err != nil {
+		return err
+	}
+	if reply != "ok\n" {
+		return errors.New("systemd control request failed")
+	}
+	return nil
+}
+
+func (s *SystemdSocket) exchange(ctx context.Context, verb string) (string, error) {
 	ctx, cancel := context.WithTimeout(ctx, 28*time.Second)
 	defer cancel()
 	var dialer net.Dialer
 	conn, err := dialer.DialContext(ctx, "unix", s.path)
 	if err != nil {
-		return err
+		return "", err
 	}
 	defer conn.Close()
 	deadline, _ := ctx.Deadline()
 	if err := conn.SetDeadline(deadline); err != nil {
-		return err
+		return "", err
 	}
 	stop := context.AfterFunc(ctx, func() { _ = conn.Close() })
 	defer stop()
 	if _, err := io.WriteString(conn, verb+"\n"); err != nil {
-		return err
+		return "", err
 	}
-	var reply [3]byte
-	if _, err := io.ReadFull(conn, reply[:]); err != nil {
-		return err
-	}
-	if string(reply[:]) != "ok\n" {
-		return errors.New("systemd control request failed")
-	}
-	return nil
+	reply, err := bufio.NewReaderSize(conn, 16).ReadSlice('\n')
+	return string(reply), err
 }

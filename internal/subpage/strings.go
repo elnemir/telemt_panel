@@ -15,6 +15,7 @@ type uiStrings struct {
 	QuotaResetLabel      string
 	ExpiryLabel          string
 	ConnectHeading       string
+	ConnectionChoice     string
 	GroupTLS             string
 	GroupSecure          string
 	GroupClassic         string
@@ -53,6 +54,7 @@ var stringsRU = uiStrings{
 	QuotaResetLabel:      "Сброшена",
 	ExpiryLabel:          "Действует до",
 	ConnectHeading:       "Подключение",
+	ConnectionChoice:     "Вариант подключения",
 	GroupTLS:             "TLS (маскировка под сайт)",
 	GroupSecure:          "Secure",
 	GroupClassic:         "Classic",
@@ -83,6 +85,7 @@ var stringsEN = uiStrings{
 	QuotaResetLabel:      "Reset",
 	ExpiryLabel:          "Valid until",
 	ConnectHeading:       "Connect",
+	ConnectionChoice:     "Connection method",
 	GroupTLS:             "TLS (disguised as a website)",
 	GroupSecure:          "Secure",
 	GroupClassic:         "Classic",

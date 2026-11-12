@@ -170,9 +170,14 @@ func TestInstallTransactionWithSSHAndTLS(t *testing.T) {
 		t.Skip("requires a supported Linux installer binary")
 	}
 	for _, scenario := range []struct {
-		name                      string
-		withAgent, rejectRegistry bool
-	}{{"control", false, false}, {"with agent", true, false}, {"abort on duplicate registry URL", true, true}} {
+		name                                 string
+		withAgent, rejectRegistry, rejectTLS bool
+	}{
+		{name: "control"},
+		{name: "with agent", withAgent: true},
+		{name: "abort on duplicate registry URL", withAgent: true, rejectRegistry: true},
+		{name: "abort when TLS activity is disabled", rejectTLS: true},
+	} {
 		t.Run(scenario.name, func(t *testing.T) {
 			withAgent := scenario.withAgent
 			listener, err := net.Listen("tcp", "127.0.0.1:0")
@@ -225,11 +230,16 @@ func TestInstallTransactionWithSSHAndTLS(t *testing.T) {
 					var cfg struct {
 						Server struct {
 							API struct {
-								Auth string `toml:"auth_header"`
+								Auth        string `toml:"auth_header"`
+								RuntimeEdge bool   `toml:"runtime_edge_enabled"`
 							}
 						}
 					}
 					if _, err := toml.Decode(files["telemt.toml"], &cfg); err != nil {
+						return 1
+					}
+					if !cfg.Server.API.RuntimeEdge {
+						t.Error("SSH installation must enable TLS telemetry in server.api")
 						return 1
 					}
 					var agentCfg struct{ Agent struct{ ID string } }
@@ -239,23 +249,43 @@ func TestInstallTransactionWithSSHAndTLS(t *testing.T) {
 						}
 					}
 					control := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-						if r.URL.Path != "/v1/health" || r.Header.Get("Authorization") != cfg.Server.API.Auth {
+						if r.Header.Get("Authorization") != cfg.Server.API.Auth {
 							w.WriteHeader(401)
 							return
 						}
-						_, _ = io.WriteString(w, `{"ok":true,"data":{"status":"ok","read_only":false}}`)
+						switch r.URL.Path {
+						case "/v1/health":
+							_, _ = io.WriteString(w, `{"ok":true,"data":{"status":"ok","read_only":false}}`)
+						case "/v1/runtime/tls-fingerprints":
+							if scenario.rejectTLS {
+								_, _ = io.WriteString(w, `{"ok":true,"data":{"enabled":false,"reason":"feature_disabled","data":null}}`)
+								return
+							}
+							_, _ = io.WriteString(w, `{"ok":true,"data":{"enabled":true,"data":{"retention_secs":3600,"by_fingerprint":[],"by_ip":[],"by_cidr":[],"by_user":[]}}}`)
+						default:
+							w.WriteHeader(404)
+						}
 					})
 					var agent http.Handler
 					if withAgent {
 						agent = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 							env := strings.TrimSpace(files["agent.env"])
-							if r.URL.Path != "/v1/agent/host" || r.Header.Get(nodeagent.IdentityHeader) != agentCfg.Agent.ID ||
+							if r.Header.Get(nodeagent.IdentityHeader) != agentCfg.Agent.ID ||
 								env != "TELEMT_AGENT_AUTH=\""+r.Header.Get("Authorization")+"\"" {
 								w.WriteHeader(401)
 								return
 							}
 							w.Header().Set(nodeagent.IdentityHeader, agentCfg.Agent.ID)
-							_, _ = io.WriteString(w, `{"caps":{"start_telemt":true,"stop_telemt":true,"restart_telemt":true,"log_tail":true,"log_stream":true}}`)
+							switch r.URL.Path {
+							case "/v1/agent/host":
+								_, _ = io.WriteString(w, `{"caps":{"start_telemt":true,"stop_telemt":true,"restart_telemt":true,"log_tail":true,"log_stream":true}}`)
+							case "/v1/agent/service":
+								_, _ = io.WriteString(w, `{"status":"running"}`)
+							case "/v1/agent/config":
+								_, _ = io.WriteString(w, `{"protocol":1,"revision":"fixture"}`)
+							default:
+								w.WriteHeader(404)
+							}
 						})
 					}
 					httpServer.Handler = gatewayHandler(netip.MustParseAddr("127.0.0.1"), control, agent)
@@ -291,6 +321,15 @@ func TestInstallTransactionWithSSHAndTLS(t *testing.T) {
 			r := Request{Name: "Fixture", Host: "127.0.0.1", SSHPort: port, SSHUser: "root", HostFingerprint: ssh.FingerprintSHA256(hostKey.PublicKey()),
 				ProxyPort: 443, ManagementPort: listener.Addr().(*net.TCPAddr).Port, WithAgent: withAgent}
 			plan := Plan{Request: r, Architecture: arch, PanelPeer: "127.0.0.1", Release: Release, APIURL: "https://" + listener.Addr().String()}
+			if withAgent {
+				path := filepath.Join(dir, "approved")
+				artifact := []byte("fixture")
+				if err := os.WriteFile(path, artifact, 0700); err != nil {
+					t.Fatal(err)
+				}
+				i.fileBinary = FileBinary{Path: path, SHA256: fmt.Sprintf("%x", sha256.Sum256(artifact)), Version: Release}
+				plan = i.fileBinary.configure(plan)
+			}
 			if scenario.rejectRegistry {
 				if _, err := registry.Create(nodes.Input{Name: "Existing", APIURL: plan.APIURL, Enabled: true}); err != nil {
 					t.Fatal(err)
@@ -299,6 +338,12 @@ func TestInstallTransactionWithSSHAndTLS(t *testing.T) {
 			ctx, cancel := context.WithTimeout(context.Background(), 12*time.Second)
 			defer cancel()
 			id, err := i.Apply(ctx, plan, registry, func(string) {})
+			if scenario.rejectTLS {
+				if !errors.Is(err, ErrTLSActivity) || id != "" || committed.Load() || !aborted.Load() || len(registry.List()) != 0 {
+					t.Fatalf("unavailable TLS activity did not abort remote installation: %v", err)
+				}
+				return
+			}
 			if scenario.rejectRegistry {
 				if !errors.Is(err, ErrRegistry) || id != "" || committed.Load() || !aborted.Load() || len(registry.List()) != 1 {
 					t.Fatalf("registry rejection did not abort remote installation: %v", err)

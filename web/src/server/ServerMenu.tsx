@@ -11,6 +11,7 @@ import type { TopicSnapshot } from "../realtime/types";
 import {
   getAutoUpdateOptions,
   getHostOptions,
+  getNodeUpgradeOptions,
   getTelemtConfigOptions,
   getTelemtInfoOptions,
   getUpdatesOptions,
@@ -31,6 +32,7 @@ import {
 import {
   activeUpdateRun,
   hostCapabilityCount,
+  remoteHostCapabilities,
   newestAvailableRelease,
   summarizeServerConfig,
   summarizeEgress,
@@ -46,6 +48,11 @@ export function ServerMenu() {
   const updatesQuery = useQuery(getUpdatesOptions());
   const autoUpdateQuery = useQuery(getAutoUpdateOptions());
   const hostQuery = useQuery(getHostOptions());
+  const remoteNode = documentNodeId !== "default";
+  const upgrade = useQuery({
+    ...getNodeUpgradeOptions({ path: { node_id: documentNodeId } }),
+    enabled: remoteNode,
+  });
   const security = useSnapshot<SecurityTopic>("security");
   const runtime = useSnapshot<RuntimeTopic>("runtime");
 
@@ -58,7 +65,10 @@ export function ServerMenu() {
     infoQuery.isError || infoQuery.data?.reachable === false;
   const hasUpdates = Boolean(telemtRelease);
   const config = summarizeServerConfig(configQuery.data);
-  const capabilityCount = hostCapabilityCount(hostQuery.data?.caps, documentNodeId !== "default");
+  const caps = hostQuery.data?.caps;
+  const capabilityCount = hostCapabilityCount(caps && remoteNode
+    ? remoteHostCapabilities(caps, !!(upgrade.data?.available && upgrade.data.telemt_version))
+    : caps, remoteNode);
   const manualActions = capabilityCount.total - capabilityCount.available;
   const status = telemtUnavailable
     ? "error"

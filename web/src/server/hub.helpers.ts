@@ -111,6 +111,18 @@ export function activeUpdateRun(targets: UpdatesStatus["targets"] | undefined) {
 }
 
 export function hostCapabilityCount(caps: HostInfo["caps"] | undefined, remoteNode = false) {
-  const entries = caps ? Object.entries(caps).filter(([name]) => !remoteNode || name !== "restart_panel") : [];
+  const entries = caps ? Object.entries(caps).filter(([name]) =>
+    remoteNode ? name !== "restart_panel" : name !== "config_file") : [];
   return { available: entries.filter(([, available]) => available).length, total: entries.length };
+}
+
+// Remote SSH upgrades run in the central panel. The agent's self_update
+// describes its own local updater and is deliberately false.
+export function remoteHostCapabilities(caps: HostInfo["caps"], updateAvailable: boolean): HostInfo["caps"] {
+  return { ...caps, self_update: updateAvailable };
+}
+
+export function needsFullNodeManagement(caps: HostInfo["caps"] | undefined) {
+  return Boolean(caps && !(caps.config_file && caps.start_telemt && caps.stop_telemt &&
+    caps.restart_telemt && caps.log_tail && caps.log_stream));
 }

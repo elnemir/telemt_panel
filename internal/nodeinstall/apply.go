@@ -5,6 +5,7 @@ package nodeinstall
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"io"
 	"net/http"
 	"os"
@@ -20,6 +21,9 @@ import (
 // Apply rechecks the preview and holds the remote installation open until
 // both APIs have responded and the registry update is visible.
 func (i *Installer) Apply(ctx context.Context, plan Plan, registry *nodes.Registry, report func(string)) (string, error) {
+	if plan.WithAgent && !plan.ConfigFiles {
+		return "", ErrFullArtifact
+	}
 	client, closeSocket, err := i.connect(ctx, plan.Request)
 	if err != nil {
 		return "", err
@@ -80,7 +84,7 @@ func (i *Installer) Apply(ctx context.Context, plan Plan, registry *nodes.Regist
 		if rollbackErr := remote.finish(false); rollbackErr != nil {
 			return "", ErrUnconfirmed
 		}
-		if err == ErrManagement {
+		if err == ErrManagement || err == ErrTLSActivity {
 			return "", err
 		}
 		return "", ErrHealth
@@ -137,8 +141,8 @@ func checkAPIs(ctx context.Context, in nodes.Input, credentials nodes.ManagedCre
 		probeCtx, cancel := context.WithTimeout(ctx, 4*time.Second)
 		err := probeAPIs(probeCtx, control, agent, configFiles)
 		cancel()
-		if err == nil {
-			return nil
+		if err == nil || err == ErrTLSActivity {
+			return err
 		}
 		select {
 		case <-ctx.Done():
@@ -152,6 +156,17 @@ func probeAPIs(ctx context.Context, control *telemt.Client, agent *nodeagent.Cli
 	health, err := control.Health(ctx)
 	if err != nil || health.Status != "ok" || health.ReadOnly {
 		return ErrHealth
+	}
+	tlsActivity, err := control.TLSFingerprints(ctx, 1)
+	if err != nil {
+		var apiErr *telemt.APIError
+		if errors.As(err, &apiErr) && (apiErr.Status == http.StatusNotFound || apiErr.Status == http.StatusMethodNotAllowed) {
+			return ErrTLSActivity
+		}
+		return ErrHealth
+	}
+	if !tlsActivity.Enabled || tlsActivity.Data == nil || tlsActivity.Data.RetentionSecs == 0 {
+		return ErrTLSActivity
 	}
 	if agent != nil {
 		response, err := agent.Request(ctx, http.MethodGet, "/v1/agent/host", "")
@@ -175,6 +190,9 @@ func probeAPIs(ctx context.Context, control *telemt.Client, agent *nodeagent.Cli
 			return ErrManagement
 		}
 		if configFiles {
+			if !nodeServiceRunning(ctx, agent) {
+				return ErrManagement
+			}
 			response, err := agent.Request(ctx, http.MethodGet, "/v1/agent/config", "")
 			if err != nil {
 				return ErrHealth

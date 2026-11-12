@@ -6,6 +6,7 @@ import (
 	"math"
 	"net/netip"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 
@@ -95,6 +96,7 @@ func verifyRecordSchema(reader *maxminddb.Reader, kind Kind) error {
 	// its offset identifies identical decoded fields within this reader.
 	// Check every distinct record, not the same record once per IP range.
 	seen := make(map[uintptr]struct{})
+	lite := isIPinfoLite(reader.Metadata.DatabaseType)
 	for result := range reader.Networks() {
 		if err := result.Err(); err != nil {
 			return err
@@ -104,12 +106,14 @@ func verifyRecordSchema(reader *maxminddb.Reader, kind Kind) error {
 			continue
 		}
 		var record any
-		switch kind {
-		case KindCountry:
+		switch {
+		case lite:
+			record = &ipinfoLiteRecord{}
+		case kind == KindCountry:
 			record = &countryRecord{}
-		case KindASN:
+		case kind == KindASN:
 			record = &asnRecord{}
-		case KindCity:
+		case kind == KindCity:
 			record = &cityRecord{}
 		}
 		if err := result.Decode(record); err != nil {
@@ -117,6 +121,11 @@ func verifyRecordSchema(reader *maxminddb.Reader, kind Kind) error {
 		}
 		if city, ok := record.(*cityRecord); ok {
 			if _, err := city.location(); err != nil {
+				return err
+			}
+		}
+		if item, ok := record.(*ipinfoLiteRecord); ok {
+			if _, err := item.asn(); err != nil {
 				return err
 			}
 		}
@@ -130,6 +139,9 @@ func validBuildEpoch(epoch uint, now int64) bool {
 }
 
 func databaseTypeMatches(kind Kind, databaseType string) bool {
+	if isIPinfoLite(databaseType) {
+		return kind == KindCountry || kind == KindASN
+	}
 	name := strings.ToLower(databaseType)
 	switch kind {
 	case KindCountry:
@@ -141,6 +153,10 @@ func databaseTypeMatches(kind Kind, databaseType string) bool {
 	default:
 		return false
 	}
+}
+
+func isIPinfoLite(databaseType string) bool {
+	return databaseType == "ipinfo bundle_location_lite.mmdb"
 }
 
 type countryRecord struct {
@@ -208,15 +224,72 @@ type asnRecord struct {
 	Organization string `maxminddb:"autonomous_system_organization"`
 }
 
+type ipinfoLiteRecord struct {
+	CountryCode string `maxminddb:"country_code"`
+	CountryName string `maxminddb:"country"`
+	ASN         string `maxminddb:"asn"`
+	ASName      string `maxminddb:"as_name"`
+}
+
+func (r ipinfoLiteRecord) asn() (uint, error) {
+	if r.ASN == "" {
+		return 0, nil
+	}
+	value, found := strings.CutPrefix(r.ASN, "AS")
+	n, err := strconv.ParseUint(value, 10, 32)
+	if !found || err != nil {
+		return 0, errors.New("geoip: invalid IPinfo ASN")
+	}
+	return uint(n), nil
+}
+
+func (db *database) applyCountry(out *Result, addr netip.Addr) error {
+	result := db.reader.Lookup(addr)
+	if isIPinfoLite(db.reader.Metadata.DatabaseType) {
+		var record ipinfoLiteRecord
+		if err := result.Decode(&record); err != nil {
+			return err
+		}
+		out.CountryCode, out.CountryName = record.CountryCode, record.CountryName
+		return nil
+	}
+	var record countryRecord
+	if err := result.Decode(&record); err != nil {
+		return err
+	}
+	applyCountry(out, record.Country.ISOCode, record.Country.Names)
+	return nil
+}
+
+func (db *database) applyASN(out *Result, addr netip.Addr) error {
+	result := db.reader.Lookup(addr)
+	if isIPinfoLite(db.reader.Metadata.DatabaseType) {
+		var record ipinfoLiteRecord
+		if err := result.Decode(&record); err != nil {
+			return err
+		}
+		asn, err := record.asn()
+		if err != nil {
+			return err
+		}
+		out.ASN, out.Organization = asn, record.ASName
+		return nil
+	}
+	var record asnRecord
+	if err := result.Decode(&record); err != nil {
+		return err
+	}
+	out.ASN, out.Organization = record.Number, record.Organization
+	return nil
+}
+
 func (b *bundle) lookup(addr netip.Addr) (Result, error) {
 	addr = addr.Unmap()
 	out := Result{State: ResultNotFound}
 	if db := b.databases[KindCountry]; db != nil {
-		var record countryRecord
-		if err := db.reader.Lookup(addr).Decode(&record); err != nil {
+		if err := db.applyCountry(&out, addr); err != nil {
 			return Result{}, err
 		}
-		applyCountry(&out, record.Country.ISOCode, record.Country.Names)
 	}
 	if db := b.databases[KindCity]; db != nil {
 		var record cityRecord
@@ -228,12 +301,9 @@ func (b *bundle) lookup(addr netip.Addr) (Result, error) {
 		}
 	}
 	if db := b.databases[KindASN]; db != nil {
-		var record asnRecord
-		if err := db.reader.Lookup(addr).Decode(&record); err != nil {
+		if err := db.applyASN(&out, addr); err != nil {
 			return Result{}, err
 		}
-		out.ASN = record.Number
-		out.Organization = record.Organization
 	}
 	if out.CountryCode != "" || out.CountryName != "" || out.CountryNameRU != "" ||
 		out.City != "" || out.CityRU != "" || out.CityID != nil || out.Location != nil || out.ASN != 0 || out.Organization != "" {

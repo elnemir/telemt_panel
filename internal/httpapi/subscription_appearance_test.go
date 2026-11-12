@@ -1,12 +1,16 @@
 package httpapi
 
 import (
+	"bytes"
 	"encoding/json"
+	"image"
+	"image/png"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
 
+	"github.com/amirotin/telemt_panel/internal/branding"
 	"github.com/amirotin/telemt_panel/internal/nodes"
 	"github.com/amirotin/telemt_panel/internal/subpage"
 	"github.com/amirotin/telemt_panel/internal/telemt/telemttest"
@@ -84,6 +88,14 @@ func TestSubscriptionAppearancePreviewSaveAndConflict(t *testing.T) {
 func TestRegisteredNodeSubscriptionRoutingAndRotation(t *testing.T) {
 	s, cookie := newSubpageTestServer(t, true)
 	s.cfg.ControlPlaneOnly = true
+	s.branding = branding.New(s.st, "", t.TempDir())
+	var logo bytes.Buffer
+	if err := png.Encode(&logo, image.NewNRGBA(image.Rect(0, 0, 32, 16))); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := s.branding.SaveUpload("Team", logo.Bytes()); err != nil {
+		t.Fatal(err)
+	}
 	var err error
 	s.nodes, err = nodes.Open(s.st, "", "")
 	if err != nil {
@@ -117,8 +129,9 @@ func TestRegisteredNodeSubscriptionRoutingAndRotation(t *testing.T) {
 		if w.Code != status {
 			t.Fatalf("public response: %d want %d", w.Code, status)
 		}
-		if status == 200 && !strings.Contains(w.Body.String(), "alice") {
-			t.Fatal("public response missing subscriber")
+		if status == 200 && (!strings.Contains(w.Body.String(), "alice") ||
+			!strings.Contains(w.Body.String(), `class="page-logo"`) || !strings.Contains(w.Body.String(), "data:image/png;base64,")) {
+			t.Fatal("public response missing subscriber or shared logo")
 		}
 	}
 	linkA, linkB := get("GET", a.ID), get("GET", b.ID)

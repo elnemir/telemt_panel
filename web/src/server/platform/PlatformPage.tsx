@@ -21,9 +21,9 @@ import {
   IconWrench,
 } from "../../ui/icons";
 import { apiErrorCode } from "../../people/apiError";
-import { hostCapabilityCount } from "../hub.helpers";
+import { hostCapabilityCount, needsFullNodeManagement, remoteHostCapabilities } from "../hub.helpers";
 import { isCopyableHostCommand } from "./platform.helpers";
-import { getHostOptions } from "../../lib/api/generated/@tanstack/react-query.gen";
+import { getHostOptions, getNodeUpgradeOptions, getTelemtServiceOptions } from "../../lib/api/generated/@tanstack/react-query.gen";
 import { TelemtServiceControl } from "./TelemtServiceControl";
 import type { HostInfo } from "../../lib/api/generated/types.gen";
 
@@ -40,6 +40,8 @@ interface CapabilityGroupProps {
   availableLabel: string;
   manualLabel: string;
   wide?: boolean;
+  remoteUpdates?: boolean;
+  unavailableLabel?: string;
 }
 
 function CapabilityGroup({
@@ -53,6 +55,8 @@ function CapabilityGroup({
   availableLabel,
   manualLabel,
   wide,
+  remoteUpdates,
+  unavailableLabel,
 }: CapabilityGroupProps) {
   return (
     <section className={cn("min-w-0 bg-surface", wide && "sm:col-span-2")}>
@@ -75,13 +79,15 @@ function CapabilityGroup({
             <span className="min-w-0">
               {key === "config_file"
                 ? <Link to="/server/files" className="block text-meta font-medium text-accent">{labels[key]}</Link>
-                : <strong className="block text-meta font-medium text-text">{labels[key]}</strong>}
+                : key === "self_update" && remoteUpdates
+                  ? <Link to="/server/updates" className="block text-meta font-medium text-accent">{labels[key]}</Link>
+                  : <strong className="block text-meta font-medium text-text">{labels[key]}</strong>}
               <small className="mt-1 block text-micro leading-snug text-text-muted">
                 {descriptions[key]}
               </small>
             </span>
             <StatePill state={available ? "ok" : "warn"} className="shrink-0">
-              {available ? availableLabel : manualLabel}
+              {available ? availableLabel : unavailableLabel ?? manualLabel}
             </StatePill>
           </div>
         );
@@ -158,10 +164,16 @@ function TechnicalSheet({
 export function PlatformPage() {
   const s = useStrings();
   const copy = s.server.platform.view;
+  const remoteNode = documentNodeId !== "default";
   const query = useQuery(getHostOptions());
+  const upgrade = useQuery({
+    ...getNodeUpgradeOptions({ path: { node_id: documentNodeId } }),
+    enabled: remoteNode,
+  });
+  const service = useQuery({ ...getTelemtServiceOptions(), enabled: remoteNode });
   const [technicalOpen, setTechnicalOpen] = useState(false);
 
-  if (query.isPending) {
+  if (query.isPending || (remoteNode && upgrade.isPending)) {
     return (
       <ServerShell title={s.server.platform.title}>
         <Skeleton className="h-72 w-full" />
@@ -180,8 +192,11 @@ export function PlatformPage() {
     );
   }
 
-  const info = query.data;
-  const remoteNode = documentNodeId !== "default";
+  const sshUpdates = !!(upgrade.data?.available && upgrade.data.telemt_version);
+  const info = remoteNode
+    ? { ...query.data, caps: remoteHostCapabilities(query.data.caps, sshUpdates) }
+    : query.data;
+  const needsSetup = remoteNode && (needsFullNodeManagement(info.caps) || service.data?.status === "unknown");
   const summary = hostCapabilityCount(info.caps, remoteNode);
   const automated = summary.available === summary.total;
   const manualEntries = Object.entries(info.manual_commands ?? {}).filter(([, value]) => value.trim());
@@ -205,16 +220,20 @@ export function PlatformPage() {
   };
   const privilegeLabels: Record<HostInfo["privileges_mode"], string> = {
     sudo: "sudo",
-    direct: "root",
+    direct: remoteNode ? copy.agentAccess : "root",
     manual: copy.manual,
   };
   const privilegeNotes: Record<HostInfo["privileges_mode"], string> = {
     sudo: copy.sudoNote,
-    direct: copy.directNote,
+    direct: remoteNode ? copy.agentAccessNote : copy.directNote,
     manual: copy.manualNote,
   };
-  const labels = s.server.platform.caps;
-  const descriptions: Record<CapKey, string> = copy.capDescriptions;
+  const labels = remoteNode
+    ? { ...s.server.platform.caps, self_update: copy.remoteUpdateLabel }
+    : s.server.platform.caps;
+  const descriptions: Record<CapKey, string> = remoteNode
+    ? { ...copy.capDescriptions, self_update: sshUpdates ? copy.remoteUpdateReady : copy.remoteUpdateUnavailable }
+    : copy.capDescriptions;
 
   return (
     <ServerShell title={s.server.platform.title}>
@@ -367,8 +386,15 @@ export function PlatformPage() {
                 availableLabel={copy.available}
                 manualLabel={copy.byHand}
                 wide={!remoteNode}
+                remoteUpdates={remoteNode}
+                unavailableLabel={remoteNode ? copy.unavailable : undefined}
               />
             </div>
+            {needsSetup && sshUpdates && (
+              <div className="border-t border-border px-4 py-3 text-meta">
+                <Link to="/server/updates" className="font-semibold text-accent">{copy.enableManagement}</Link>
+              </div>
+            )}
             <TelemtServiceControl />
           </section>
 

@@ -87,7 +87,7 @@ func (s *Server) handlePreviewNodeInstall(w http.ResponseWriter, r *http.Request
 	if j == nil {
 		return
 	}
-	var request nodeinstall.Request
+	request := nodeinstall.Request{WithAgent: true}
 	if decodeJSONBody(w, r, &request, jsonBodyOptions{MaxBytes: 4 << 10, RejectUnknown: true}) != nil {
 		auth.WriteError(w, 400, "node_install_invalid", "invalid node installation request")
 		return
@@ -197,7 +197,7 @@ func installErrorCode(err error) string {
 	switch err {
 	case nodeinstall.ErrInvalid, nodeinstall.ErrSSH, nodeinstall.ErrHostKey,
 		nodeinstall.ErrUnsupported, nodeinstall.ErrExisting, nodeinstall.ErrPorts,
-		nodeinstall.ErrArtifacts, nodeinstall.ErrApply, nodeinstall.ErrHealth, nodeinstall.ErrManagement,
+		nodeinstall.ErrArtifacts, nodeinstall.ErrFullArtifact, nodeinstall.ErrApply, nodeinstall.ErrHealth, nodeinstall.ErrTLSActivity, nodeinstall.ErrManagement,
 		nodeinstall.ErrRegistry, nodeinstall.ErrUnconfirmed, nodeinstall.ErrUpgradeStart, nodeinstall.ErrUpgradeCheck:
 		return err.Error()
 	default:

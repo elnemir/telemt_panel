@@ -9,6 +9,7 @@ import { Skeleton } from "../ui/Skeleton";
 import { useNow } from "./useNow";
 import { withBasePath } from "../lib/base-path";
 import { withDocumentNode } from "../nodes/scope";
+import { GeoIPCredit } from "../geography/GeoIPCredit";
 import { IPGeography } from "./IPGeography";
 import "./ipHistory.css";
 
@@ -95,7 +96,7 @@ function HistoryContent({ username }: { username: string }) {
       <div><strong>{number(filters.range === "all" ? null : data?.new)}</strong><span>{s.new}</span></div>
     </div>
     <p className="person-ip-collection" data-tone={data && !live ? "warning" : undefined}>{notes.join(" · ") || (query.isError ? s.error : s.loading)}</p>
-    {data && <p className="person-ip-geo-note">{hasGeo ? strings.geoip.activeNote : <>{strings.geoip.noDatabase} <a data-geoip-configure href={withDocumentNode(withBasePath("/panel#geoip"))}>{strings.geoip.configure} →</a></>}</p>}
+    {data && <p className="person-ip-geo-note">{hasGeo ? <>{strings.geoip.activeNote} <GeoIPCredit source={data.geoip?.active_source} /></> : <>{strings.geoip.noDatabase} <a data-geoip-configure href={withDocumentNode(withBasePath("/panel#geoip"))}>{strings.geoip.configure} →</a></>}</p>}
     <div className="person-ip-tools">
       <label className="person-ip-search"><span className="sr-only">{s.search}</span>
         <input type="search" value={filters.q} maxLength={64} placeholder={s.search} autoComplete="off" spellCheck={false}

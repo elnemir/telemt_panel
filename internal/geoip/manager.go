@@ -30,6 +30,7 @@ const (
 	ErrorSourceTooLarge    = "source_too_large"
 	ErrorDownloadFailed    = "download_failed"
 	ErrorDownloadTooLarge  = "download_too_large"
+	ErrorProviderAccess    = "provider_access_denied"
 	ErrorDatabaseInvalid   = "database_invalid"
 	ErrorDatabaseType      = "database_type_mismatch"
 	ErrorActivationFailed  = "activation_failed"
@@ -39,6 +40,11 @@ const (
 type SettingsStore interface {
 	GetSetting(string) (string, bool, error)
 	SetSetting(string, string) error
+}
+
+type storedConfig struct {
+	Config
+	AccessKey string `json:"access_key,omitempty"`
 }
 
 type cacheItem struct {
@@ -106,8 +112,14 @@ func (m *Manager) restore() {
 	if ok {
 		decoder := json.NewDecoder(strings.NewReader(raw))
 		decoder.DisallowUnknownFields()
-		var cfg Config
-		if err := decoder.Decode(&cfg); err != nil || cfg.Validate() != nil {
+		var saved storedConfig
+		if err := decoder.Decode(&saved); err != nil {
+			m.status = errorStatus(nil, ErrorActivationFailed)
+			return
+		}
+		cfg := saved.Config
+		cfg.accessKey = saved.AccessKey
+		if cfg.Validate() != nil {
 			m.status = errorStatus(nil, ErrorActivationFailed)
 			return
 		}
@@ -161,7 +173,14 @@ func errorStatus(active *bundle, code string) Status {
 func (m *Manager) Settings() Settings {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
-	return Settings{Config: m.config, Status: m.statusLocked()}
+	return m.settingsLocked()
+}
+
+func (m *Manager) settingsLocked() Settings {
+	config := m.config
+	hasKey := config.accessKey != ""
+	config.accessKey = ""
+	return Settings{Config: config, Status: m.statusLocked(), AccessKeySaved: hasKey}
 }
 
 // Status returns a copy of the current runtime status.
@@ -196,26 +215,40 @@ func (m *Manager) statusLocked() Status {
 
 // PutConfig validates and persists cfg, then asynchronously activates it when enabled.
 func (m *Manager) PutConfig(cfg Config) (Settings, error) {
-	if err := cfg.Validate(); err != nil {
-		return m.Settings(), err
-	}
-	encoded, err := json.Marshal(cfg)
-	if err != nil {
-		return m.Settings(), errors.New("geoip: encode configuration")
-	}
+	return m.PutConfigWithKey(cfg, nil)
+}
+
+// PutConfigWithKey replaces the access key when supplied. An omitted key can
+// only reuse a credential for the same provider and account.
+func (m *Manager) PutConfigWithKey(cfg Config, key *string) (Settings, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
+	if key != nil {
+		cfg.accessKey = strings.TrimSpace(*key)
+		if !validAccessKey(cfg.accessKey) {
+			return m.settingsLocked(), ErrInvalidConfig
+		}
+	} else if cfg.Source.usesKey() && cfg.Source == m.config.Source && cfg.AccountID == m.config.AccountID {
+		cfg.accessKey = m.config.accessKey
+	}
+	if err := cfg.Validate(); err != nil {
+		return m.settingsLocked(), err
+	}
 	if m.closed {
-		return Settings{Config: m.config, Status: m.statusLocked()}, errors.New("geoip: manager is closed")
+		return m.settingsLocked(), errors.New("geoip: manager is closed")
 	}
 	if m.operation {
-		return Settings{Config: m.config, Status: m.statusLocked()}, ErrBusy
+		return m.settingsLocked(), ErrBusy
 	}
 	if m.store == nil {
-		return Settings{Config: m.config, Status: m.statusLocked()}, errors.New("geoip: settings store is unavailable")
+		return m.settingsLocked(), errors.New("geoip: settings store is unavailable")
+	}
+	encoded, err := json.Marshal(storedConfig{Config: cfg, AccessKey: cfg.accessKey})
+	if err != nil {
+		return m.settingsLocked(), errors.New("geoip: encode configuration")
 	}
 	if err := m.store.SetSetting(configSettingKey, string(encoded)); err != nil {
-		return Settings{Config: m.config, Status: m.statusLocked()}, errors.New("geoip: persist configuration")
+		return m.settingsLocked(), errors.New("geoip: persist configuration")
 	}
 	m.config = cfg
 	if !cfg.Enabled {
@@ -227,10 +260,10 @@ func (m *Manager) PutConfig(cfg Config) (Settings, error) {
 		if old != nil {
 			old.close()
 		}
-		return Settings{Config: m.config, Status: m.statusLocked()}, nil
+		return m.settingsLocked(), nil
 	}
 	m.startOperationLocked(cfg)
-	return Settings{Config: m.config, Status: m.statusLocked()}, nil
+	return m.settingsLocked(), nil
 }
 
 // Update asynchronously rebuilds the active bundle from the persisted configuration.
@@ -238,16 +271,16 @@ func (m *Manager) Update() (Settings, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	if m.closed {
-		return Settings{Config: m.config, Status: m.statusLocked()}, errors.New("geoip: manager is closed")
+		return m.settingsLocked(), errors.New("geoip: manager is closed")
 	}
 	if !m.config.Enabled {
-		return Settings{Config: m.config, Status: m.statusLocked()}, ErrDisabled
+		return m.settingsLocked(), ErrDisabled
 	}
 	if m.operation {
-		return Settings{Config: m.config, Status: m.statusLocked()}, ErrBusy
+		return m.settingsLocked(), ErrBusy
 	}
 	m.startOperationLocked(m.config)
-	return Settings{Config: m.config, Status: m.statusLocked()}, nil
+	return m.settingsLocked(), nil
 }
 
 func (m *Manager) startOperationLocked(cfg Config) {
@@ -390,7 +423,8 @@ func (m *Manager) Run(ctx context.Context) {
 func (m *Manager) refreshDue() bool {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
-	if m.closed || m.operation || !m.config.Enabled || m.config.Source != SourceURLs || m.config.Schedule == ScheduleManual {
+	if m.closed || m.operation || !m.config.Enabled || m.config.Schedule == ScheduleManual ||
+		(m.config.Source != SourceURLs && !m.config.Source.managed()) {
 		return false
 	}
 	interval := 7 * 24 * time.Hour
@@ -571,13 +605,15 @@ func (m *Manager) buildBundle(ctx context.Context, cfg Config) (*bundle, string,
 			continue
 		}
 		destination := filepath.Join(staging, string(item.kind)+".mmdb")
-		finalLocation := item.config.Location
-		switch cfg.Source {
-		case SourceFiles:
-			err = copyRegularFile(ctx, item.config.Location, destination)
-		case SourceURLs:
-			finalLocation, err = m.client.download(ctx, item.config.Location, destination)
+		if cfg.Source == SourceIPinfo && item.kind == KindASN && paths[KindCountry] != "" {
+			if err := os.Link(paths[KindCountry], destination); err != nil {
+				return nil, "", coded(ErrorActivationFailed, err)
+			}
+			paths[item.kind] = destination
+			provenance[item.kind] = provenance[KindCountry]
+			continue
 		}
+		originalLocation, finalLocation, err := m.acquireDatabase(ctx, cfg, item, destination)
 		if err != nil {
 			return nil, "", err
 		}
@@ -586,7 +622,7 @@ func (m *Manager) buildBundle(ctx context.Context, cfg Config) (*bundle, string,
 		}
 		paths[item.kind] = destination
 		provenance[item.kind] = DatabaseProvenance{
-			OriginalLocation: locationIdentity(item.config.Location, cfg.Source),
+			OriginalLocation: locationIdentity(originalLocation, cfg.Source),
 			FinalLocation:    locationIdentity(finalLocation, cfg.Source), FetchedEpochSecs: m.now().Unix(),
 		}
 	}

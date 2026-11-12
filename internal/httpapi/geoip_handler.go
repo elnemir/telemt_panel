@@ -14,12 +14,14 @@ type geoIPDatabaseConfigRequest struct {
 }
 
 type geoIPConfigRequest struct {
-	Enabled  *bool                       `json:"enabled"`
-	Source   *geoip.Source               `json:"source"`
-	Schedule *geoip.Schedule             `json:"schedule"`
-	Country  *geoIPDatabaseConfigRequest `json:"country"`
-	ASN      *geoIPDatabaseConfigRequest `json:"asn"`
-	City     *geoIPDatabaseConfigRequest `json:"city"`
+	Enabled   *bool                       `json:"enabled"`
+	Source    *geoip.Source               `json:"source"`
+	Schedule  *geoip.Schedule             `json:"schedule"`
+	Country   *geoIPDatabaseConfigRequest `json:"country"`
+	ASN       *geoIPDatabaseConfigRequest `json:"asn"`
+	City      *geoIPDatabaseConfigRequest `json:"city"`
+	AccountID string                      `json:"account_id"`
+	AccessKey *string                     `json:"access_key"`
 }
 
 func (r *geoIPConfigRequest) config() (geoip.Config, bool) {
@@ -29,7 +31,7 @@ func (r *geoIPConfigRequest) config() (geoip.Config, bool) {
 		return geoip.Config{}, false
 	}
 	return geoip.Config{
-		Enabled: *r.Enabled, Source: *r.Source, Schedule: *r.Schedule,
+		Enabled: *r.Enabled, Source: *r.Source, Schedule: *r.Schedule, AccountID: r.AccountID,
 		Country: geoip.DatabaseConfig{Enabled: *r.Country.Enabled, Location: *r.Country.Location},
 		ASN:     geoip.DatabaseConfig{Enabled: *r.ASN.Enabled, Location: *r.ASN.Location},
 		City:    geoip.DatabaseConfig{Enabled: *r.City.Enabled, Location: *r.City.Location},
@@ -69,7 +71,7 @@ func (s *Server) handlePutGeoIPSettings(w http.ResponseWriter, r *http.Request) 
 		auth.WriteError(w, http.StatusInternalServerError, "internal_error", "GeoIP manager is unavailable")
 		return
 	}
-	result, err := s.geoip.PutConfig(cfg)
+	result, err := s.geoip.PutConfigWithKey(cfg, request.AccessKey)
 	if err != nil {
 		writeGeoIPError(w, err)
 		return

@@ -67,6 +67,26 @@ func TestGeoIPSettingsDefaultAndStrictRequests(t *testing.T) {
 	}
 }
 
+func TestGeoIPProviderAccessKeyIsWriteOnly(t *testing.T) {
+	s := geoIPTestServer(t)
+	const body = `{"enabled":false,"source":"maxmind","schedule":"weekly","account_id":"123","access_key":"fixture-secret","country":{"enabled":true,"location":""},"asn":{"enabled":true,"location":""},"city":{"enabled":false,"location":""}}`
+	put := httptest.NewRecorder()
+	s.handlePutGeoIPSettings(put, httptest.NewRequest(http.MethodPut, "/api/settings/geoip", strings.NewReader(body)))
+	get := httptest.NewRecorder()
+	s.handleGetGeoIPSettings(get, httptest.NewRequest(http.MethodGet, "/api/settings/geoip", nil))
+	if put.Code != http.StatusAccepted || get.Code != http.StatusOK {
+		t.Fatalf("unexpected statuses: PUT %d GET %d", put.Code, get.Code)
+	}
+	for _, response := range []*httptest.ResponseRecorder{put, get} {
+		var settings geoip.Settings
+		if err := json.Unmarshal(response.Body.Bytes(), &settings); err != nil ||
+			!settings.AccessKeySaved || settings.Config.AccountID != "123" ||
+			strings.Contains(response.Body.String(), "fixture-secret") {
+			t.Fatal("response failed to confirm credential presence privately")
+		}
+	}
+}
+
 func TestGeoIPSettingsApplyFailureIsObservableWithoutLeakingPaths(t *testing.T) {
 	s := geoIPTestServer(t)
 	cfg := geoip.DefaultConfig()

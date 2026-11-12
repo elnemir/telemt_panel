@@ -164,7 +164,7 @@ type blockingDownloader struct {
 	release   chan struct{}
 }
 
-func (d *blockingDownloader) download(ctx context.Context, _, _ string) (string, error) {
+func (d *blockingDownloader) download(ctx context.Context, _ downloadRequest, _ string) (string, error) {
 	close(d.started)
 	<-ctx.Done()
 	close(d.cancelled)

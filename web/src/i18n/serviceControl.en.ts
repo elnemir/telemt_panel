@@ -1,5 +1,8 @@
 export const serviceControlEn = {
   title: "Telemt service",
+  remoteHost: "On the selected node",
+  remoteSeparate: "The selected node’s agent reports service status. Control API availability is checked separately.",
+  remoteManualNote: "Run the command on the selected node or enable full management on the Updates page.",
   host: "On the panel host",
   customManager: "Custom commands",
   binding: "Service / container",

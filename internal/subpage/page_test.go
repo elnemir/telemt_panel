@@ -55,6 +55,28 @@ func renderFixture(t *testing.T, acceptLanguage string) string {
 	return buf.String()
 }
 
+func TestAppearanceOffersEachTLSEndpoint(t *testing.T) {
+	settings := DefaultAppearance()
+	settings.Connections = []string{"tls"}
+	var buf bytes.Buffer
+	if err := RenderAppearance(&buf, fixtureUser(), nil, "en", time.Now(), settings, nil); err != nil {
+		t.Fatal(err)
+	}
+	html := buf.String()
+	for _, want := range []string{
+		`<legend>Connection method</legend>`,
+		`id="connection-0" checked><label class="connection-option" for="connection-0">TLS (disguised as a website) · 1.2.3.4:443</label>`,
+		`id="connection-1"><label class="connection-option" for="connection-1">TLS (disguised as a website) · cdn.example.com</label>`,
+	} {
+		if !strings.Contains(html, want) {
+			t.Errorf("subscription picker missing %q", want)
+		}
+	}
+	if got := strings.Count(html, `name="connection"`); got != 2 {
+		t.Errorf("got %d connection options, want 2", got)
+	}
+}
+
 func TestRenderPageContainsTgLinkAndRawFields(t *testing.T) {
 	html := renderFixture(t, "en-US")
 

@@ -42,7 +42,38 @@ describe("GeoIPSettings", () => {
     expect(view.querySelector('[value="community"]')).toBeNull();
     expect(view.querySelector<HTMLInputElement>('[value="urls"]')?.checked).toBe(true);
     expect(view.querySelectorAll('input[type="checkbox"]:checked')).toHaveLength(2);
-    expect(view.textContent).not.toMatch(/Account ID|License Key/);
+    expect(view.querySelector('input[type="password"]')).toBeNull();
+    expect(view.querySelector('[value="maxmind"]')).not.toBeNull();
+    expect(view.querySelector('[value="dbip"]')).not.toBeNull();
+    expect(view.querySelector('[value="ipinfo"]')).not.toBeNull();
+  });
+  it("asks MaxMind only for account ID and key, and reuses the saved key on later edits", async () => {
+    const data = empty();
+    data.config = { ...data.config, source: "maxmind", enabled: true, account_id: "123" };
+    data.access_key_saved = true;
+    await mount(data);
+    expect(view.querySelectorAll('input[type="text"]')).toHaveLength(1);
+    const key = view.querySelector<HTMLInputElement>('input[type="password"]');
+    expect(key?.value).toBe("");
+    expect(key?.placeholder).toContain("Сохранён");
+    await click('[data-geoip-kind="city"]');
+    await click('button[type="submit"]');
+    expect(api.save).toHaveBeenCalledWith({
+      body: { ...data.config, city: { enabled: true, location: "" } },
+    }, expect.anything());
+  });
+  it("asks IPinfo only for a token and excludes City, while DB-IP requires no credentials", async () => {
+    await mount();
+    await click('[value="ipinfo"]');
+    expect(view.querySelector('input[type="text"]')).toBeNull();
+    expect(view.querySelector('[data-geoip-kind="city"]')).toBeNull();
+    await type('input[type="password"]', "test-token");
+    await click('button[type="submit"]');
+    expect(api.save).toHaveBeenCalledWith({ body: expect.objectContaining({ source: "ipinfo", access_key: "test-token" }) }, expect.anything());
+    await click('[value="dbip"]');
+    expect(view.querySelector('input[type="password"]')).toBeNull();
+    expect(view.querySelector('input[type="text"]')).toBeNull();
+    expect(view.querySelector('[data-geoip-kind="city"]')).not.toBeNull();
   });
   it("keeps active status unchanged while editing the source and hides the local-file schedule", async () => {
     const data = empty(); data.config.enabled = true;

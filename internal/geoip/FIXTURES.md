@@ -67,3 +67,10 @@ time and allocations. It does not download files or measure the panel's full
 startup time. An unset path skips that database kind. Every distinct record is
 checked; offsets are deduplicated only within one reader, never across files
 or database replacements. Structural MMDB verification remains unchanged.
+
+`providers_test.go` includes a synthetic IPinfo Lite fixture made with the
+same writer and epoch. Use IP version 4, database type
+`ipinfo bundle_location_lite.mmdb`, description
+`Synthetic Telemt IPinfo fixture`, and network `81.2.69.0/24`. The four
+string fields are `country_code: GB`, `country: United Kingdom`,
+`asn: AS64500` and `as_name: Example Network`.

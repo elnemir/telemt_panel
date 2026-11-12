@@ -18,6 +18,7 @@
 .geoip-sources small { display:block; font-size:12px; line-height:1.6; color:rgb(var(--text-muted)); margin-top:6px; }
 .geoip-sources em { position:absolute; bottom:10px; left:12px; font-size:11px; font-style:normal; color:rgb(var(--accent)); }
 .geoip-sources input,.geoip-datasets input { accent-color:rgb(var(--accent)); width:18px; height:18px; flex-shrink:0; margin:3px 0; }
+.geoip-source-note a { color:rgb(var(--accent)); text-decoration:underline; text-underline-offset:3px; }
 .geoip-source-note { font-size:13px; line-height:1.75; color:rgb(var(--text-muted)); }
 .geoip-datasets label { display:flex; align-items:center; gap:12px; min-height:75px; cursor:pointer; }
 .geoip-datasets label+label { border-top:1px solid rgb(var(--border)); }
@@ -28,7 +29,7 @@
 .geoip-fields:not(:empty) { padding-top:18px; margin-top:12px; border-top:1px solid rgb(var(--border)); }
 .geoip-fields label { display:grid; gap:7px; font-size:14px; }
 .geoip-fields input { width:100%; min-width:0; }
-.geoip-settings input[type=text],.geoip-settings select { font:inherit; font-size:14px; min-height:44px; border:1px solid rgb(var(--border-strong)); background:rgb(var(--bg)); color:rgb(var(--text)); border-radius:9px; padding:10px 12px; max-width:100%; }
+.geoip-settings input:is([type=text],[type=password]),.geoip-settings select { font:inherit; font-size:14px; min-height:44px; border:1px solid rgb(var(--border-strong)); background:rgb(var(--bg)); color:rgb(var(--text)); border-radius:9px; padding:10px 12px; max-width:100%; }
 .geoip-update { display:flex; justify-content:space-between; align-items:center; gap:16px; }
 .geoip-update strong { font-size:15px; font-weight:550; }
 .geoip-update small { display:block; font-size:13px; color:rgb(var(--text-muted)); line-height:1.5; margin-top:6px; }
@@ -81,7 +82,7 @@
   .geoip-save-row>div { display:grid; }
   .geoip-sidebar { display:grid; }
   .geoip-status-card { padding:20px; }
-  .geoip-settings input[type=text],.geoip-settings select { font-size:16px; }
+  .geoip-settings input:is([type=text],[type=password]),.geoip-settings select { font-size:16px; }
   .geoip-sources strong { font-size:15px; }
   .geoip-sources small { font-size:13px; }
   .geoip-sources em { max-width:75px; }

@@ -31,12 +31,13 @@ type Plan struct {
 }
 
 type UpgradeRequest struct {
-	SSHPort         int    `json:"ssh_port"`
-	SSHUser         string `json:"ssh_user"`
-	HostFingerprint string `json:"host_fingerprint"`
-	Telemt          bool   `json:"telemt"`
-	Agent           bool   `json:"agent"`
-	RequestID       string `json:"request_id"`
+	SSHPort          int    `json:"ssh_port"`
+	SSHUser          string `json:"ssh_user"`
+	HostFingerprint  string `json:"host_fingerprint"`
+	Telemt           bool   `json:"telemt"`
+	Agent            bool   `json:"agent"`
+	EnableManagement bool   `json:"enable_management,omitempty"`
+	RequestID        string `json:"request_id"`
 }
 
 const (
@@ -48,7 +49,7 @@ const (
 )
 
 func (r UpgradeRequest) Valid() bool {
-	return (r.Telemt || r.Agent) && validPort(r.SSHPort) && userPattern.MatchString(r.SSHUser) &&
+	return (r.Telemt || r.Agent) && (!r.EnableManagement || r.Telemt && r.Agent) && validPort(r.SSHPort) && userPattern.MatchString(r.SSHUser) &&
 		fingerprintPattern.MatchString(r.HostFingerprint) && requestIDPattern.MatchString(r.RequestID)
 }
 
@@ -64,8 +65,10 @@ const (
 	ErrExisting     failure = "node_install_existing"
 	ErrPorts        failure = "node_install_ports"
 	ErrArtifacts    failure = "node_install_artifacts"
+	ErrFullArtifact failure = "node_install_full_artifact_required"
 	ErrApply        failure = "node_install_apply"
 	ErrHealth       failure = "node_install_health"
+	ErrTLSActivity  failure = "node_install_tls_activity"
 	ErrManagement   failure = "node_install_management"
 	ErrRegistry     failure = "node_install_registry"
 	ErrUnconfirmed  failure = "node_install_unconfirmed"

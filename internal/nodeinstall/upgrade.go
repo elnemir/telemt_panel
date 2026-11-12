@@ -75,9 +75,13 @@ func (i *Installer) Upgrade(ctx context.Context, registry *nodes.Registry, nodeI
 	}
 	defer os.RemoveAll(dir)
 	report("staging")
+	repair := req.EnableManagement && (!before.caps.full() || !nodeServiceRunning(ctx, agent))
 	files, err := i.upgradeBundle(req, dir)
 	if err != nil {
 		return UpgradeFailed, err
+	}
+	if repair {
+		addManagementUpgradeFiles(files.files, node.Binding.ID)
 	}
 	stage, cleanup, err := transferBundle(client, files)
 	if err != nil {
@@ -113,8 +117,11 @@ func (i *Installer) Upgrade(ctx context.Context, registry *nodes.Registry, nodeI
 	if req.Agent {
 		wanted.agent = panelVersion
 	}
+	if repair {
+		wanted.caps = fullUpgradeCapabilities
+	}
 	report("checking")
-	verified := awaitUpgradeSnapshot(ctx, control, agent, node.Binding.ID, wanted, 40*time.Second)
+	verified := awaitUpgradeSnapshot(ctx, control, agent, node.Binding.ID, wanted, repair, 40*time.Second)
 	current := registry.Current(node)
 	if !verified || !current {
 		cause := ErrUpgradeCheck
@@ -198,6 +205,12 @@ type upgradeCapabilities struct {
 	LogStream  bool `json:"log_stream"`
 }
 
+var fullUpgradeCapabilities = upgradeCapabilities{
+	ConfigFile: true, Start: true, Stop: true, Restart: true, LogTail: true, LogStream: true,
+}
+
+func (c upgradeCapabilities) full() bool { return c == fullUpgradeCapabilities }
+
 func readUpgradeSnapshot(ctx context.Context, control *telemt.Client, agent *nodeagent.Client, agentID string) (upgradeSnapshot, error) {
 	health, err := control.Health(ctx)
 	if err != nil || health.Status != "ok" {
@@ -251,15 +264,28 @@ func readUpgradeAgent(ctx context.Context, agent *nodeagent.Client, path string,
 	return json.Unmarshal(raw, into)
 }
 
-func awaitUpgradeSnapshot(ctx context.Context, control *telemt.Client, agent *nodeagent.Client, agentID string, wanted upgradeSnapshot, limit time.Duration) bool {
+func nodeServiceRunning(ctx context.Context, agent *nodeagent.Client) bool {
+	var service struct {
+		Status string `json:"status"`
+	}
+	return readUpgradeAgent(ctx, agent, "/v1/agent/service", &service) == nil && service.Status == "running"
+}
+
+func awaitUpgradeSnapshot(ctx context.Context, control *telemt.Client, agent *nodeagent.Client, agentID string, wanted upgradeSnapshot, requireRunning bool, limit time.Duration) bool {
 	ctx, cancel := context.WithTimeout(ctx, limit)
 	defer cancel()
 	wanted.telemt = strings.TrimPrefix(wanted.telemt, "v")
 	for {
 		probeCtx, stop := context.WithTimeout(ctx, 5*time.Second)
 		got, err := readUpgradeSnapshot(probeCtx, control, agent, agentID)
+		running := !requireRunning || (err == nil && nodeServiceRunning(probeCtx, agent))
 		stop()
-		if err == nil && got == wanted {
+		if err == nil && wanted.revision == "" && wanted.caps.ConfigFile {
+			// A previously unavailable editor has no earlier revision to compare.
+			// The SSH transaction independently compares the original TOML bytes.
+			got.revision = ""
+		}
+		if err == nil && got == wanted && running {
 			return true
 		}
 		select {
@@ -273,7 +299,7 @@ func awaitUpgradeSnapshot(ctx context.Context, control *telemt.Client, agent *no
 func confirmUpgradeRollback(ctx context.Context, control *telemt.Client, agent *nodeagent.Client, agentID string,
 	before upgradeSnapshot, report func(string), cause error) (string, error) {
 	report("rolling_back")
-	if !awaitUpgradeSnapshot(ctx, control, agent, agentID, before, 30*time.Second) {
+	if !awaitUpgradeSnapshot(ctx, control, agent, agentID, before, false, 30*time.Second) {
 		return UpgradeUnknown, ErrUnconfirmed
 	}
 	return UpgradeRolledBack, cause

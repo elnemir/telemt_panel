@@ -317,7 +317,7 @@ func New(cfg *config.Config, tc *telemt.Client, st store.Store, hb *hub.Hub, ver
 		RequireReadiness:      engineOptions.PanelLifecycleContext != nil,
 	})
 
-	appearance := branding.New(st, cfg.BasePath)
+	appearance := branding.New(st, cfg.BasePath, cfg.DataDir)
 	webUI, err := webui.New(webui.Embedded(), cfg.BasePath)
 	if err != nil {
 		// See the webUI field's doc comment — unreachable outside a
@@ -636,6 +636,7 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("GET /api/branding/icon", s.handleBrandingAsset)
 	mux.Handle("GET /api/settings/branding", protect(s.handleGetBranding))
 	mux.Handle("PUT /api/settings/branding", protect(s.handlePutBranding))
+	mux.Handle("POST /api/settings/branding/logo", protect(s.handleUploadBrandingLogo))
 	mux.Handle("GET /api/settings/subscription", protect(s.handleGetSubscriptionAppearance))
 	mux.Handle("PUT /api/settings/subscription", protect(s.handlePutSubscriptionAppearance))
 	mux.Handle("POST /api/settings/subscription/preview", protect(s.handlePreviewSubscriptionAppearance))

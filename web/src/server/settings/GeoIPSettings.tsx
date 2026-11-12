@@ -9,9 +9,16 @@ import { fill, localeOf, useStrings } from "../../i18n";
 import { Button } from "../../ui/Button";
 import { Skeleton } from "../../ui/Skeleton";
 import { apiErrorMessage } from "../../people/apiError";
-import { geoIPConfigError, geoIPKinds, normalizeGeoIPConfig, sameGeoIPConfig, switchGeoIPSource } from "./geoip.helpers";
+import { geoIPConfigError, geoIPKinds, geoIPSources, normalizeGeoIPConfig, sameGeoIPConfig, switchGeoIPSource, usesGeoIPKey } from "./geoip.helpers";
 import "./geoip.css";
 import { invalidateGeography } from "../../geography/queries";
+import { GeoIPCredit } from "../../geography/GeoIPCredit";
+
+const providerHelp = {
+  maxmind: "https://support.maxmind.com/knowledge-base/articles/using-maxmind-license-keys",
+  dbip: "https://db-ip.com/db/lite.php",
+  ipinfo: "https://ipinfo.io/dashboard/lite",
+};
 
 export function GeoIPSettings() {
   const strings = useStrings();
@@ -20,6 +27,7 @@ export function GeoIPSettings() {
   const client = useQueryClient();
   const query = useQuery({ ...getGeoIpSettingsOptions(), refetchInterval: query => query.state.data?.status.state === "updating" ? 1500 : 30_000 });
   const [draft, setDraft] = useState<GeoIpConfig | null>(null);
+  const [accessKey, setAccessKey] = useState("");
   const [error, setError] = useState("");
   const [feedback, setFeedback] = useState(false);
   const previousStatus = useRef(query.data?.status);
@@ -33,7 +41,7 @@ export function GeoIPSettings() {
 
   function accepted(data: GeoIpSettings) {
     client.setQueryData(getGeoIpSettingsQueryKey(), data);
-    setDraft(null); setError(""); setFeedback(true);
+    setDraft(null); setAccessKey(""); setError(""); setFeedback(true);
     void client.invalidateQueries({ queryKey: [{ _id: "getUserIpHistory" }] });
     void invalidateGeography(client);
   }
@@ -45,14 +53,18 @@ export function GeoIPSettings() {
   const failure = status?.last_error && Object.hasOwn(s.failures, status.last_error)
     ? s.failures[status.last_error as keyof typeof s.failures] : s.errors.generic;
   const busy = save.isPending || update.isPending || status?.state === "updating";
-  const changed = !!data && !!config && !sameGeoIPConfig(data.config, config);
+  const changed = !!data && !!config && (!!accessKey || !sameGeoIPConfig(data.config, config));
+  const savedKey = !!data?.access_key_saved && config?.source === data.config.source &&
+    (config?.account_id ?? "").trim() === (data.config.account_id ?? "");
   function edit(next: GeoIpConfig) { setDraft(next); setFeedback(false); setError(""); }
   function submit() {
     if (!config || busy) return;
     const body = normalizeGeoIPConfig({ ...config, enabled: true });
-    const invalid = geoIPConfigError(body);
+    if (body.account_id !== undefined) body.account_id = body.account_id.trim();
+    const key = accessKey.trim();
+    const invalid = geoIPConfigError(body, key, savedKey);
     if (invalid) { setError(s.errors[invalid]); return; }
-    save.mutate({ body });
+    save.mutate({ body: key ? { ...body, access_key: key } : body });
   }
   const date = (epoch: number) => {
     const value = new Date(epoch * 1000);
@@ -71,20 +83,38 @@ export function GeoIPSettings() {
             <div className="geoip-section">
               <h3>{s.sourceTitle}</h3><p className="geoip-muted">{s.sourceNote}</p>
               <fieldset className="geoip-sources"><legend className="sr-only">{s.sourceLegend}</legend>
-                {(["urls", "files"] as const).map(source => <label key={source}>
-                  <input type="radio" name="geoip-source" value={source} checked={config.source === source} onChange={() => edit(switchGeoIPSource(config, source))} />
+                {geoIPSources.map(source => <label key={source}>
+                  <input type="radio" name="geoip-source" value={source} checked={config.source === source} onChange={() => { setAccessKey(""); edit(switchGeoIPSource(config, source)); }} />
                   <span><strong>{s.sources[source]}</strong><small>{s.sourceHints[source]}</small></span>
                 </label>)}
               </fieldset>
-              <p className="geoip-source-note">{s.sourceNotes[config.source]}</p>
+              <p className="geoip-source-note">{s.sourceNotes[config.source]}
+                {(config.source === "maxmind" || config.source === "ipinfo" || config.source === "dbip") &&
+                  <>{" "}<a href={providerHelp[config.source]} target="_blank" rel="noreferrer">
+                    {config.source === "dbip" ? s.credentials.terms : s.credentials.help} ↗
+                  </a></>}
+              </p>
+              {usesGeoIPKey(config.source) && <div className="geoip-fields">
+                {config.source === "maxmind" && <label>
+                  <span>{s.credentials.account}</span>
+                  <input type="text" inputMode="numeric" autoComplete="off" maxLength={20} value={config.account_id ?? ""}
+                    onChange={event => edit({ ...config, account_id: event.target.value })} />
+                </label>}
+                <label>
+                  <span>{config.source === "maxmind" ? s.credentials.license : s.credentials.token}</span>
+                  <input type="password" autoComplete="new-password" spellCheck={false} maxLength={512} value={accessKey}
+                    placeholder={savedKey ? s.credentials.saved : undefined}
+                    onChange={event => { setAccessKey(event.target.value); setError(""); setFeedback(false); }} />
+                </label>
+              </div>}
             </div>
             <div className="geoip-section">
               <h3>{s.datasetsTitle}</h3>
-              <div className="geoip-datasets">{geoIPKinds.map(kind => <label key={kind}>
+              <div className="geoip-datasets">{geoIPKinds.filter(kind => config.source !== "ipinfo" || kind !== "city").map(kind => <label key={kind}>
                 <input type="checkbox" data-geoip-kind={kind} aria-label={s.kinds[kind]} checked={config[kind].enabled} onChange={event => edit({ ...config, [kind]: { ...config[kind], enabled: event.target.checked } })} />
                 <span><strong>{s.kinds[kind]}</strong><small>{s.kindHints[kind]}</small></span><b>{kind === "asn" ? "ASN" : kind === "city" ? "City" : "Country"}</b>
               </label>)}</div>
-              {config.source !== "community" && <div className="geoip-fields">{geoIPKinds.filter(kind => config[kind].enabled).map(kind => <label key={`${config.source}-${kind}`}>
+              {(config.source === "urls" || config.source === "files") && <div className="geoip-fields">{geoIPKinds.filter(kind => config[kind].enabled).map(kind => <label key={`${config.source}-${kind}`}>
                 <span>{s.kinds[kind]} · {config.source === "urls" ? "HTTPS" : ".mmdb"}</span>
                 <input type="text" inputMode={config.source === "urls" ? "url" : "text"} autoComplete="off" spellCheck={false} maxLength={2048}
                   placeholder={config.source === "urls" ? `https://example.org/${kind}.mmdb` : `/srv/geoip/${kind}.mmdb`}
@@ -101,7 +131,7 @@ export function GeoIPSettings() {
           <footer className="geoip-save-row">
             {error && <p className="geoip-error" role="alert">{error}</p>}
             <p role="status">{changed ? s.draftNote : feedback ? s.savedNote : data.config.enabled ? s.unchangedNote : s.initialNote}</p>
-            <div>{changed && <Button type="button" variant="ghost" disabled={busy} onClick={() => { setDraft(null); setError(""); }}>{s.reset}</Button>}
+            <div>{changed && <Button type="button" variant="ghost" disabled={busy} onClick={() => { setDraft(null); setAccessKey(""); setError(""); }}>{s.reset}</Button>}
               <Button type="submit" disabled={busy || (data.config.enabled && !changed)}>{busy ? s.applying : data.config.enabled ? s.save : s.connect}</Button></div>
           </footer>
         </form>
@@ -111,7 +141,9 @@ export function GeoIPSettings() {
             <p className="geoip-state-note" role="status">{s.stateNotes[status.state]}</p>
             {status.state === "error" && <p className="geoip-error">{failure}</p>}
             {status.available && (status.state === "error" || status.state === "updating") && <p className="geoip-muted">{s.previousActive}</p>}
-            {status.active_source && <p className="geoip-active-source" data-geoip-active-source>{s.sources[status.active_source]}</p>}
+            {status.active_source && <p className="geoip-active-source" data-geoip-active-source>
+              {s.sources[status.active_source]} <GeoIPCredit source={status.active_source} />
+            </p>}
             {status.databases.map(db => <div className="geoip-db" key={db.kind}><strong>{s.kinds[db.kind]}</strong>
               <span>{fill(s.built, { date: date(db.build_epoch_secs) })}</span><small>{fill(s.loaded, { date: date(db.loaded_epoch_secs) })}</small>
               {db.provenance ? <details className="geoip-provenance"><summary>{s.provenance.title}</summary>
@@ -131,6 +163,6 @@ export function GeoIPSettings() {
           <section className="geoip-privacy"><h3>{s.privacyTitle}</h3><p>{s.privacyNote}</p><p>{s.independent}</p></section>
         </aside>
       </div>}
-    <p className="geoip-attribution">{s.attribution} <a href="https://www.maxmind.com/en/geolite/eula" target="_blank" rel="noreferrer">{s.termsLink} ↗</a>{" · "}<a href="https://support.maxmind.com/knowledge-base/articles/maintain-up-to-date-data" target="_blank" rel="noreferrer">{s.updateLink} ↗</a>{" · "}<a href="https://github.com/P3TERX/GeoLite.mmdb" target="_blank" rel="noreferrer">{s.sourceLink} ↗</a></p>
+    {config?.source !== "dbip" && config?.source !== "ipinfo" && <p className="geoip-attribution">{s.attribution} <a href="https://www.maxmind.com/en/geolite/eula" target="_blank" rel="noreferrer">{s.termsLink} ↗</a>{" · "}<a href="https://support.maxmind.com/knowledge-base/articles/maintain-up-to-date-data" target="_blank" rel="noreferrer">{s.updateLink} ↗</a>{" · "}<a href="https://github.com/P3TERX/GeoLite.mmdb" target="_blank" rel="noreferrer">{s.sourceLink} ↗</a></p>}
   </section>;
 }

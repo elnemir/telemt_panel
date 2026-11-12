@@ -151,7 +151,7 @@ func validManifest(manifest activeManifest) bool {
 		return false
 	}
 	switch manifest.Source {
-	case SourceCommunity, SourceURLs, SourceFiles:
+	case SourceCommunity, SourceURLs, SourceFiles, SourceMaxMind, SourceDBIP, SourceIPinfo:
 	default:
 		return false
 	}

@@ -94,11 +94,10 @@ func (s *Server) handlePreviewSubscriptionAppearance(w http.ResponseWriter, r *h
 }
 
 func (s *Server) subscriptionLogo(appearance subpage.Appearance) []byte {
-	if appearance.Logo != "panel" || s.branding == nil || s.branding.Settings().LogoStatus != "ready" {
+	if appearance.Logo != "panel" || s.branding == nil {
 		return nil
 	}
-	image, _, _ := s.branding.Asset(192)
-	return image
+	return s.branding.SubscriptionLogo()
 }
 
 func subscriptionHTMLHeaders(w http.ResponseWriter, preview bool) {

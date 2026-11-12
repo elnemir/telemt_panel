@@ -235,3 +235,48 @@ test("SSH update screen follows the selected node and reports rollback", async (
     expect(removed.status()).toBe(204);
   }
 });
+
+test("remote platform counts SSH updates and links to setup and contextual help", async ({ page, login }, info) => {
+  await login();
+  const headers = { "Sec-Fetch-Site": "same-origin" };
+  const created = await page.request.post("/api/nodes", {
+    headers, data: { name: "Platform-" + info.project.name, api_url: urls[0], enabled: true },
+  });
+  expect(created.status()).toBe(201);
+  const node = await created.json() as { id: string; revision: number };
+  const endpoint = `/api/nodes/${node.id}`;
+  try {
+    await page.route("**" + endpoint + "/manage/host", async route => {
+      await route.fulfill({ json: {
+        service_manager: "systemd", log_source: "journald", privileges_mode: "manual",
+        os: "linux", arch: "amd64", panel_variant: "full", storage_drivers: ["memory"],
+        active_store: "memory", caps: {
+          config_file: false, start_telemt: false, stop_telemt: false, restart_telemt: false,
+          restart_panel: false, log_tail: true, log_stream: true, self_update: false,
+        },
+      } });
+    });
+    await page.route("**" + endpoint + "/upgrade", async route => {
+      await route.fulfill({ json: { available: true, telemt_version: "3.5.17", agent_version: "1.0.0" } });
+    });
+    const scope = "?node=" + node.id;
+    await page.goto("/server/platform" + scope);
+    await expect(page.getByText("3 / 7 доступно", { exact: true })).toBeVisible();
+    await page.getByRole("link", { name: "Справка", exact: true }).click();
+    await expect(page).toHaveURL("/documentation/platform" + scope);
+    await expect(page.getByRole("heading", { name: "Платформа ноды" })).toBeVisible();
+    await page.goBack();
+    await page.getByRole("link", { name: "Настроить полное управление по SSH", exact: true }).click();
+    await expect(page).toHaveURL("/server/updates" + scope);
+    await expect(page.getByRole("checkbox", { name: /Включить полное управление/ })).toBeChecked();
+    await page.getByRole("link", { name: "Справка", exact: true }).click();
+    await expect(page).toHaveURL("/documentation/node-updates" + scope);
+    await expect(page.getByRole("heading", { name: "Обновление Telemt и агента" })).toBeVisible();
+    await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth - innerWidth)).toBeLessThanOrEqual(1);
+  } finally {
+    const removed = await page.request.delete(endpoint, {
+      headers: { ...headers, "If-Match": String(node.revision) },
+    });
+    expect(removed.status()).toBe(204);
+  }
+});

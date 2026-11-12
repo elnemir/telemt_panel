@@ -50,7 +50,7 @@ func writeLogo(t *testing.T, path string, jpegFormat bool) {
 
 func TestSaveReloadPersistenceAndMissingFile(t *testing.T) {
 	st := &testStore{}
-	m := New(st, "/secret")
+	m := New(st, "/secret", "")
 	if m.Public().Title != "Telemt Panel" || m.Public().IconURL != "" {
 		t.Fatal(m.Public())
 	}
@@ -65,7 +65,7 @@ func TestSaveReloadPersistenceAndMissingFile(t *testing.T) {
 		t.Fatal(settings.Public)
 	}
 	first := m.Public()
-	if New(st, "/secret").Public() != first {
+	if New(st, "/secret", "").Public() != first {
 		t.Fatal("appearance did not survive restart")
 	}
 	icon, mime, _ := m.Asset(192)
@@ -94,7 +94,7 @@ func TestSaveReloadPersistenceAndMissingFile(t *testing.T) {
 	if b, _, _ := m.Asset(0); len(b) == 0 {
 		t.Fatal("public request depends on live file")
 	}
-	restarted := New(st, "/secret")
+	restarted := New(st, "/secret", "")
 	if restarted.Settings().LogoStatus != "unavailable" || restarted.Public().LogoURL != "" || restarted.Public().IconURL == "" || restarted.Public().Title != "Private panel" {
 		t.Fatal(restarted.Settings())
 	}
@@ -113,7 +113,7 @@ func TestRejectInvalidInputsAndFiles(t *testing.T) {
 	if err := os.WriteFile(path, []byte(`<svg onload="alert(1)"></svg>`), 0600); err != nil {
 		t.Fatal(err)
 	}
-	m := New(&testStore{}, "")
+	m := New(&testStore{}, "", "")
 	for _, tc := range []struct {
 		cfg Config
 		err error
@@ -155,7 +155,7 @@ func TestRejectInvalidInputsAndFiles(t *testing.T) {
 }
 
 func TestConcurrentSnapshots(t *testing.T) {
-	m := New(&testStore{}, "")
+	m := New(&testStore{}, "", "")
 	var wg sync.WaitGroup
 	for i := 0; i < 4; i++ {
 		wg.Go(func() {
@@ -172,4 +172,57 @@ func TestConcurrentSnapshots(t *testing.T) {
 		}
 	}
 	wg.Wait()
+}
+
+func TestUploadedLogoSurvivesRestartAndFailedReplacement(t *testing.T) {
+	st := &testStore{}
+	dataDir := t.TempDir()
+	m := New(st, "/panel", dataDir)
+	logo := filepath.Join(t.TempDir(), "image")
+	writeLogo(t, logo, true)
+	raw, err := os.ReadFile(logo)
+	if err != nil {
+		t.Fatal(err)
+	}
+	settings, err := m.SaveUpload("Team", append(raw, []byte("private metadata")...))
+	if err != nil || settings.LogoMode != "upload" || settings.LogoPath != "" || settings.Public.LogoMode != "custom" {
+		t.Fatalf("upload settings: %+v, %v", settings, err)
+	}
+	body, mime, _ := m.Asset(0)
+	if mime != "image/png" || bytes.Contains(body, []byte("private metadata")) {
+		t.Fatalf("upload was not normalized: %q", mime)
+	}
+	icon := m.SubscriptionLogo()
+	if len(icon) == 0 {
+		t.Fatal("subscription logo missing")
+	}
+	restarted := New(st, "/panel", dataDir)
+	if restarted.Public() != settings.Public || !bytes.Equal(restarted.SubscriptionLogo(), icon) {
+		t.Fatal("branding differs after restart")
+	}
+	cfg := settings.Config
+	cfg.Title = "New title"
+	if _, err := restarted.Save(cfg); err != nil || restarted.Public().LogoURL != settings.Public.LogoURL {
+		t.Fatal("renaming lost the uploaded logo", err)
+	}
+	writeLogo(t, logo, false)
+	replacement, err := os.ReadFile(logo)
+	if err != nil {
+		t.Fatal(err)
+	}
+	st.fail = true
+	if _, err := restarted.SaveUpload("Replacement", replacement); err == nil {
+		t.Fatal("failed settings write was accepted")
+	}
+	if got := New(st, "/panel", dataDir).Public(); got.Title != cfg.Title || got.LogoURL != settings.Public.LogoURL {
+		t.Fatal("failed replacement changed persisted logo", got)
+	}
+	st.fail = false
+	if _, err := restarted.Save(Config{Title: "Team", LogoMode: "hidden"}); err != nil {
+		t.Fatal(err)
+	}
+	files, err := os.ReadDir(dataDir)
+	if err != nil || len(files) != 0 || restarted.SubscriptionLogo() != nil {
+		t.Fatalf("hidden mode retained logo files or a public image: %v, %v", files, err)
+	}
 }

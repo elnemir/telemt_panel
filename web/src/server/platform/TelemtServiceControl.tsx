@@ -19,6 +19,7 @@ import { StatePill } from "../../ui/StatePill";
 import { CopyField } from "../../ui/CopyField";
 import { IconPlay, IconPower, IconRefresh, IconTerminal } from "../../ui/icons";
 import { pushToast } from "../../ui/Toast";
+import { documentNodeId } from "../../nodes/scope";
 import { Skeleton } from "../../ui/Skeleton";
 
 type Action = "start" | "stop" | "restart";
@@ -33,6 +34,9 @@ export function TelemtServiceControl() {
   const s = useStrings(),
     t = s.serviceControl,
     cache = useQueryClient();
+  const remote = documentNodeId !== "default";
+  const hostLabel = remote ? t.remoteHost : t.host;
+  const scopeNote = remote ? t.remoteSeparate : t.separate;
   const [action, setAction] = useState<Action | null>(null);
   const query = useQuery({ ...getTelemtServiceOptions(), refetchInterval: 5000, retry: false });
   const mutation = useMutation({
@@ -65,7 +69,7 @@ export function TelemtServiceControl() {
         <div>
           <h3 className="text-[16px] font-semibold">{t.title}</h3>
           <p className="mt-1 text-meta text-text-muted">
-            {t.host} · {managerLabel} · <code>{data?.service || t.notConfigured}</code>
+            {hostLabel} · {managerLabel} · <code>{data?.service || t.notConfigured}</code>
           </p>
         </div>
         <StatePill state={status === "running" ? "ok" : "muted"}>
@@ -76,7 +80,7 @@ export function TelemtServiceControl() {
         <Skeleton className="mt-4 h-20 w-full" />
       ) : (
         <>
-          <p className="mt-3 text-meta leading-relaxed text-text-muted">{t.separate}</p>
+          <p className="mt-3 text-meta leading-relaxed text-text-muted">{scopeNote}</p>
           {status === "unknown" && (
             <p className="mt-3 rounded-lg border border-border bg-surface-2 p-3 text-meta leading-relaxed text-text-muted">
               {t.unknownNote}
@@ -143,12 +147,12 @@ export function TelemtServiceControl() {
               : `${t.manual}: ${labels[action].toLowerCase()}`
             : t.title
         }
-        eyebrow={t.host}
+        eyebrow={hostLabel}
         subtitle={`${managerLabel} · ${data?.service || t.notConfigured}`}
       >
         {action && (
           <div className="flex flex-col gap-4">
-            <p className="text-meta leading-relaxed text-text-muted">{t.separate}</p>
+            <p className="text-meta leading-relaxed text-text-muted">{scopeNote}</p>
             {allowed ? (
               <>
                 {status === "unknown" && (
@@ -188,7 +192,7 @@ export function TelemtServiceControl() {
             ) : (
               <>
                 <p className="text-meta leading-relaxed text-text-muted">
-                  {data?.binding_conflict && action !== "restart" ? t.conflict : t.manualNote}
+                  {data?.binding_conflict && action !== "restart" ? t.conflict : remote ? t.remoteManualNote : t.manualNote}
                 </p>
                 {data?.manual_commands?.[action] ? (
                   <CopyField

@@ -60,7 +60,7 @@ func NewAppearanceSettings(st appearanceStore) *AppearanceSettings {
 }
 
 func DefaultAppearance() Appearance {
-	return Appearance{Language: "auto", Theme: "auto", Accent: "blue", Logo: "initial",
+	return Appearance{Language: "auto", Theme: "auto", Accent: "blue", Logo: "panel",
 		Hidden: []string{}, Connections: []string{"tls", "secure", "classic", "web"}}
 }
 
