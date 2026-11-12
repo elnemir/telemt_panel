@@ -10,6 +10,11 @@ const appearanceCSS = `
   .page-copy { margin: 0; max-width: 34ch; color: var(--sec); text-align: center; white-space: pre-wrap; overflow-wrap: anywhere; font-size: 14px; }
   .account { margin: 0; color: var(--sec); font-size: 13px; overflow-wrap: anywhere; text-align: center; }
   .page-logo { display: block; width: 64px; height: 64px; object-fit: contain; }
+  .subscription-overview, .subscription-title, .subscription-instructions, .variant-controls {
+    display: flex; flex-direction: column; gap: 14px;
+  }
+  .subscription-title { align-items: center; gap: 6px; min-width: 0; }
+  .variant-controls { gap: 10px; min-width: 0; }
   .support { justify-content: center; }
   .instructions .custom-copy { white-space: pre-wrap; overflow-wrap: anywhere; }
   .connection-picker {
@@ -30,6 +35,54 @@ const appearanceCSS = `
   .connection-picker input:focus-visible + .connection-option { outline: 2px solid var(--acc); outline-offset: 2px; }
   .connection-picker > .variant { display: none; order: 1; flex: 0 0 100%; min-width: 0; margin-top: 4px; }
   .connection-picker input:checked + .connection-option + .variant { display: flex; }
+
+  @media (min-width: 900px) {
+    main { max-width: none; padding: 32px clamp(28px, 3vw, 80px) 48px; gap: 24px; }
+    .subscription-overview { flex-direction: row; align-items: center; gap: 24px; }
+    .subscription-overview > header { flex: 1; flex-direction: row; gap: 18px; min-width: 0; }
+    .subscription-overview > .card { flex: 0 1 clamp(270px, 28vw, 420px); }
+    .subscription-overview .avatar, .page-logo { flex: none; }
+    .subscription-title { align-items: flex-start; }
+    .subscription-title h1 {
+      font-size: clamp(26px, 2.5vw, 42px); line-height: 1.15; text-align: left;
+      word-break: normal; overflow-wrap: anywhere;
+    }
+    .subscription-title .account, .subscription-title .page-copy { text-align: left; }
+    .subscription-title .page-copy { max-width: 68ch; }
+    .connect {
+      border: 1px solid var(--line); border-radius: 22px; padding: clamp(18px, 2vw, 32px);
+      background: color-mix(in srgb, var(--sur) 42%, var(--bg));
+    }
+    .connection-picker {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1.6fr);
+      /* The flexible last row absorbs the card height when there are few options. */
+      grid-template-rows: repeat(var(--option-count), max-content) 1fr;
+      column-gap: clamp(18px, 2vw, 32px);
+    }
+    .connection-picker legend { margin-bottom: 12px; font-size: 15px; }
+    .connection-option { grid-column: 1; font-size: 14px; }
+    .connection-picker > .variant { grid-area: 1 / 2 / -1 / 3; align-self: start; margin-top: 0; }
+    .connect .variant { padding: clamp(16px, 2vw, 28px); border-radius: 16px; background: var(--sur); }
+    .connect .qr-card, .connect .manual { background: var(--sur2); }
+    .subscription-instructions {
+      display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; align-items: start;
+    }
+    .support { align-self: flex-start; }
+  }
+
+  @media (min-width: 1050px) {
+    .connect .variant-with-qr,
+    .connection-picker input:checked + .connection-option + .variant-with-qr {
+      display: grid; grid-template-columns: minmax(0, 1fr) clamp(198px, 18vw, 296px);
+      grid-template-rows: auto 1fr; gap: 10px 20px; align-items: start;
+    }
+    .connection-picker > .variant-with-qr { display: none; }
+    .variant-controls { grid-area: 1 / 1; }
+    .variant-with-qr > .manual { grid-area: 2 / 1; }
+    .variant-with-qr > .qr-card { grid-area: 1 / 2 / span 2; }
+    .variant-with-qr .qr { width: min(100%, 224px); height: auto; }
+  }
 `
 
 func hasConnectionChoice(groups []linkGroupView) bool {
@@ -38,7 +91,13 @@ func hasConnectionChoice(groups []linkGroupView) bool {
 
 // Native radios keep selection usable in the script-free preview and by keyboard.
 func renderConnectionPicker(b *pageWriter, d pageData) {
-	b.writeString(`<fieldset class="connection-picker"><legend>`)
+	count := 0
+	for _, group := range d.Groups {
+		count += len(group.Variants)
+	}
+	b.writeString(`<fieldset class="connection-picker" style="--option-count:`)
+	b.writeString(strconv.Itoa(count))
+	b.writeString(`"><legend>`)
 	b.writeString(pageHTMLEscaper.Replace(d.S.ConnectionChoice))
 	b.writeString("</legend>")
 	option := 0
@@ -122,6 +181,9 @@ func renderAppearanceHeader(b *pageWriter, d pageData) {
 		b.writeString(pageHTMLEscaper.Replace(d.Initial))
 		b.writeString("</span>")
 	}
+	if v != nil {
+		b.writeString(`<div class="subscription-title">`)
+	}
 	b.writeString("\n    <h1>")
 	if v != nil && v.Copy.Title != "" {
 		b.writeString(pageHTMLEscaper.Replace(v.Copy.Title))
@@ -146,6 +208,9 @@ func renderAppearanceHeader(b *pageWriter, d pageData) {
 		b.writeString("\">")
 		b.writeString(pageHTMLEscaper.Replace(d.Status.Label))
 		b.writeString("</span>")
+	}
+	if v != nil {
+		b.writeString("</div>")
 	}
 }
 

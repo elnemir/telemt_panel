@@ -92,6 +92,60 @@ test("subscription preview switches the QR and actions together", async ({ page,
   expect(await picker.evaluate((field) => field.scrollWidth - field.clientWidth)).toBeLessThanOrEqual(1);
 });
 
+test("subscription fits the viewport and keeps the selected connection easy to reach", async ({ page, login }, testInfo) => {
+  await login();
+  const endpoint = "/api/settings/subscription";
+  const { settings } = await (await page.request.get(endpoint)).json() as SubscriptionAppearanceSnapshot;
+  const preview = await page.request.post(endpoint + "/preview?lang=ru", {
+    data: settings,
+    headers: { "Sec-Fetch-Site": "same-origin" },
+  });
+  expect(preview.ok()).toBe(true);
+  expect(preview.headers()["content-type"]).toContain("text/html");
+  // The in-panel iframe is narrower than the desktop viewport.
+  await page.goto("about:blank");
+  await page.setContent(await preview.text());
+
+  const options = page.locator(".connection-option");
+  const qr = page.locator("img.qr:visible");
+  const actions = page.getByRole("link", { name: "Подключить в Telegram" });
+  const instructions = page.locator(".instructions");
+  await expect(options).toHaveCount(4);
+  await expect(qr).toHaveCount(1);
+
+  const desktop = testInfo.project.name === "desktop";
+  const widths = desktop ? [900, 1280, 1920] : [320, 390];
+  for (const width of widths) {
+    await page.setViewportSize({ width, height: 800 });
+    const first = (await options.first().boundingBox())!;
+    const last = (await options.last().boundingBox())!;
+    const connect = (await page.locator(".connect").boundingBox())!;
+    const action = (await actions.boundingBox())!;
+    const qrBox = (await qr.boundingBox())!;
+    expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(width + 1);
+    if (desktop) {
+      expect(connect.width).toBeGreaterThan(width * 0.9);
+      expect(action.x).toBeGreaterThan(first.x + first.width);
+      expect(action.y).toBeLessThan(last.y + last.height);
+      expect(qrBox.y + qrBox.height).toBeLessThan(800);
+      if (width >= 1050) expect(qrBox.x).toBeGreaterThan(action.x + action.width);
+      expect((await instructions.last().boundingBox())!.x).toBeGreaterThan((await instructions.first().boundingBox())!.x);
+    } else {
+      expect(action.y).toBeGreaterThan(last.y + last.height);
+      expect(qrBox.y).toBeGreaterThan(action.y + action.height);
+    }
+  }
+
+  const initialQR = await qr.getAttribute("src");
+  await options.last().click();
+  await expect(qr).toHaveCount(1);
+  await expect(qr).not.toHaveAttribute("src", initialQR!);
+  await expect(actions).toHaveAttribute("href", /^tg:\/\/webproxy\?/);
+  await page.locator(".variant:visible .manual summary").click();
+  await expect(page.locator(".variant:visible .fields code").first()).toContainText("web.example");
+  expect(await page.evaluate(() => document.documentElement.scrollWidth - innerWidth)).toBeLessThanOrEqual(1);
+});
+
 test("uploaded logo is available on anonymous login and subscription pages", async ({ page, browser, login }) => {
   await login();
   const brandingEndpoint = "/api/settings/branding";

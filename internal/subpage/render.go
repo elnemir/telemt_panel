@@ -20,7 +20,11 @@ func renderPageData(w io.Writer, data pageData) error {
 	if data.Appearance != nil {
 		renderAppearanceStyle(&b, data.Appearance)
 	}
-	b.writeString("</head>\n<body>\n<main>\n  <header>\n    ")
+	b.writeString("</head>\n<body>\n<main>\n")
+	if data.Appearance != nil {
+		b.writeString(`<div class="subscription-overview">`)
+	}
+	b.writeString("  <header>\n    ")
 	renderAppearanceHeader(&b, data)
 	b.writeString("\n  </header>\n\n  ")
 	if data.Quota != nil || data.Expiry != nil {
@@ -62,6 +66,9 @@ func renderPageData(w io.Writer, data pageData) error {
 		}
 		b.writeString("\n  </div>\n  ")
 	}
+	if data.Appearance != nil {
+		b.writeString("</div>")
+	}
 	b.writeString("\n\n  <section class=\"connect\">\n    <h2 class=\"sr-only\">")
 	b.writeString(pageHTMLEscaper.Replace(data.S.ConnectHeading))
 	b.writeString("</h2>\n    ")
@@ -89,9 +96,13 @@ func renderPageData(w io.Writer, data pageData) error {
 		var ru, en string
 		if data.Appearance != nil {
 			ru, en = data.Appearance.RU.Instructions, data.Appearance.EN.Instructions
+			b.writeString(`<div class="subscription-instructions">`)
 		}
 		renderInstructions(&b, data.InstructionsRU, data.Lang == "ru", ru)
 		renderInstructions(&b, data.InstructionsEN, data.Lang == "en", en)
+		if data.Appearance != nil {
+			b.writeString("</div>")
+		}
 	}
 	if v := data.Appearance; v != nil && v.SupportURL != "" {
 		label := v.Copy.SupportLabel
@@ -112,7 +123,14 @@ func renderPageData(w io.Writer, data pageData) error {
 }
 
 func renderConnectionVariant(b *pageWriter, data pageData, variant linkVariantView) {
-	b.writeString("\n    <div class=\"variant\">\n      ")
+	b.writeString("\n    <div class=\"variant")
+	if data.Appearance != nil && data.shows("qr") {
+		b.writeString(" variant-with-qr")
+	}
+	b.writeString("\">\n      ")
+	if data.Appearance != nil {
+		b.writeString(`<div class="variant-controls">`)
+	}
 	if variant.Domain != "" {
 		b.writeString("<p class=\"domain\">")
 		b.writeString(pageHTMLEscaper.Replace(variant.Domain))
@@ -135,6 +153,9 @@ func renderConnectionVariant(b *pageWriter, data pageData, variant linkVariantVi
 		b.writeString("<p class=\"empty\">")
 		b.writeString(pageHTMLEscaper.Replace(data.S.WEBHint))
 		b.writeString("</p>")
+	}
+	if data.Appearance != nil {
+		b.writeString("</div>")
 	}
 	if data.shows("qr") {
 		b.writeString("\n      <div class=\"card qr-card\">\n        <img class=\"qr\" src=\"")
