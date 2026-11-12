@@ -225,7 +225,7 @@ func runRuntimeStore(ctx context.Context, base *config.Config, configPath string
 			slog.Error("node installation requires durable registry state")
 			return 1
 		}
-		opened, err := openNodeInstaller(cfg.NodeInstall.SSHKeyFile)
+		opened, err := openNodeInstaller(cfg.NodeInstall)
 		if err != nil {
 			slog.Error("open node installer", "err", err)
 			return 1

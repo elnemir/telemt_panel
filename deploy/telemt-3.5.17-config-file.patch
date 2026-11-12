@@ -1,0 +1,608 @@
+diff --git a/src/api/mod.rs b/src/api/mod.rs
+--- a/src/api/mod.rs
++++ b/src/api/mod.rs
+@@ -41,6 +41,7 @@
+ mod config_projection;
+ mod config_state;
+ pub(crate) mod config_store;
++pub(crate) mod local_config;
+ mod discovery;
+ mod events;
+ mod http_utils;
+diff --git a/src/cli.rs b/src/cli.rs
+--- a/src/cli.rs
++++ b/src/cli.rs
+@@ -40,6 +40,8 @@
+     Status,
+     /// Run health probe and exit with status code.
+     Healthcheck,
++    /// Offline agent configuration protocol; does not start the proxy.
++    ConfigFile,
+     /// Fire-and-forget setup (`--init`).
+     Init,
+ }
+@@ -116,6 +118,9 @@
+             "healthcheck" => {
+                 cmd.subcommand = Subcommand::Healthcheck;
+             }
++            "config-file" => {
++                cmd.subcommand = Subcommand::ConfigFile;
++            }
+             "run" => {
+                 cmd.subcommand = Subcommand::Run;
+                 #[cfg(unix)]
+@@ -136,7 +141,7 @@
+     let mut i = 0;
+     while i < args.len() {
+         match args[i].as_str() {
+-            "start" | "stop" | "reload" | "status" | "run" | "healthcheck" => {}
++            "start" | "stop" | "reload" | "status" | "run" | "healthcheck" | "config-file" => {}
+             #[cfg(unix)]
+             "--strict-runtime-paths" => {
+                 cmd.daemon_opts.strict_runtime_paths = true;
+@@ -203,6 +208,7 @@
+ #[cfg(unix)]
+ pub fn execute_subcommand(cmd: &ParsedCommand) -> Option<i32> {
+     match cmd.subcommand {
++        Subcommand::ConfigFile => Some(crate::api::local_config::run(&cmd.config_path)),
+         Subcommand::Stop => Some(daemon_commands::stop(
+             &cmd.pid_file,
+             cmd.daemon_opts.strict_runtime_paths,
+@@ -251,6 +257,7 @@
+ #[cfg(not(unix))]
+ pub fn execute_subcommand(cmd: &ParsedCommand) -> Option<i32> {
+     match cmd.subcommand {
++        Subcommand::ConfigFile => Some(crate::api::local_config::run(&cmd.config_path)),
+         Subcommand::Stop | Subcommand::Reload | Subcommand::Status => {
+             eprintln!("[telemt] Subcommand not supported on this platform");
+             Some(1)
+diff --git a/src/maestro/helpers.rs b/src/maestro/helpers.rs
+--- a/src/maestro/helpers.rs
++++ b/src/maestro/helpers.rs
+@@ -273,6 +273,7 @@
+ }
+
+ fn print_help() {
++    eprintln!("  config-file [config.toml]  Offline agent config-file-v1 JSON protocol");
+     eprintln!("Usage: telemt [COMMAND] [OPTIONS] [config.toml]");
+     eprintln!();
+     eprintln!("Commands:");
+diff --git a/src/api/local_config.rs b/src/api/local_config.rs
+new file mode 100644
+--- /dev/null
++++ b/src/api/local_config.rs
+@@ -0,0 +1,259 @@
++//! Offline, bounded configuration protocol for an explicitly installed node agent.
++//! This surface is not routed by the network API. It shares the API writer's
++//! root lock and source fences rather than creating a second persistence path.
++
++use std::io::{Read, Write};
++use std::path::{Path, PathBuf};
++
++use serde::Deserialize;
++use serde_json::{Value, json};
++
++use super::config_store::{compute_source_revision, write_atomic_with_runtime_check};
++use crate::config::ProxyConfig;
++use crate::crypto::sha256;
++
++mod editor;
++
++const MAX_INPUT: u64 = 16 * 1024 * 1024;
++const MAX_GRAPH: usize = 16 * 1024 * 1024;
++const MAX_SOURCE: usize = 8 * 1024 * 1024;
++const MAX_SOURCES: usize = 64;
++
++#[derive(Deserialize)]
++#[serde(rename_all = "snake_case")]
++enum Action {
++    Inspect,
++    Render,
++    Validate,
++    Apply,
++}
++
++#[derive(Deserialize)]
++#[serde(deny_unknown_fields)]
++struct Request {
++    #[serde(default)]
++    edits: Vec<editor::Edit>,
++    action: Action,
++    #[serde(default)]
++    revision: String,
++    #[serde(default)]
++    source_id: String,
++    #[serde(default)]
++    content: String,
++}
++
++struct Failure {
++    status: u16,
++    code: &'static str,
++}
++impl Failure {
++    fn new(status: u16, code: &'static str) -> Self {
++        Self { status, code }
++    }
++}
++
++fn source_id(path: &Path) -> String {
++    hex::encode(sha256(path.to_string_lossy().as_bytes()))
++}
++
++async fn execute(root: PathBuf, request: Request) -> Result<Value, Failure> {
++    let read_root = root.clone();
++    let graph = tokio::task::spawn_blocking(move || ProxyConfig::read_source_graph(read_root))
++        .await
++        .map_err(|_| Failure::new(500, "config_source_unavailable"))?
++        .map_err(|_| Failure::new(400, "config_source_unavailable"))?;
++    if graph.source_contents.len() > MAX_SOURCES
++        || graph
++            .source_contents
++            .values()
++            .map(String::len)
++            .sum::<usize>()
++            > MAX_GRAPH
++    {
++        return Err(Failure::new(413, "config_graph_limit"));
++    }
++    let revision = compute_source_revision(&graph);
++    if matches!(request.action, Action::Inspect) {
++        let sources: Vec<Value> = graph.source_contents.iter().map(|(path, content)| {
++            json!({"id": source_id(path), "name": path.to_string_lossy(), "content": content, "tree": editor::tree(content).ok()})
++        }).collect();
++        return Ok(json!({"protocol":1,"revision":revision,"sources":sources}));
++    }
++    if request.revision != revision {
++        return Err(Failure::new(409, "revision_conflict"));
++    }
++    if request.content.len() > MAX_SOURCE {
++        return Err(Failure::new(413, "config_source_limit"));
++    }
++    let (owner, old_content) = graph
++        .source_contents
++        .iter()
++        .find(|(path, _)| source_id(path) == request.source_id)
++        .ok_or_else(|| Failure::new(404, "config_source_not_found"))?;
++    if editor::include_directives(old_content) != editor::include_directives(&request.content) {
++        return Err(Failure::new(409, "config_include_topology_changed"));
++    }
++    if matches!(request.action, Action::Render) {
++        let (content, tree) = editor::render(&request.content, &request.edits)
++            .map_err(|_| Failure::new(400, "config_editor_invalid"))?;
++        return Ok(json!({"protocol":1,"revision":revision,"content":content,"tree":tree}));
++    }
++    if !request.edits.is_empty() {
++        return Err(Failure::new(400, "config_request_invalid"));
++    }
++    let owner = owner.clone();
++    let old_content = old_content.clone();
++    let mut overrides = graph.source_contents;
++    overrides.insert(owner.clone(), request.content.clone());
++    let parse_root = root.clone();
++    let parsed = tokio::task::spawn_blocking(move || {
++        ProxyConfig::parse_source_with_overrides(parse_root, &overrides)
++    })
++    .await
++    .map_err(|_| Failure::new(500, "config_validation_unavailable"))?
++    .map_err(|_| Failure::new(400, "config_validation_failed"))?;
++    // Prepare DNS and immutable WEB resources exactly as the API candidate
++    // loader does. Validation success still does not establish listener readiness.
++    let prepared = parsed
++        .prepare()
++        .await
++        .map_err(|_| Failure::new(400, "config_preparation_failed"))?;
++    if matches!(request.action, Action::Validate) {
++        return Ok(
++            json!({"protocol":1,"revision":revision,"valid":true,"runtime_convergence":"unknown"}),
++        );
++    }
++    // Retain the prepared candidate until the source has been committed. All
++    // existing API writers use this same root advisory lock and graph fence.
++    let _prepared = prepared;
++    let committed =
++        write_atomic_with_runtime_check(root, revision, owner, old_content, request.content, None)
++            .await
++            .map_err(|error| Failure::new(error.status.as_u16(), error.code))?;
++    Ok(
++        json!({"protocol":1,"revision":committed,"persisted":true,"runtime_convergence":"unknown","restart_may_be_required":true}),
++    )
++}
++
++/// Reads one JSON request and emits one JSON response without running the proxy.
++/// Errors intentionally omit parser values, file contents and secret-bearing diagnostics.
++pub(crate) fn run(path: &str) -> i32 {
++    let result = (|| {
++        let mut input = Vec::new();
++        std::io::stdin()
++            .take(MAX_INPUT + 1)
++            .read_to_end(&mut input)
++            .map_err(|_| Failure::new(400, "config_request_invalid"))?;
++        if input.len() as u64 > MAX_INPUT {
++            return Err(Failure::new(413, "config_request_limit"));
++        }
++        let request: Request = serde_json::from_slice(&input)
++            .map_err(|_| Failure::new(400, "config_request_invalid"))?;
++        let runtime = tokio::runtime::Builder::new_current_thread()
++            .enable_all()
++            .build()
++            .map_err(|_| Failure::new(500, "config_validation_unavailable"))?;
++        runtime.block_on(execute(PathBuf::from(path), request))
++    })();
++    let (response, exit) = match result {
++        Ok(data) => (json!({"ok":true,"status":200,"data":data}), 0),
++        Err(failure) => (
++            json!({"ok":false,"status":failure.status,"error":{"code":failure.code}}),
++            1,
++        ),
++    };
++    let mut output = std::io::stdout().lock();
++    if serde_json::to_writer(&mut output, &response).is_err() || output.write_all(b"\n").is_err() {
++        return 1;
++    }
++    exit
++}
++
++#[cfg(test)]
++mod tests {
++    use super::*;
++    use tempfile::tempdir;
++
++    #[tokio::test]
++    async fn edits_one_owner_and_rejects_stale_revision_and_topology() {
++        let dir = tempdir().expect("tempdir");
++        let root = dir.path().join("config.toml");
++        let child = dir.path().join("access.toml");
++        std::fs::write(
++            &root,
++            "include = \"access.toml\"\n[general]\nlog_level = \"normal\"\n",
++        )
++        .expect("root");
++        std::fs::write(
++            &child,
++            "[access.users]\nalice = \"0123456789abcdef0123456789abcdef\"\n",
++        )
++        .expect("child");
++        let make = |action, revision: String, content: &str| Request {
++            edits: Vec::new(),
++            action,
++            revision,
++            source_id: source_id(&root),
++            content: content.to_owned(),
++        };
++        let inspected = execute(root.clone(), make(Action::Inspect, String::new(), ""))
++            .await
++            .ok()
++            .expect("inspect");
++        let revision = inspected["revision"].as_str().expect("revision").to_owned();
++        let original = std::fs::read_to_string(&root).expect("read");
++        let candidate = original.replace("normal", "debug");
++        assert!(
++            execute(
++                root.clone(),
++                make(Action::Validate, revision.clone(), &candidate)
++            )
++            .await
++            .is_ok()
++        );
++        assert_eq!(std::fs::read_to_string(&root).expect("read"), original);
++        assert!(
++            execute(
++                root.clone(),
++                make(Action::Apply, revision.clone(), &candidate)
++            )
++            .await
++            .is_ok()
++        );
++        let stale = execute(root.clone(), make(Action::Apply, revision, &original))
++            .await
++            .err()
++            .expect("stale");
++        assert_eq!(stale.code, "revision_conflict");
++        let inspected = execute(root.clone(), make(Action::Inspect, String::new(), ""))
++            .await
++            .ok()
++            .expect("inspect");
++        let revision = inspected["revision"].as_str().expect("revision").to_owned();
++        let topology = execute(
++            root.clone(),
++            make(
++                Action::Apply,
++                revision.clone(),
++                "include = \"other.toml\"\n",
++            ),
++        )
++        .await
++        .err()
++        .expect("topology");
++        assert_eq!(topology.code, "config_include_topology_changed");
++        let invalid = execute(
++            root.clone(),
++            make(
++                Action::Apply,
++                revision,
++                "include = \"access.toml\"\n[server]\nport = -1\n",
++            ),
++        )
++        .await
++        .err()
++        .expect("invalid");
++        assert_eq!(invalid.code, "config_validation_failed");
++        assert_eq!(std::fs::read_to_string(&root).expect("read"), candidate);
++    }
++}
+diff --git a/src/api/local_config/editor.rs b/src/api/local_config/editor.rs
+new file mode 100644
+--- /dev/null
++++ b/src/api/local_config/editor.rs
+@@ -0,0 +1,270 @@
++//! Source-preserving typed edits. Literal keys are separate path components;
++//! array indices are integers, so dots and numeric keys remain unambiguous.
++use serde::{Deserialize, Serialize};
++use sha2::{Digest, Sha256};
++use toml_edit::{DocumentMut, Item, Value};
++
++#[derive(Deserialize)]
++#[serde(untagged)]
++pub(super) enum Segment {
++    Key(String),
++    Index(usize),
++}
++#[derive(Deserialize)]
++#[serde(deny_unknown_fields)]
++pub(super) struct Edit {
++    pub path: Vec<Segment>,
++    pub literal: Option<String>,
++}
++#[derive(Serialize)]
++pub(super) struct Node {
++    kind: &'static str,
++    value: String,
++    children: Vec<Child>,
++}
++#[derive(Serialize)]
++struct Child {
++    key: String,
++    node: Node,
++}
++
++// Include syntax is line-oriented and may repeat keys or occur inside a table.
++// Keep the directives unchanged: changing topology can acquire an unregistered
++// file and cannot be validated as a single-owner transaction.
++pub(super) fn include_directives(source: &str) -> Vec<&str> {
++    source
++        .lines()
++        .filter(|line| {
++            line.trim()
++                .strip_prefix("include")
++                .is_some_and(|tail| tail.trim().starts_with('='))
++        })
++        .collect()
++}
++
++fn masked(source: &str) -> (String, Vec<(String, String)>) {
++    let prefix = hex::encode(Sha256::digest(source.as_bytes()));
++    let mut includes = Vec::new();
++    let mut output = String::new();
++    for line in source.split_inclusive('\n') {
++        if !include_directives(line).is_empty() {
++            let marker = format!("# __telemt_include_{prefix}_{}__", includes.len());
++            includes.push((marker.clone(), line.to_owned()));
++            output.push_str(&marker);
++            output.push('\n');
++        } else {
++            output.push_str(line);
++        }
++    }
++    (output, includes)
++}
++fn unmask(source: &str, includes: &[(String, String)]) -> String {
++    let mut output = String::new();
++    for line in source.split_inclusive('\n') {
++        if let Some((_, original)) = includes.iter().find(|(marker, _)| line.trim() == marker) {
++            output.push_str(original)
++        } else {
++            output.push_str(line)
++        }
++    }
++    output
++}
++fn visit(item: &Item, budget: &mut usize, depth: usize) -> Result<Node, ()> {
++    if *budget == 0 || depth > 32 {
++        return Err(());
++    };
++    *budget -= 1;
++    let mut node = Node {
++        kind: "table",
++        value: String::new(),
++        children: Vec::new(),
++    };
++    if let Some(table) = item.as_table_like() {
++        for (key, value) in table.iter() {
++            node.children.push(Child {
++                key: key.to_owned(),
++                node: visit(value, budget, depth + 1)?,
++            });
++        }
++    } else if item.is_array() || item.is_array_of_tables() {
++        node.kind = "array";
++        let len = item
++            .as_array()
++            .map(|a| a.len())
++            .or_else(|| item.as_array_of_tables().map(|a| a.len()))
++            .ok_or(())?;
++        for i in 0..len {
++            node.children.push(Child {
++                key: i.to_string(),
++                node: visit(item.get(i).ok_or(())?, budget, depth + 1)?,
++            });
++        }
++    } else if let Some(value) = item.as_value() {
++        node.kind = match value {
++            Value::String(_) => "string",
++            Value::Integer(_) => "integer",
++            Value::Float(_) => "float",
++            Value::Boolean(_) => "boolean",
++            Value::Datetime(_) => "datetime",
++            _ => return Err(()),
++        };
++        if let Some(value) = value.as_str() {
++            node.value = value.to_owned();
++        } else {
++            let mut value = value.clone();
++            value.decor_mut().clear();
++            node.value = value.to_string();
++        }
++    } else {
++        return Err(());
++    }
++    Ok(node)
++}
++pub(super) fn tree(source: &str) -> Result<Node, ()> {
++    let (masked, _) = masked(source);
++    let doc = masked.parse::<DocumentMut>().map_err(|_| ())?;
++    visit(doc.as_item(), &mut 4096, 0)
++}
++fn parent<'a>(item: &'a mut Item, path: &[Segment]) -> Result<&'a mut Item, ()> {
++    let Some((first, rest)) = path.split_first() else {
++        return Ok(item);
++    };
++    let child = match first {
++        Segment::Key(key) => item.get_mut(key.as_str()),
++        Segment::Index(index) => item.get_mut(*index),
++    }
++    .ok_or(())?;
++    parent(child, rest)
++}
++fn edit(doc: &mut DocumentMut, change: &Edit) -> Result<(), ()> {
++    if change.path.is_empty()
++        || change.path.len() > 32
++        || change
++            .path
++            .iter()
++            .any(|p| matches!(p,Segment::Key(k)if k.len()>256))
++    {
++        return Err(());
++    }
++    let (last, path) = change.path.split_last().ok_or(())?;
++    let item = parent(doc.as_item_mut(), path)?;
++    let value = change
++        .literal
++        .as_ref()
++        .map(|literal| {
++            if literal.len() > 1024 * 1024 {
++                return Err(());
++            };
++            literal.parse::<Value>().map_err(|_| ())
++        })
++        .transpose()?;
++    match last {
++        Segment::Key(key) => {
++            let table = item.as_table_like_mut().ok_or(())?;
++            if let Some(mut value) = value {
++                if let Some(old) = table.get(key).and_then(Item::as_value) {
++                    *value.decor_mut() = old.decor().clone();
++                }
++                table.insert(key, Item::Value(value));
++            } else {
++                table.remove(key);
++            }
++        }
++        Segment::Index(index) => {
++            if let Some(array) = item.as_array_mut() {
++                if *index > array.len() {
++                    return Err(());
++                }
++                if let Some(value) = value {
++                    if *index == array.len() {
++                        array.push(value)
++                    } else {
++                        array.replace(*index, value);
++                    }
++                } else if *index < array.len() {
++                    array.remove(*index);
++                } else {
++                    return Err(());
++                }
++            } else if let Some(array) = item.as_array_of_tables_mut() {
++                if *index > array.len() {
++                    return Err(());
++                }
++                if let Some(Value::InlineTable(value)) = value {
++                    let table = value.into_table();
++                    if *index == array.len() {
++                        array.push(table)
++                    } else {
++                        *array.get_mut(*index).ok_or(())? = table;
++                    }
++                } else if value.is_none() && *index < array.len() {
++                    array.remove(*index);
++                } else {
++                    return Err(());
++                }
++            } else {
++                return Err(());
++            }
++        }
++    }
++    Ok(())
++}
++pub(super) fn render(source: &str, changes: &[Edit]) -> Result<(String, Node), ()> {
++    if changes.len() > 256 {
++        return Err(());
++    }
++    let (masked, includes) = masked(source);
++    let mut doc = masked.parse::<DocumentMut>().map_err(|_| ())?;
++    for change in changes {
++        edit(&mut doc, change)?;
++    }
++    let content = unmask(&doc.to_string(), &includes);
++    if include_directives(source) != include_directives(&content) {
++        return Err(());
++    }
++    let tree = tree(&content)?;
++    Ok((content, tree))
++}
++#[cfg(test)]
++mod tests {
++    use super::*;
++    #[test]
++    fn preserves_comments_includes_literal_keys_and_large_integers() {
++        let source = "# retain\ninclude = \"a.toml\"\ninclude = \"b.toml\"\n[access.user_max_tcp_conns]\n\"a.b\" = 3 # keep\n[general]\nvalue = 9007199254740993\n";
++        let change = Edit {
++            path: vec![
++                Segment::Key("access".into()),
++                Segment::Key("user_max_tcp_conns".into()),
++                Segment::Key("a.b".into()),
++            ],
++            literal: Some("5".into()),
++        };
++        let (content, node) = render(source, &[change]).expect("render");
++        assert!(content.contains("\"a.b\" = 5 # keep"));
++        assert!(content.contains("# retain"));
++        assert_eq!(include_directives(source), include_directives(&content));
++        let encoded = serde_json::to_string(&node).expect("json");
++        assert!(encoded.contains("9007199254740993"));
++    }
++    #[test]
++    fn edits_arrays_and_tables_without_ambiguous_dot_paths() {
++        let source = "values=[1,2]\n[[upstreams]]\ntype='direct'\n";
++        let change = Edit {
++            path: vec![Segment::Key("values".into()), Segment::Index(2)],
++            literal: Some("3".into()),
++        };
++        let (content, _) = render(source, &[change]).expect("append");
++        let value: toml::Value = toml::from_str(&content).expect("toml");
++        assert_eq!(value["values"].as_array().expect("array").len(), 3);
++        let change = Edit {
++            path: vec![
++                Segment::Key("upstreams".into()),
++                Segment::Index(0),
++                Segment::Key("type".into()),
++            ],
++            literal: Some("\"socks5\"".into()),
++        };
++        let (content, _) = render(&content, &[change]).expect("nested");
++        assert!(content.contains("socks5"));
++    }
++}

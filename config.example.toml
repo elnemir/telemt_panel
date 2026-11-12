@@ -163,6 +163,12 @@ encryption_key_env = "TELEMT_PLATFORM_KEY"
 # enabled = true
 # ssh_key_file = "/run/credentials/telemt-panel.service/node-install-ssh"
 # encryption_key_env = "TELEMT_NODE_INSTALL_KEY"
+# Optional trusted Linux executable matching the panel architecture.
+# Set all three fields to enable file editing for agent installations. The
+# executable must support the config-file-v1 protocol and have the stated hash.
+# telemt_binary_file = "/opt/telemt-artifacts/telemt"
+# telemt_binary_sha256 = "64 hex digits"
+# telemt_version = "3.5.17-file.1"
 
 # Customer portal is independent of administrator authentication. Requires the
 # full build, platform.enabled and a durable data_dir. Same base_path as panel.

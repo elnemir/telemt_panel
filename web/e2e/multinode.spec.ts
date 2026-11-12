@@ -169,9 +169,10 @@ test("SSH installer checks the host before confirming and tracks registry admiss
   await dialog.getByLabel("Название", { exact: true }).fill(input.name);
   await dialog.getByLabel("IP-адрес сервера", { exact: true }).fill(input.host);
   await dialog.getByLabel("Отпечаток ED25519 ключа SSH-хоста", { exact: true }).fill(input.host_fingerprint);
-  await dialog.getByRole("checkbox", { name: /Установить telemt-agent/ }).check();
+  await expect(dialog.getByRole("checkbox", { name: /Установить telemt-agent/ })).toBeChecked();
   await dialog.getByRole("button", { name: "Проверить хост", exact: true }).click();
   await expect(dialog.getByRole("status")).toHaveText("План установки");
+  await expect(dialog.getByText("Настройки доступны через Control API.", { exact: false })).toBeVisible();
   expect(starts).toBe(0);
   await dialog.getByRole("button", { name: "Начать установку", exact: true }).click();
   await expect(dialog.getByRole("status")).toHaveText("Нода добавлена");

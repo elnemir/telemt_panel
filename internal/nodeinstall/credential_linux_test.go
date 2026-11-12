@@ -38,11 +38,11 @@ func TestOpenPrivateSystemdCredential(t *testing.T) {
 	t.Cleanup(func() { _ = os.Chmod(dir, 0700) })
 
 	t.Setenv("CREDENTIALS_DIRECTORY", dir)
-	if _, err := Open(credential); err != nil {
+	if _, err := Open(credential, FileBinary{}); err != nil {
 		t.Fatalf("private systemd credential rejected: %v", err)
 	}
 	t.Setenv("CREDENTIALS_DIRECTORY", "")
-	if _, err := Open(credential); err == nil {
+	if _, err := Open(credential, FileBinary{}); err == nil {
 		t.Fatal("group-readable ordinary key accepted")
 	}
 
@@ -50,13 +50,13 @@ func TestOpenPrivateSystemdCredential(t *testing.T) {
 	if err := os.Chmod(dir, 0555); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := Open(credential); err == nil {
+	if _, err := Open(credential, FileBinary{}); err == nil {
 		t.Fatal("group-readable key accepted in a public directory")
 	}
 	if err := os.Chmod(credential, 0600); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := Open(credential); err != nil {
+	if _, err := Open(credential, FileBinary{}); err != nil {
 		t.Fatalf("owner-only key rejected: %v", err)
 	}
 }

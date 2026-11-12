@@ -188,7 +188,7 @@ func installErrorCode(err error) string {
 	switch err {
 	case nodeinstall.ErrInvalid, nodeinstall.ErrSSH, nodeinstall.ErrHostKey,
 		nodeinstall.ErrUnsupported, nodeinstall.ErrExisting, nodeinstall.ErrPorts,
-		nodeinstall.ErrArtifacts, nodeinstall.ErrApply, nodeinstall.ErrHealth,
+		nodeinstall.ErrArtifacts, nodeinstall.ErrApply, nodeinstall.ErrHealth, nodeinstall.ErrManagement,
 		nodeinstall.ErrRegistry, nodeinstall.ErrUnconfirmed:
 		return err.Error()
 	default:

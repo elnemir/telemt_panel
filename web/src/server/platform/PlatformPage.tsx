@@ -1,5 +1,7 @@
 import { useState, type ReactNode } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { Link } from "@tanstack/react-router";
+import { documentNodeId } from "../../nodes/scope";
 import { ServerShell } from "../ServerShell";
 import { errorMessage, useStrings } from "../../i18n";
 import { cn } from "../../lib/cn";
@@ -16,6 +18,7 @@ import {
   IconPower,
   IconServer,
   IconUpgrade,
+  IconWrench,
 } from "../../ui/icons";
 import { apiErrorCode } from "../../people/apiError";
 import { hostCapabilityCount } from "../hub.helpers";
@@ -70,7 +73,9 @@ function CapabilityGroup({
             className="flex min-h-[62px] items-center justify-between gap-3 border-t border-border px-4 py-3"
           >
             <span className="min-w-0">
-              <strong className="block text-meta font-medium text-text">{labels[key]}</strong>
+              {key === "config_file"
+                ? <Link to="/server/files" className="block text-meta font-medium text-accent">{labels[key]}</Link>
+                : <strong className="block text-meta font-medium text-text">{labels[key]}</strong>}
               <small className="mt-1 block text-micro leading-snug text-text-muted">
                 {descriptions[key]}
               </small>
@@ -176,7 +181,8 @@ export function PlatformPage() {
   }
 
   const info = query.data;
-  const summary = hostCapabilityCount(info.caps);
+  const remoteNode = documentNodeId !== "default";
+  const summary = hostCapabilityCount(info.caps, remoteNode);
   const automated = summary.available === summary.total;
   const manualEntries = Object.entries(info.manual_commands ?? {}).filter(([, value]) => value.trim());
 
@@ -321,7 +327,7 @@ export function PlatformPage() {
                 title={copy.serviceGroup}
                 description={copy.serviceGroupDescription}
                 icon={<IconPower className="h-5 w-5" />}
-                keys={["start_telemt", "stop_telemt", "restart_telemt", "restart_panel"]}
+                keys={remoteNode ? ["start_telemt", "stop_telemt", "restart_telemt"] : ["start_telemt", "stop_telemt", "restart_telemt", "restart_panel"]}
                 info={info}
                 labels={labels}
                 descriptions={descriptions}
@@ -339,9 +345,20 @@ export function PlatformPage() {
                 availableLabel={copy.available}
                 manualLabel={copy.byHand}
               />
+              {remoteNode && <CapabilityGroup
+                title={s.configFiles.title}
+                description={s.configFiles.description}
+                icon={<IconWrench className="h-5 w-5" />}
+                keys={["config_file"]}
+                info={info}
+                labels={labels}
+                descriptions={descriptions}
+                availableLabel={copy.available}
+                manualLabel={copy.byHand}
+              />}
               <CapabilityGroup
                 title={copy.updatesGroup}
-                description={copy.updatesGroupDescription}
+                description={remoteNode ? copy.remoteUpdatesDescription : copy.updatesGroupDescription}
                 icon={<IconUpgrade className="h-5 w-5" />}
                 keys={["self_update"]}
                 info={info}
@@ -349,7 +366,7 @@ export function PlatformPage() {
                 descriptions={descriptions}
                 availableLabel={copy.available}
                 manualLabel={copy.byHand}
-                wide
+                wide={!remoteNode}
               />
             </div>
             <TelemtServiceControl />

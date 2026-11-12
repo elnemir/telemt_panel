@@ -64,7 +64,13 @@ export function ConfigFilesPage() {
   return <ServerShell title={t.title}>
     <p className="text-sm text-text-muted">{t.description}</p>
     {query.isPending && <p className="p-4">{s.nodes.loading}</p>}
-    {query.error && <p role="alert" className="p-4 text-warn">{apiErrorMessage(query.error,s)} {t.installHint}</p>}
+    {query.error && <div className="space-y-2 p-4">
+      <p role="alert" className="text-warn">
+        {apiErrorMessage(query.error, s)}
+        {query.error.code === "node_operation_unavailable" && <> {t.agentRequired}</>}
+      </p>
+      <Link to="/server/config" className="font-semibold text-accent">{t.openConfig}</Link>
+    </div>}
     <div className="flex flex-wrap items-center gap-2">
       <Button variant="secondary" disabled={busy} onClick={()=>{if((!dirty&&!pendingKey&&!field)||window.confirm(t.discardConfirm))run(refresh);}}>{t.refresh}</Button>
       <a href="#config-backups" className="tap-target inline-flex items-center px-3 text-accent">{t.backups}</a>

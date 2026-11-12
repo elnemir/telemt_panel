@@ -8,8 +8,10 @@ import (
 	"context"
 	"crypto/ed25519"
 	"crypto/rand"
+	"crypto/sha256"
 	"crypto/tls"
 	"errors"
+	"fmt"
 	"io"
 	"net"
 	"net/http"
@@ -125,6 +127,40 @@ func TestSSHHostKeyVerifiedBeforeRemoteCommand(t *testing.T) {
 	}
 }
 
+func TestFileBinaryStagingAndPlan(t *testing.T) {
+	payload := []byte("test artifact")
+	file := filepath.Join(t.TempDir(), "trusted-artifact")
+	if err := os.WriteFile(file, payload, 0600); err != nil {
+		t.Fatal(err)
+	}
+	artifact := FileBinary{Path: file, SHA256: fmt.Sprintf("%x", sha256.Sum256(payload)), Version: "3.5.17-file.1"}
+	plan := artifact.configure(Plan{Request: Request{WithAgent: true}, Release: Release})
+	if !plan.ConfigFiles || plan.Release != artifact.Version || artifact.configure(Plan{}).ConfigFiles {
+		t.Fatal("artifact must be selected only for agent installations")
+	}
+	staged, err := artifact.stage(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if raw, err := os.ReadFile(staged); err != nil || !bytes.Equal(raw, payload) {
+		t.Fatalf("staged artifact differs: %v", err)
+	}
+	if err := os.WriteFile(file, []byte("different artifact"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := artifact.stage(t.TempDir()); !errors.Is(err, ErrArtifacts) {
+		t.Fatalf("incorrect digest was accepted: %v", err)
+	}
+	files, err := newBundle(Plan{Request: Request{Host: "127.0.0.1", WithAgent: true}, ConfigFiles: true}, staged, staged)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(files.files["agent.toml"], `config_path = "/var/lib/private/telemt-node/telemt.toml"`) ||
+		!strings.Contains(files.files["telemt-agent.service"], "User=telemt\nStateDirectory=telemt-agent telemt-node\n") {
+		t.Fatal("file editor must operate on the proxy's live state directory")
+	}
+}
+
 // This fixture speaks real SSH and TLS. Remote systemctl and the Telemt
 // application are emulated. It verifies the transaction and restart of the
 // registry without giving a test process remote root access.
@@ -213,12 +249,13 @@ func TestInstallTransactionWithSSHAndTLS(t *testing.T) {
 					if withAgent {
 						agent = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 							env := strings.TrimSpace(files["agent.env"])
-							if r.URL.Path != "/v1/agent/health" || r.Header.Get(nodeagent.IdentityHeader) != agentCfg.Agent.ID ||
+							if r.URL.Path != "/v1/agent/host" || r.Header.Get(nodeagent.IdentityHeader) != agentCfg.Agent.ID ||
 								env != "TELEMT_AGENT_AUTH=\""+r.Header.Get("Authorization")+"\"" {
 								w.WriteHeader(401)
 								return
 							}
 							w.Header().Set(nodeagent.IdentityHeader, agentCfg.Agent.ID)
+							_, _ = io.WriteString(w, `{"caps":{"start_telemt":true,"stop_telemt":true,"restart_telemt":true,"log_tail":true,"log_stream":true}}`)
 						})
 					}
 					httpServer.Handler = gatewayHandler(netip.MustParseAddr("127.0.0.1"), control, agent)
@@ -294,7 +331,7 @@ func TestInstallTransactionWithSSHAndTLS(t *testing.T) {
 					t.Fatal(err)
 				}
 				defer agent.Close()
-				if err := probeAPIs(ctx, client, agent); err != nil {
+				if err := probeAPIs(ctx, client, agent, false); err != nil {
 					t.Fatal(err)
 				}
 			}

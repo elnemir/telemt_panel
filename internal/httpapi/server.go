@@ -158,6 +158,11 @@ func New(cfg *config.Config, tc *telemt.Client, st store.Store, hb *hub.Hub, ver
 	}
 	probe := host.DefaultProbe()
 	svcMgr := configuredServiceManager(cfg.Host, cfg.Host.ServiceManager, probe, host.OSCmdRunner)
+	var agentServiceControl *host.SystemdSocket
+	if cfg.Agent.Enabled && cfg.Agent.ControlSocket != "" {
+		agentServiceControl = host.NewSystemdSocket(cfg.Agent.ControlSocket, host.OSCmdRunner)
+		svcMgr = agentServiceControl
+	}
 	logSrc := host.NewLogSource(cfg.Host.LogSource, cfg.Host.LogFile, svcMgr.Kind(), probe, host.OSCmdRunner, host.OSProcessStarter, host.DefaultLogPollInterval)
 
 	euid := os.Geteuid()
@@ -256,6 +261,16 @@ func New(cfg *config.Config, tc *telemt.Client, st store.Store, hb *hub.Hub, ver
 		cancel()
 	}
 	mode := cfg.Privileges.Mode
+	if agentServiceControl != nil && mode != host.PrivilegesModeManual {
+		ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+		if err := agentServiceControl.Probe(ctx); err == nil {
+			mode = host.PrivilegesModeDirect
+		} else {
+			mode = host.PrivilegesModeManual
+			slog.Warn("node service control socket unavailable", "err", err)
+		}
+		cancel()
+	}
 	if workerErr != nil {
 		mode = host.PrivilegesModeManual
 	}

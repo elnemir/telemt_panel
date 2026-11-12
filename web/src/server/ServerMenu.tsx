@@ -1,5 +1,6 @@
 import type { ComponentType, ReactNode } from "react";
 import { PageHeader } from "../ui/PageHeader";
+import { documentNodeId } from "../nodes/scope";
 import { Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { fill, useStrings, type Dict } from "../i18n";
@@ -57,7 +58,7 @@ export function ServerMenu() {
     infoQuery.isError || infoQuery.data?.reachable === false;
   const hasUpdates = Boolean(telemtRelease);
   const config = summarizeServerConfig(configQuery.data);
-  const capabilityCount = hostCapabilityCount(hostQuery.data?.caps);
+  const capabilityCount = hostCapabilityCount(hostQuery.data?.caps, documentNodeId !== "default");
   const manualActions = capabilityCount.total - capabilityCount.available;
   const status = telemtUnavailable
     ? "error"

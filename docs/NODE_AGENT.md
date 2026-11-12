@@ -38,6 +38,14 @@ using existing host adapters to enable commands; do not run as root merely to
 make capability errors disappear. Telemt and agent service bindings must differ.
 Agent commands cannot restart/update the panel or accept shell command strings.
 
+The SSH installer on clean Linux hosts enables service controls by default
+when the agent is selected. It sets `agent.service_control_socket` and installs
+a systemd socket whose handler accepts only start, stop and restart of
+`telemt.service` plus a read-only liveness probe. The socket directory is
+private and only the agent's mount namespace receives a bind mount of the
+socket. No PolicyKit package or sudo rule is needed. If the socket probe fails,
+the agent exposes manual service controls and the installer aborts enrollment.
+
 ## Command lifecycle
 
 `POST /v1/agent/service/start|stop|restart` requires `Idempotency-Key` with
@@ -75,5 +83,16 @@ a new validated CAS operation, never a blind overwrite. Missing/corrupt sources
 or changed include topology require operator repair. The editor does not prove
 runtime convergence and never automatically restarts Telemt.
 
-Automatic installation/enrollment and agent updates remain subsequent stages. No production services or external hosts are changed by the
-local tests. See the workspace wiki for implementation and validation status.
+Automatic SSH enrollment can select an operator-supplied `config-file-v1`
+Telemt executable using the startup settings `node_install.telemt_binary_file`,
+`telemt_binary_sha256` and `telemt_version`. The installer verifies its digest,
+and the agent and Telemt share the same unprivileged service identity for the
+live configuration directory. Enrollment checks the file endpoint before
+registration. The pinned stock build continues to use the Control API forms.
+Agent and Telemt binary updates on registered nodes remain unsupported.
+
+For Telemt 3.5.17, `deploy/telemt-3.5.17-config-file.patch` adds the offline
+protocol to upstream commit `66708d2866f3f3a4541c4fa67984d408e71a8af4`.
+Apply it to that source tree, build `telemt` with `cargo build --release
+--locked --bin telemt` for the node's Linux architecture, and verify that
+`telemt --help` lists `config-file-v1` before pinning the executable's SHA-256.

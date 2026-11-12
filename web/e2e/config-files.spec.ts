@@ -42,6 +42,29 @@ driver = "memory"
 });
 test.afterAll(async()=>{if(agent)await killAndWait(agent);if(scratch)await rm(scratch,{recursive:true,force:true});});
 
+test("node without a file editor can open its Telemt API configuration", async ({ page, login }, info) => {
+  await login();
+  const created = await page.request.post("/api/nodes", {
+    headers: { "Sec-Fetch-Site": "same-origin" },
+    data: { name: `Config API ${info.project.name}`, api_url: MOCK_URL, enabled: true },
+  });
+  expect(created.status()).toBe(201);
+  const node = await created.json() as { id: string; revision: number };
+  try {
+    await page.goto(`/server/files?node=${node.id}`);
+    await expect(page.getByRole("alert").filter({ hasText: "подключите агент к этой ноде" })).toBeVisible();
+    const config = page.waitForResponse(response => new URL(response.url()).pathname === `/api/nodes/${node.id}/manage/telemt/config`);
+    await page.getByRole("link", { name: "Открыть настройки через API Telemt" }).click();
+    await expect(page).toHaveURL(`/server/config?node=${node.id}`);
+    expect((await config).ok()).toBe(true);
+  } finally {
+    const removed = await page.request.delete(`/api/nodes/${node.id}`, {
+      headers: { "Sec-Fetch-Site": "same-origin", "If-Match": String(node.revision) },
+    });
+    expect(removed.status()).toBe(204);
+  }
+});
+
 test("typed source edit, durable backup, conflict and recovery with real CLI",async({page,login},info)=>{
   test.skip(!binary,"requires TELEMT_CONFIG_E2E_BINARY and TELEMT_CONFIG_E2E_AUTH in panel environment");
   test.setTimeout(180000);

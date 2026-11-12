@@ -110,7 +110,7 @@ export function activeUpdateRun(targets: UpdatesStatus["targets"] | undefined) {
   })?.active_run;
 }
 
-export function hostCapabilityCount(caps: HostInfo["caps"] | undefined) {
-  const values = caps ? Object.values(caps) : [];
-  return { available: values.filter(Boolean).length, total: values.length };
+export function hostCapabilityCount(caps: HostInfo["caps"] | undefined, remoteNode = false) {
+  const entries = caps ? Object.entries(caps).filter(([name]) => !remoteNode || name !== "restart_panel") : [];
+  return { available: entries.filter(([, available]) => available).length, total: entries.length };
 }

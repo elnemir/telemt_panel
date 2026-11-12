@@ -15,6 +15,8 @@ made_root=0
 made_telemt=0
 made_gateway=0
 made_agent=0
+made_control_socket=0
+made_control_service=0
 committed=0
 cleanup() {
     code=$?
@@ -25,6 +27,14 @@ cleanup() {
             systemctl disable --now telemt-agent.service >&2 &&
                 rm -f "$system/telemt-agent.service" &&
                 rm -rf /var/lib/telemt-agent /var/lib/private/telemt-agent || code=25
+        fi
+        if [ "$made_control_socket" -eq 1 ]; then
+            systemctl disable --now telemt-node-control.socket >&2 &&
+                rm -f "$system/telemt-node-control.socket" || code=25
+            if [ -d /run/telemt-node-control ]; then rmdir /run/telemt-node-control || code=25; fi
+        fi
+        if [ "$made_control_service" -eq 1 ]; then
+            rm -f "$system/telemt-node-control@.service" || code=25
         fi
         if [ "$made_gateway" -eq 1 ]; then
             systemctl disable --now telemt-node-gateway.service >&2 &&
@@ -50,6 +60,7 @@ for name in telemt node-runtime; do install -m 0755 "$stage/$name" "$root/$name"
 for name in telemt.toml gateway.crt gateway.key; do install -m 0600 "$stage/$name" "$root/$name"; done
 if [ "$with_agent" -eq 1 ]; then
     install -m 0600 "$stage/agent.toml" "$stage/agent.env" "$root/"
+    install -m 0500 "$stage/service-control" "$root/service-control"
 fi
 # Publish only into names which were checked to be absent.
 publish() {
@@ -65,12 +76,16 @@ made_telemt=1
 publish telemt-node-gateway.service
 made_gateway=1
 if [ "$with_agent" -eq 1 ]; then
+    publish telemt-node-control@.service
+    made_control_service=1
+    publish telemt-node-control.socket
+    made_control_socket=1
     publish telemt-agent.service
     made_agent=1
 fi
 systemctl daemon-reload >&2
 systemctl enable --now telemt.service telemt-node-gateway.service >&2
-if [ "$with_agent" -eq 1 ]; then systemctl enable --now telemt-agent.service >&2; fi
+if [ "$with_agent" -eq 1 ]; then systemctl enable --now telemt-node-control.socket telemt-agent.service >&2; fi
 printf 'ready\n'
 # EOF, timeout and shutdown roll back the files and services of this attempt.
 read -r -t 90 decision

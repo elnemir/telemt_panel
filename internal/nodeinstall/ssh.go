@@ -34,9 +34,10 @@ var stagePattern = regexp.MustCompile(`^/var/tmp/telemt-install\.[a-zA-Z0-9]{10}
 type Installer struct {
 	signer     ssh.Signer
 	loadBinary func(context.Context, string, string) (string, error)
+	fileBinary FileBinary
 }
 
-func Open(keyFile string) (*Installer, error) {
+func Open(keyFile string, fileBinary FileBinary) (*Installer, error) {
 	file, err := os.Open(keyFile)
 	if err != nil {
 		return nil, errors.New("cannot open the node installation SSH key")
@@ -55,7 +56,7 @@ func Open(keyFile string) (*Installer, error) {
 	if err != nil {
 		return nil, errors.New("invalid node installation SSH key")
 	}
-	return &Installer{signer: signer, loadBinary: releaseBinary}, nil
+	return &Installer{signer: signer, loadBinary: releaseBinary, fileBinary: fileBinary}, nil
 }
 
 func normalize(request Request) (Request, error) {
@@ -157,7 +158,8 @@ func (i *Installer) Preview(ctx context.Context, request Request) (Plan, error) 
 		return Plan{}, err
 	}
 	defer closeSocket()
-	return preflight(client, r)
+	plan, err := preflight(client, r)
+	return i.fileBinary.configure(plan), err
 }
 
 func smallCommand(client *ssh.Client, command string, input io.Reader) (string, error) {

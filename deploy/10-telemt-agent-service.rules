@@ -1,0 +1,16 @@
+// Optional PolicyKit policy for a systemd-managed Telemt node.
+polkit.addRule(function(action, subject) {
+    if (action.id !== "org.freedesktop.systemd1.manage-units" ||
+        subject.user !== "telemt-agent" ||
+        subject.system_unit !== "telemt-agent.service") {
+        return polkit.NOT_HANDLED;
+    }
+
+    var unit = action.lookup("unit");
+    var verb = action.lookup("verb");
+    if (unit === "telemt.service" &&
+        (verb === "start" || verb === "stop" || verb === "restart")) {
+        return polkit.YES;
+    }
+    return polkit.NO;
+});

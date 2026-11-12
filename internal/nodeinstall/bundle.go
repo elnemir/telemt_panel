@@ -18,6 +18,7 @@ import (
 	"os"
 	"runtime"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/amirotin/telemt_panel/internal/nodes"
@@ -28,6 +29,8 @@ type releaseAsset struct {
 	architecture string
 	digest       string
 }
+
+const maxBundleBinarySize = 128 << 20
 
 // Official baseline Linux static archives, checked against the release assets.
 var releaseAssets = map[string]releaseAsset{
@@ -74,9 +77,20 @@ func newBundle(plan Plan, telemtPath, runtimePath string) (bundle, error) {
 	if plan.WithAgent {
 		b.agentID = token(16)
 		b.credentials.Agent = "Bearer " + token(32)
-		b.files["agent.toml"] = fmt.Sprintf(agentConfig, b.agentID)
+		configPaths := ""
+		unit := agentUnit
+		if plan.ConfigFiles {
+			configPaths = "config_path = \"/var/lib/private/telemt-node/telemt.toml\"\nconfig_binary = \"/opt/telemt-node/telemt\"\n"
+			// The native editor and the running proxy use the same private
+			// directory, ownership and revision lock.
+			unit = strings.Replace(unit, "StateDirectory=telemt-agent\n", "User=telemt\nStateDirectory=telemt-agent telemt-node\n", 1)
+		}
+		b.files["agent.toml"] = fmt.Sprintf(agentConfig, b.agentID, configPaths)
 		b.files["agent.env"] = "TELEMT_AGENT_AUTH=" + strconv.Quote(b.credentials.Agent) + "\n"
-		b.files["telemt-agent.service"] = agentUnit
+		b.files["telemt-agent.service"] = unit
+		b.files["telemt-node-control.socket"] = controlSocketUnit
+		b.files["telemt-node-control@.service"] = controlServiceUnit
+		b.files["service-control"] = controlScript
 		agentFlag = " --agent"
 	}
 	b.files["telemt-node-gateway.service"] = fmt.Sprintf(gatewayUnit, plan.ManagementPort, plan.PanelPeer, agentFlag)
@@ -138,7 +152,7 @@ func writeBinary(tw *tar.Writer, name, path string) error {
 	}
 	defer f.Close()
 	info, err := f.Stat()
-	if err != nil || !info.Mode().IsRegular() || info.Size() < 1 || info.Size() > 128<<20 {
+	if err != nil || !info.Mode().IsRegular() || info.Size() < 1 || info.Size() > maxBundleBinarySize {
 		return ErrArtifacts
 	}
 	if err := tw.WriteHeader(&tar.Header{Name: name, Mode: 0700, Size: info.Size()}); err != nil {
@@ -175,6 +189,7 @@ Wants=network-online.target
 [Service]
 Type=exec
 DynamicUser=yes
+User=telemt
 StateDirectory=telemt-node
 StateDirectoryMode=0700
 WorkingDirectory=/var/lib/telemt-node
@@ -215,16 +230,20 @@ WantedBy=multi-user.target
 
 const agentUnit = `[Unit]
 Description=Telemt node host agent
-After=telemt.service
+Requires=telemt-node-control.socket
+After=telemt.service telemt-node-control.socket
 
 [Service]
 Type=exec
 DynamicUser=yes
 StateDirectory=telemt-agent
 StateDirectoryMode=0700
+RuntimeDirectory=telemt-node-agent
+RuntimeDirectoryMode=0700
 SupplementaryGroups=systemd-journal
 EnvironmentFile=/opt/telemt-node/agent.env
 LoadCredential=agent.toml:/opt/telemt-node/agent.toml
+BindReadOnlyPaths=/run/telemt-node-control/control.sock:/run/telemt-node-agent/control.sock
 ExecStart=/opt/telemt-node/node-runtime --config %d/agent.toml
 CapabilityBoundingSet=
 NoNewPrivileges=yes
@@ -243,7 +262,8 @@ data_dir = "/var/lib/telemt-agent"
 enabled = true
 id = "%s"
 authorization_env = "TELEMT_AGENT_AUTH"
-
+service_control_socket = "/run/telemt-node-agent/control.sock"
+%s
 [telemt]
 url = "http://127.0.0.1:9091"
 
@@ -254,8 +274,55 @@ telemt_service = "telemt"
 panel_service = "telemt-agent"
 
 [privileges]
-mode = "manual"
+mode = "direct"
 
 [store]
 driver = "memory"
+`
+
+const controlSocketUnit = `[Unit]
+Description=Local Telemt service control socket
+
+[Socket]
+ListenStream=/run/telemt-node-control/control.sock
+Accept=yes
+DirectoryMode=0700
+SocketMode=0666
+RemoveOnStop=yes
+MaxConnections=8
+
+[Install]
+WantedBy=sockets.target
+`
+
+const controlServiceUnit = `[Unit]
+Description=Local Telemt service control request
+PartOf=telemt-node-control.socket
+
+[Service]
+Type=oneshot
+ExecStart=/bin/bash /opt/telemt-node/service-control
+StandardInput=socket
+StandardOutput=socket
+StandardError=journal
+NoNewPrivileges=yes
+CapabilityBoundingSet=
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+RestrictAddressFamilies=AF_UNIX
+TimeoutStartSec=27s
+`
+
+const controlScript = `set -eu
+export PATH=/usr/sbin:/usr/bin:/sbin:/bin
+IFS= read -r -t 2 -n 8 action
+case "$action" in
+    ping) ;;
+    start|stop|restart)
+        systemctl --no-ask-password "$action" telemt.service >&2 || exit 1
+        ;;
+    *) exit 1 ;;
+esac
+printf 'ok\n'
 `

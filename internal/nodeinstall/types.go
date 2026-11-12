@@ -19,6 +19,7 @@ type Plan struct {
 	PanelPeer    string `json:"panel_peer"`
 	Release      string `json:"release"`
 	APIURL       string `json:"api_url"`
+	ConfigFiles  bool   `json:"config_files,omitempty"`
 }
 
 type failure string
@@ -35,6 +36,7 @@ const (
 	ErrArtifacts   failure = "node_install_artifacts"
 	ErrApply       failure = "node_install_apply"
 	ErrHealth      failure = "node_install_health"
+	ErrManagement  failure = "node_install_management"
 	ErrRegistry    failure = "node_install_registry"
 	ErrUnconfirmed failure = "node_install_unconfirmed"
 )

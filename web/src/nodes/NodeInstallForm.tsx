@@ -42,7 +42,7 @@ const initialInput: NodeInstallInput = {
   host_fingerprint: "",
   proxy_port: 443,
   management_port: 9443,
-  with_agent: false,
+  with_agent: true,
 };
 
 export function NodeInstallForm({ available, close }: { available: boolean; close: () => void }) {
@@ -164,6 +164,7 @@ export function NodeInstallForm({ available, close }: { available: boolean; clos
               </dl>
               {job.state === "prepared" && <>
                 <p className="text-text-muted">{job.plan.with_agent ? t.planWithAgent : t.plan}</p>
+                {job.plan.with_agent && <p className="text-text-muted">{job.plan.config_files ? t.planFiles : t.planAPIConfig}</p>}
                 <div className="flex flex-wrap gap-2">
                   <Button type="button" disabled={busy} onClick={() => apply.mutate(jobOptions)}>{t.apply}</Button>
                   <Button type="button" variant="secondary" disabled={busy} onClick={reset}>{t.edit}</Button>

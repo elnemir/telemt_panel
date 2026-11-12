@@ -59,18 +59,22 @@ type PlatformConfig struct {
 
 // NodeInstallConfig enables the privileged, SSH-based clean host installer.
 type NodeInstallConfig struct {
-	Enabled    bool   `toml:"enabled"`
-	SSHKeyFile string `toml:"ssh_key_file"`
-	KeyEnv     string `toml:"encryption_key_env"`
+	Enabled          bool   `toml:"enabled"`
+	SSHKeyFile       string `toml:"ssh_key_file"`
+	KeyEnv           string `toml:"encryption_key_env"`
+	TelemtBinaryFile string `toml:"telemt_binary_file"`
+	TelemtBinarySHA  string `toml:"telemt_binary_sha256"`
+	TelemtVersion    string `toml:"telemt_version"`
 }
 
 // AgentConfig switches the binary to the private node host API only.
 type AgentConfig struct {
-	ConfigPath   string `toml:"config_path"`
-	ConfigBinary string `toml:"config_binary"`
-	Enabled      bool   `toml:"enabled"`
-	ID           string `toml:"id"`
-	AuthEnv      string `toml:"authorization_env"`
+	ConfigPath    string `toml:"config_path"`
+	ConfigBinary  string `toml:"config_binary"`
+	ControlSocket string `toml:"service_control_socket"`
+	Enabled       bool   `toml:"enabled"`
+	ID            string `toml:"id"`
+	AuthEnv       string `toml:"authorization_env"`
 }
 
 // TelemtConfig points the panel at the Telemt API.
@@ -249,6 +253,13 @@ func decode(data []byte, path string) (*Config, error) {
 		cfg.NodeInstall.KeyEnv == "" || !filepath.IsAbs(cfg.NodeInstall.SSHKeyFile)) {
 		return nil, fmt.Errorf("node_install: administrator authentication, durable data_dir, encryption_key_env and absolute ssh_key_file are required")
 	}
+	artifact := cfg.NodeInstall
+	if artifact.TelemtBinaryFile != "" || artifact.TelemtBinarySHA != "" || artifact.TelemtVersion != "" {
+		if !filepath.IsAbs(artifact.TelemtBinaryFile) || !regexp.MustCompile(`^[0-9a-fA-F]{64}$`).MatchString(artifact.TelemtBinarySHA) ||
+			!regexp.MustCompile(`^[0-9][0-9A-Za-z.+-]{0,63}$`).MatchString(artifact.TelemtVersion) {
+			return nil, fmt.Errorf("node_install: custom Telemt requires an absolute telemt_binary_file, telemt_binary_sha256 and telemt_version")
+		}
+	}
 
 	if cfg.Agent.Enabled {
 		if cfg.ControlPlaneOnly || cfg.Subpage.Enabled || cfg.DataDir == "" || !nodeagent.IDPattern.MatchString(cfg.Agent.ID) || !nodeagent.EnvPattern.MatchString(cfg.Agent.AuthEnv) {
@@ -256,6 +267,9 @@ func decode(data []byte, path string) (*Config, error) {
 		}
 		if (cfg.Agent.ConfigPath != "" || cfg.Agent.ConfigBinary != "") && (!filepath.IsAbs(cfg.Agent.ConfigPath) || !filepath.IsAbs(cfg.Agent.ConfigBinary)) {
 			return nil, fmt.Errorf("agent: config_path and config_binary must both be absolute paths")
+		}
+		if cfg.Agent.ControlSocket != "" && (!filepath.IsAbs(cfg.Agent.ControlSocket) || cfg.Host.ServiceManager != host.KindSystemd || strings.TrimSuffix(cfg.Host.TelemtService, ".service") != "telemt") {
+			return nil, fmt.Errorf("agent: service_control_socket requires an absolute path and the systemd telemt.service binding")
 		}
 		cfg.Auth.Disabled = true
 		if !metadata.IsDefined("host", "panel_service") {

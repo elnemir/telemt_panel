@@ -12,14 +12,15 @@ import (
 	"os/signal"
 	"syscall"
 
+	"github.com/amirotin/telemt_panel/internal/config"
 	"github.com/amirotin/telemt_panel/internal/httpapi"
 	"github.com/amirotin/telemt_panel/internal/nodeinstall"
 )
 
 const nodeInstallSupported = true
 
-func openNodeInstaller(keyFile string) (httpapi.NodeInstaller, error) {
-	return nodeinstall.Open(keyFile)
+func openNodeInstaller(cfg config.NodeInstallConfig) (httpapi.NodeInstaller, error) {
+	return nodeinstall.Open(cfg.SSHKeyFile, nodeinstall.FileBinary{Path: cfg.TelemtBinaryFile, SHA256: cfg.TelemtBinarySHA, Version: cfg.TelemtVersion})
 }
 
 func runNodeGateway(args []string) error {

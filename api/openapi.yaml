@@ -11858,6 +11858,7 @@ components:
         panel_peer: { type: string }
         release: { type: string }
         api_url: { type: string, format: uri }
+        config_files: { type: boolean, description: A pinned compatible Telemt build is planned and the file editor must respond before registration. }
     NodeInstallJob:
       type: object
       required: [id, plan, state]
@@ -12334,6 +12335,7 @@ components:
             - node_install_artifacts
             - node_install_apply
             - node_install_health
+            - node_install_management
             - node_install_registry
             - node_install_unconfirmed
             - node_install_disabled
