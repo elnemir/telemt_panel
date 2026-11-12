@@ -7,7 +7,7 @@ export type UpdatePhase = UpdateRun["phase"];
 // idle ─▶ checking ─▶ downloading ─▶ verifying ─▶ staging ─▶ installing ─▶
 // restarting ─▶ health ─▶ done. "idle" isn't a phase UpdateRun ever reports
 // (no run exists yet), so it isn't in this list.
-const HAPPY_PATH: UpdatePhase[] = [
+export const HAPPY_PATH: UpdatePhase[] = [
   "checking",
   "downloading",
   "verifying",

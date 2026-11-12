@@ -178,8 +178,8 @@ export function SettingsPage() {
         </dl>}
       </section>
 
-      <div className="grid items-start gap-2.5 lg:grid-cols-2">
-        <div className="flex min-w-0 flex-col gap-2.5">
+      <div className="grid items-start gap-4 lg:grid-cols-2">
+        <div className="flex min-w-0 flex-col gap-4">
           {authDisabled ? <AuthDisabledDetails /> : <section
             data-testid="settings-sessions"
             className="overflow-hidden rounded-xl bg-surface"
@@ -339,7 +339,7 @@ export function SettingsPage() {
             </Button>
           </section>}
         </div>
-        <div className="flex min-w-0 flex-col gap-2.5">
+        <div className="flex min-w-0 flex-col gap-4">
           <InterfacePreferences />
           <BrandingSettings />
           <LinkSettings />

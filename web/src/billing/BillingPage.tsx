@@ -21,28 +21,32 @@ export function BillingPage(){
  const clusters=useQuery({...listClustersOptions(),enabled});
  const [plan,setPlan]=useState<BillingPlan|"new">(),[account,setAccount]=useState<PaymentAccount|"new">();
  const err=status.error??plans.error??accounts.error??clusters.error;
- return <main className="mx-auto w-full max-w-6xl space-y-6 p-4 pb-24">
+ return <div className="w-full space-y-6">
   <PageHeader title={t.title} description={t.description}/>
   {err&&<p role="alert" className="text-warn">{apiErrorMessage(err as {code?:unknown},s)}</p>}
   {status.isPending&&<p>{s.clusters.loading}</p>}
   {status.data&&!enabled&&<p>{status.data.available?s.clusters.setupFull:s.clusters.setupLite}</p>}
   {enabled&&<>
-   <p className="rounded-xl border border-border bg-surface p-4 text-text-muted">{t.boundary}</p>
-   <section className="space-y-3" aria-label={t.plans}>
+   <p className="rounded-xl bg-[rgb(var(--lavender))] p-4 text-sm text-text">{t.boundary}</p>
+   <nav className="flex flex-wrap gap-2 text-sm font-semibold text-accent" aria-label={t.title}>
+     {[["billing-plans",t.plans],["billing-accounts",t.accounts],["billing-history",t.payments]].map(([id,label])=>
+       <a key={id} className="tap-target inline-flex items-center rounded-lg bg-surface px-3" href={`#${id}`}>{label}</a>)}
+   </nav>
+   <section id="billing-plans" className="space-y-3 scroll-mt-4" aria-label={t.plans}>
     <div className="flex flex-wrap items-center justify-between gap-3"><h2 className="text-xl font-semibold">{t.plans}</h2><Button disabled={!clusters.data?.length} onClick={()=>setPlan("new")}>{t.newPlan}</Button></div>
     {!plans.isPending&&plans.data?.length===0&&<p>{t.noPlans}</p>}
-    <ul className="grid gap-4 md:grid-cols-2">{plans.data?.map(p=><li key={p.id} className="min-w-0 rounded-xl border border-border bg-surface p-4 space-y-2">
+    <ul className="grid gap-4 md:grid-cols-2">{plans.data?.map(p=><li key={p.id} className="workspace-card space-y-2">
      <h3 className="break-words font-semibold">{p.name}</h3><p>{clusters.data?.find(c=>c.id===p.cluster_id)?.name??p.cluster_id} · {p.enabled?t.active:t.disabled}</p>
-     <p className="break-words">{formatPrice(p.terms.price_minor,p.terms.currency_scale)} {p.terms.currency}</p>
+     <p className="break-words text-2xl font-bold tabular-nums">{formatPrice(p.terms.price_minor,p.terms.currency_scale)} {p.terms.currency}</p>
      <p>{p.terms.duration_seconds} {t.period} · {t.version} {p.version}</p>
      <p className="break-words">{p.terms.quota_bytes===null?t.unlimited:`${t.quota}: ${p.terms.quota_bytes}`}</p>
      <Button variant="secondary" onClick={()=>setPlan(p)}>{t.editPlan}</Button>
     </li>)}</ul>
    </section>
-   <section className="space-y-3" aria-label={t.accounts}>
+   <section id="billing-accounts" className="space-y-3 scroll-mt-4" aria-label={t.accounts}>
     <div className="flex flex-wrap items-center justify-between gap-3"><h2 className="text-xl font-semibold">{t.accounts}</h2><Button onClick={()=>setAccount("new")}>{t.newAccount}</Button></div>
     {!accounts.isPending&&accounts.data?.length===0&&<p>{t.noAccounts}</p>}
-    <ul className="grid gap-4 md:grid-cols-2">{accounts.data?.map(a=><li key={a.id} className="min-w-0 rounded-xl border border-border bg-surface p-4 space-y-2">
+    <ul className="grid gap-4 md:grid-cols-2">{accounts.data?.map(a=><li key={a.id} className="workspace-card space-y-2">
      <h3 className="break-words font-semibold">{a.name}</h3><p>{a.provider} · {a.test?t.test:t.live} · {a.enabled?t.active:t.disabled}</p>
      <Button variant="secondary" onClick={()=>setAccount(a)}>{t.edit}</Button>
     </li>)}</ul>
@@ -51,7 +55,7 @@ export function BillingPage(){
   </>}
   {plan&&<PlanEditor plan={plan==="new"?undefined:plan} clusters={clusters.data??[]} close={()=>setPlan(undefined)} saved={async()=>{setPlan(undefined);await plans.refetch();}}/>}
   {account&&<AccountEditor account={account==="new"?undefined:account} close={()=>setAccount(undefined)} saved={async()=>{setAccount(undefined);await accounts.refetch();}}/>}
- </main>;
+ </div>;
 }
 const newTerms:BillingPlanTerms={currency:"RUB",currency_scale:2,price_minor:"",duration_seconds:"",quota_bytes:"",overrun_bytes:"",node_policy:{enabled:true,max_tcp_conns:null,max_unique_ips:null,rate_limit_up_bps:null,rate_limit_down_bps:null,expiration_rfc3339:"",user_ad_tag:""}};
 function PlanEditor({plan,clusters,close,saved}:{plan?:BillingPlan;clusters:Cluster[];close:()=>void;saved:()=>Promise<void>}){
@@ -144,11 +148,11 @@ function FinancialHistory(){
  const invoices=useQuery({...listBillingInvoicesOptions({query:{offset:invoiceOffset}}),refetchInterval:30000});
  const payments=useQuery({...listBillingPaymentsOptions({query:{offset:paymentOffset}}),refetchInterval:30000});
  const date=(seconds:number)=>new Date(seconds*1000).toLocaleString(s.locale);
- return <section className="space-y-4" aria-label={t.payments}>
+ return <section id="billing-history" className="space-y-4 scroll-mt-4" aria-label={t.payments}>
   <div className="flex flex-wrap items-center justify-between gap-3"><h2 className="text-xl font-semibold">{t.payments}</h2><Button variant="secondary" onClick={()=>{void invoices.refetch();void payments.refetch();}}>{t.refresh}</Button></div>
   <p className="text-sm text-text-muted">{t.historyHint}</p>
   {(invoices.error||payments.error)&&<p role="alert" className="text-warn">{apiErrorMessage((invoices.error??payments.error) as {code?:unknown},s)}</p>}
-  <ul className="grid gap-4 md:grid-cols-2">{payments.data?.map(p=><li key={p.id} className="min-w-0 rounded-xl border border-border bg-surface p-4 space-y-1">
+  <ul className="grid gap-4 md:grid-cols-2">{payments.data?.map(p=><li key={p.id} className="workspace-card space-y-1">
    <strong className={p.kind==="unallocated_payment"?"text-warn":""}>{t[p.kind]}</strong><p>{p.provider} · {p.test?t.test:t.live}</p>
    <p>{t.gross}: {formatPrice(p.gross_minor,2)} {p.currency}</p>{p.net_minor!==null&&<p>{t.net}: {formatPrice(p.net_minor,2)} {p.currency}</p>}
    <p className="break-all">{t.invoice}: {p.invoice_id}</p><p className="break-all">{t.customer}: {p.customer_id}</p>
@@ -157,7 +161,7 @@ function FinancialHistory(){
   {!payments.isPending&&payments.data?.length===0&&<p>{t.noPayments}</p>}
   <div className="flex gap-2"><Button variant="secondary" disabled={paymentOffset===0||payments.isFetching} onClick={()=>setPaymentOffset(Math.max(0,paymentOffset-100))}>{s.clusters.previous}</Button><Button variant="secondary" disabled={payments.data?.length!==100||payments.isFetching} onClick={()=>setPaymentOffset(paymentOffset+100)}>{s.clusters.next}</Button></div>
   <h2 className="text-xl font-semibold">{t.invoices}</h2>
-  <ul className="grid gap-4 md:grid-cols-2">{invoices.data?.map(i=><li key={i.id} className="min-w-0 rounded-xl border border-border bg-surface p-4 space-y-1">
+  <ul className="grid gap-4 md:grid-cols-2">{invoices.data?.map(i=><li key={i.id} className="workspace-card space-y-1">
    <strong>{t.invoice} #{i.number} · {t[i.status]}</strong><p>{formatPrice(i.amount_minor,i.currency_scale)} {i.currency} · {i.test?t.test:t.live}</p>
    <p className="break-all">{t.customer}: {i.customer_id}</p><p className="text-sm text-text-muted">{t.created}: {date(i.created_at)}</p>
   </li>)}</ul>

@@ -121,7 +121,7 @@ describe("applyTheme", () => {
 
     stubPrefersLight(true);
     applyTheme("system");
-    expect(meta.getAttribute("content")).toBe("#f3f5f8");
+    expect(meta.getAttribute("content")).toBe("#f5f5fa");
   });
 
   it("survives a document with no theme-color meta at all", () => {

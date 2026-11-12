@@ -12,9 +12,9 @@ import { LocaleLoadFeedback } from "../../i18n/LocaleLoadFeedback";
 
 const THEME_SWATCHES: Record<Theme, string> = {
   system:
-    "bg-[linear-gradient(135deg,#e8edf2_0_48%,#18232d_48%_100%)] before:bg-[#243442] after:bg-[#f8fafb]",
-  light: "bg-[#edf1f4] before:bg-[#cfd8df] after:bg-white",
-  dark: "bg-[#15202a] before:bg-[#283b4a] after:bg-[#0e151c]",
+    "bg-[linear-gradient(135deg,#f5f5fa_0_48%,#161622_48%_100%)] before:bg-[#333348] after:bg-[#f8fafb]",
+  light: "bg-[#f5f5fa] before:bg-[#ebe6ff] after:bg-white",
+  dark: "bg-[#161622] before:bg-[#302b4f] after:bg-[#12121a]",
   mocha: "bg-[#2c241f] before:bg-[#5b4032] after:bg-[#1f1a17]",
   parchment: "bg-[#eadfc9] before:bg-[#c9b794] after:bg-[#f8f0df]",
 };

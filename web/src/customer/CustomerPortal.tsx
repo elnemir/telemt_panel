@@ -1,3 +1,4 @@
+import { PageHeader } from "../ui/PageHeader";
 import {useEffect,useState} from "react";
 import {useMutation,useQuery,useQueryClient} from "@tanstack/react-query";
 import {useStrings} from "../i18n";
@@ -27,7 +28,8 @@ export function CustomerPortal(){
  const logout=useMutation({mutationFn:async()=>{await customerLogout({throwOnError:true});},onSuccess:()=>setAccount(null)});
  const err=methods.error??me.error??logout.error;
  return <main className="mx-auto min-h-dvh w-full max-w-5xl space-y-6 p-4 pb-16 sm:p-8">
-  <header className="flex flex-wrap items-center justify-between gap-3"><div><h1 className="text-2xl font-semibold">{t.title}</h1><p className="text-text-muted">{t.description}</p></div>{me.data&&<Button variant="secondary" disabled={logout.isPending} onClick={()=>logout.mutate()}>{t.logout}</Button>}</header>
+  <PageHeader title={t.title} description={t.description} actions={me.data&&
+    <Button variant="secondary" disabled={logout.isPending} onClick={()=>logout.mutate()}>{t.logout}</Button>}/>
   {err&&<p role="alert" className="text-warn">{apiErrorMessage(err as {code?:unknown},s)}</p>}
   {methods.isPending&&<p>{t.loading}</p>}
   {methods.data&&!methods.data.enabled&&<p>{t.unavailable}</p>}
@@ -40,7 +42,7 @@ export function CustomerPortal(){
 function EmailProof({token,reset,complete}:{token:string;reset:boolean;complete:(c:PortalCustomer)=>void}){
  const s=useStrings(),t=s.customer;const[password,setPassword]=useState("");
  const work=useMutation({retry:false,mutationFn:async()=>(await completeCustomerEmail({body:{token,...(reset?{password}:{})},throwOnError:true})).data,onSuccess:complete});
- return <form className="rounded-xl border border-border bg-surface p-5 space-y-4" onSubmit={e=>{e.preventDefault();work.mutate();}}>
+ return <form className="workspace-card space-y-4" onSubmit={e=>{e.preventDefault();work.mutate();}}>
   <h2 className="text-xl font-semibold">{reset?t.reset:t.verify}</h2><p>{t.proofHint}</p>
   {reset&&<label className="block">{t.newPassword}<Input required type="password" autoComplete="new-password" minLength={12} maxLength={72} value={password} onChange={e=>setPassword(e.target.value)}/></label>}
   {work.error&&<p role="alert" className="text-warn">{apiErrorMessage(work.error as {code?:unknown},s)}</p>}
@@ -55,7 +57,7 @@ function CustomerLogin({methods,complete}:{methods:CustomerAuthMethods;complete:
   setPassword("");setSent(true);
  }});
  const telegram=useMutation({retry:false,mutationFn:async()=>{const{data}=await startCustomerTelegram({body:{link:false},throwOnError:true});window.location.assign(data.url);}});
- return <section className="mx-auto max-w-lg rounded-xl border border-border bg-surface p-5 space-y-4">
+ return <section className="mx-auto max-w-lg workspace-card space-y-4">
   {methods.email&&<>
    <nav className="flex flex-wrap gap-2">{(["login","register","recover"] as const).map(m=><Button type="button" key={m} variant={m===mode?"primary":"secondary"} disabled={work.isPending||(m!=="login"&&!methods.email_delivery)} onClick={()=>{setMode(m);setSent(false);work.reset();setPassword("");}}>{t[m]}</Button>)}</nav>
    {!methods.email_delivery&&<p className="text-sm text-text-muted">{t.deliveryUnavailable}</p>}
@@ -83,6 +85,8 @@ function CustomerHome({account,methods,expired}:{account:PortalCustomer;methods:
  const options=useQuery({queryKey:["customer-data",account.id,"payment-options"],queryFn:async({signal})=>(await listCustomerPaymentOptions({signal,throwOnError:true})).data,retry:false});
  const invoices=useQuery({queryKey:["customer-data",account.id,"invoices",invoiceOffset],queryFn:async({signal})=>(await listCustomerInvoices({query:{offset:invoiceOffset},signal,throwOnError:true})).data,retry:false,refetchInterval:15000});
  const selectedSub=subs.data?.find(x=>x.id===subID),selectedPlan=plans.data?.find(x=>x.id===planID);
+ const compatibleAccounts=options.data?.filter(a=>!selectedPlan||a.currency===selectedPlan.terms.currency&&selectedPlan.terms.currency_scale===2);
+ const canQuote=!!selectedPlan&&!!compatibleAccounts?.some(a=>a.id===accountID);
  const refresh=async()=>{await Promise.all([subs.refetch(),invoices.refetch(),...(subID?[detail.refetch(),periods.refetch()]:[])]);};
  const remember=(value:CustomerInvoiceInput|null)=>{setAttempt(value);try{if(value)sessionStorage.setItem(attemptKey(account.id),JSON.stringify(value));else sessionStorage.removeItem(attemptKey(account.id));}catch{/* In-memory idempotency remains available when storage is disabled. */}};
  const quote=useMutation({retry:false,mutationFn:async()=>{
@@ -98,15 +102,15 @@ function CustomerHome({account,methods,expired}:{account:PortalCustomer;methods:
  const bytes=(value:string)=>`${BigInt(value).toLocaleString(s.locale)} ${t.bytes}`;
  return <div className="space-y-6">
   {error&&<p role="alert" className="text-warn">{apiErrorMessage(error as {code?:unknown},s)}</p>}
-  <section className="rounded-xl border border-border bg-surface p-4 space-y-3"><h2 className="text-xl font-semibold">{t.account}</h2>{account.email&&<p className="break-all">{account.email}</p>}
+  <section className="workspace-card space-y-3"><h2 className="text-xl font-semibold">{t.account}</h2>{account.email&&<p className="break-all">{account.email}</p>}
    {account.telegram_linked?<p>{t.telegramLinked}</p>:methods.telegram&&<Button variant="secondary" disabled={telegram.isPending} onClick={()=>telegram.mutate()}>{t.linkTelegram}</Button>}
    {!account.email&&methods.email_delivery&&<Button variant="secondary" onClick={()=>setLinkEmailOpen(!linkEmailOpen)}>{t.linkEmail}</Button>}
    {((!account.telegram_linked&&methods.telegram)||(!account.email&&methods.email_delivery))&&<p className="text-sm text-text-muted">{t.freshHint}</p>}
    {linkEmailOpen&&<LinkEmail/>}
   </section>
   <p className="rounded-xl border border-border p-4 text-text-muted">{t.setupBoundary}</p>
-  <section className="rounded-xl border border-border bg-surface p-4 space-y-4"><div className="flex flex-wrap justify-between gap-3"><h2 className="text-xl font-semibold">{t.services}</h2><Button variant="secondary" onClick={()=>void refresh()}>{t.refresh}</Button></div>
-   {!subs.isPending&&subs.data?.length===0&&<p>{t.noServices}</p>}
+  <section className="workspace-card space-y-4"><div className="flex flex-wrap justify-between gap-3"><h2 className="text-xl font-semibold">{t.services}</h2><Button variant="secondary" onClick={()=>void refresh()}>{t.refresh}</Button></div>
+   {!subs.isPending&&subs.data?.length===0&&<p className="rounded-lg bg-[rgb(var(--lavender))] p-4 font-semibold">{t.noServices}</p>}
    <label className="block">{t.chooseService}<Select aria-label={t.chooseService} disabled={!!attempt} value={subID} onChange={e=>{setSubID(e.target.value);setPlanID("");setPeriodOffset(0);setCreated(false);}}><option value="">{t.newService}</option>{subs.data?.map(x=><option key={x.id} value={x.id}>{t.service} {x.id.slice(-8)}</option>)}</Select></label>
    <div className="flex gap-2"><Button variant="secondary" disabled={subOffset===0||subs.isFetching||!!attempt} onClick={()=>setSubOffset(Math.max(0,subOffset-100))}>{t.previous}</Button><Button variant="secondary" disabled={subs.data?.length!==100||subs.isFetching||!!attempt} onClick={()=>setSubOffset(subOffset+100)}>{t.next}</Button></div>
    {detail.data&&<div className="space-y-2"><p>{t.paidThrough}: {detail.data.paid_through?date(detail.data.paid_through):t.unpaid}</p><p>{detail.data.access_status==="configured"?t.accessConfigured:detail.data.access_status==="disabled"?t.disabled:detail.data.access_status==="unpaid"?t.noCurrent:t.accessPending}</p>
@@ -124,15 +128,15 @@ function CustomerHome({account,methods,expired}:{account:PortalCustomer;methods:
     {!periods.isPending&&periods.data?.length===0&&<p>{t.noPeriods}</p>}
     <div className="flex gap-2"><Button variant="secondary" disabled={periodOffset===0||periods.isFetching} onClick={()=>setPeriodOffset(Math.max(0,periodOffset-100))}>{t.previous}</Button><Button variant="secondary" disabled={periods.data?.length!==100||periods.isFetching} onClick={()=>setPeriodOffset(periodOffset+100)}>{t.next}</Button></div>
    </div>}
-   <form className="space-y-3" onSubmit={e=>{e.preventDefault();quote.mutate();}}><fieldset disabled={quote.isPending||!!attempt} className="space-y-3">
-    <label className="block">{t.tariff}<Select required aria-label={t.tariff} value={planID} onChange={e=>setPlanID(e.target.value)}><option value="">{t.chooseTariff}</option>{plans.data?.filter(p=>!subID||p.cluster_id===selectedSub?.cluster_id).map(p=><option key={p.id} value={p.id}>{p.name} · {formatMoney(p.terms.price_minor,p.terms.currency_scale)} {p.terms.currency}</option>)}</Select></label>
+   <form className="space-y-3" onSubmit={e=>{e.preventDefault();if(attempt||canQuote)quote.mutate();}}><fieldset disabled={quote.isPending||!!attempt} className="space-y-3">
+    <label className="block">{t.tariff}<Select required aria-label={t.tariff} value={planID} onChange={e=>{setPlanID(e.target.value);setAccountID("");}}><option value="">{t.chooseTariff}</option>{plans.data?.filter(p=>!subID||p.cluster_id===selectedSub?.cluster_id).map(p=><option key={p.id} value={p.id}>{p.name} · {formatMoney(p.terms.price_minor,p.terms.currency_scale)} {p.terms.currency}</option>)}</Select></label>
     {selectedPlan&&<p>{selectedPlan.terms.duration_seconds} {t.seconds} · {selectedPlan.terms.quota_bytes===null?t.unlimited:`${selectedPlan.terms.quota_bytes} ${t.bytes}`}</p>}
-    <label className="block">{t.paymentOption}<Select required aria-label={t.paymentOption} value={accountID} onChange={e=>setAccountID(e.target.value)}><option value="">{t.choosePayment}</option>{options.data?.filter(a=>!selectedPlan||a.currency===selectedPlan.terms.currency&&selectedPlan.terms.currency_scale===2).map(a=><option key={a.id} value={a.id}>{a.name}</option>)}</Select></label>
+    <label className="block">{t.paymentOption}<Select required aria-label={t.paymentOption} value={accountID} onChange={e=>setAccountID(e.target.value)}><option value="">{t.choosePayment}</option>{compatibleAccounts?.map(a=><option key={a.id} value={a.id}>{a.name}</option>)}</Select></label>
    </fieldset>
-   {!options.isPending&&options.data?.length===0&&<p>{t.noPayment}</p>}
+   {!options.isPending&&compatibleAccounts?.length===0&&<p>{t.noPayment}</p>}
    <p className="text-sm text-text-muted">{t.renewHint}</p>
    {attempt&&<p role="status">{t.quotePending}</p>}
-   <Button disabled={quote.isPending||(!attempt&&(!planID||!accountID))}>{quote.isPending?t.working:attempt?t.retryQuote:t.quote}</Button>
+   <Button disabled={quote.isPending||(!attempt&&!canQuote)}>{quote.isPending?t.working:attempt?t.retryQuote:t.quote}</Button>
    {attempt&&!quote.isPending&&<Button type="button" variant="secondary" onClick={()=>{if(window.confirm(t.discardQuote)){remember(null);quote.reset();void refresh();}}}>{t.newQuote}</Button>}
    {created&&<p role="status">{t.quoteCreated}</p>}
   </form>
@@ -140,7 +144,7 @@ function CustomerHome({account,methods,expired}:{account:PortalCustomer;methods:
   <section className="space-y-4"><h2 className="text-xl font-semibold">{t.invoices}</h2><p className="text-sm text-text-muted">{t.payHint}</p>
    <label className="block">{t.paymentOption}<Select aria-label={t.paymentOption+" YooMoney"} value={paymentMethod} onChange={e=>setPaymentMethod(e.target.value as "AC"|"PC")}><option value="AC">{t.card}</option><option value="PC">{t.wallet}</option></Select></label>
    {!invoices.isPending&&invoices.data?.length===0&&<p>{t.noInvoices}</p>}
-   <ul className="grid gap-4 sm:grid-cols-2">{invoices.data?.map(i=><li key={i.id} className="min-w-0 rounded-xl border border-border bg-surface p-4 space-y-2"><h3 className="font-semibold">{t.invoice} #{i.number}</h3><p>{t[i.status]}{i.test?` · ${t.test}`:""}</p><p>{formatMoney(i.amount_minor,i.currency_scale)} {i.currency}</p><p className="text-sm text-text-muted">{date(i.created_at)}</p>{i.status==="pending"&&!i.test&&<Button disabled={pay.isPending} onClick={()=>pay.mutate(i.id)}>{t.pay}</Button>}</li>)}</ul>
+   <ul className="grid gap-4 sm:grid-cols-2">{invoices.data?.map(i=><li key={i.id} className="min-w-0 workspace-card space-y-2"><h3 className="font-semibold">{t.invoice} #{i.number}</h3><p>{t[i.status]}{i.test?` · ${t.test}`:""}</p><p>{formatMoney(i.amount_minor,i.currency_scale)} {i.currency}</p><p className="text-sm text-text-muted">{date(i.created_at)}</p>{i.status==="pending"&&!i.test&&<Button disabled={pay.isPending} onClick={()=>pay.mutate(i.id)}>{t.pay}</Button>}</li>)}</ul>
    <div className="flex gap-2"><Button variant="secondary" disabled={invoiceOffset===0||invoices.isFetching} onClick={()=>setInvoiceOffset(Math.max(0,invoiceOffset-100))}>{t.previous}</Button><Button variant="secondary" disabled={invoices.data?.length!==100||invoices.isFetching} onClick={()=>setInvoiceOffset(invoiceOffset+100)}>{t.next}</Button></div>
   </section>
  </div>;

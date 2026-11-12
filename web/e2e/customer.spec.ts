@@ -75,7 +75,7 @@ test("customer email proof, isolated invoices, lost-response recovery and verifi
  await login();
  let managedID="";
  await expect.poll(async()=>{const rows=await(await page.request.get(`/api/clusters/${cluster.id}/identities`)).json();managedID=rows[0]?.username??"";return rows[0]?.billing_managed;}).toBe(true);
- await page.goto("/clusters");await page.getByLabel("Кластер",{exact:true}).selectOption(cluster.id);
+ await page.goto("/clusters");await page.getByRole("button",{name:new RegExp("^Portal "+info.project.name+"\\b")}).click();
  await page.getByRole("button",{name:new RegExp(managedID)}).click();
  await page.getByRole("button",{name:"Изменить пользователя",exact:true}).click();
  const managedSheet=page.getByRole("dialog",{name:"Изменить пользователя",exact:true});

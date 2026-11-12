@@ -19,22 +19,20 @@ export function NodeWorkspace({ children }: { children: ReactNode }) {
   const [editor, setEditor] = useState<Node | "new" | null>(null);
   const path = useRouterState({select: state => state.location.pathname});
   const empty = registry.data?.nodes.length === 0;
-  const globalSettings = path === "/server/settings" || path === "/clusters" || path === "/billing";
+  const globalSettings = path === "/server/settings" || path === "/nodes" || path === "/clusters" || path === "/billing";
   const selected = registry.data?.nodes.find(n => n.id === documentNodeId);
   const navigate = (id: string) => {
     if (id !== documentNodeId && window.confirm(t.switchConfirm)) window.location.assign(nodeNavigationURL(window.location.href, id));
   };
   return <>
-    <section className="shrink-0 border-b border-border bg-surface px-4 py-2" aria-label={t.title}>
+    <section className="shrink-0 border-b border-border/50 bg-bg px-4 py-3 min-[600px]:px-6 min-[1180px]:px-8" aria-label={t.title}>
       <div className="flex flex-wrap items-center gap-2">
-        <label className="flex min-w-0 basis-full items-center gap-2 sm:basis-auto sm:flex-1"><span className="shrink-0 text-sm font-medium">{t.title}</span>
+        <label className="flex min-w-0 basis-full items-center gap-2 sm:basis-auto sm:max-w-md sm:flex-1"><span className="shrink-0 text-sm font-medium">{t.title}</span>
           <Select aria-label={t.title} value={documentNodeId} onChange={event => navigate(event.target.value)} disabled={!registry.data}>
             {!selected && <option value={documentNodeId}>{registry.isPending ? t.loading : empty ? t.none : documentNodeId}</option>}
             {registry.data?.nodes.map(node => <option key={node.id} value={node.id}>{node.name}{node.enabled ? "" : ` · ${t.disabled}`}</option>)}
           </Select>
         </label>
-        <Link to="/billing" className="rounded-lg px-3 py-2 text-sm text-accent">{s.billing.title}</Link>
-        <Link to="/clusters" className="rounded-lg px-3 py-2 text-sm text-accent">{s.clusters.title}</Link>
         <Button size="sm" variant="secondary" onClick={() => setEditor("new")}>{t.add}</Button>
         <Button size="sm" variant="secondary" disabled={!selected || selected.source === "configuration"} onClick={() => selected && setEditor(selected)}>{t.manage}</Button>
       </div>

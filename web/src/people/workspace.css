@@ -8,18 +8,18 @@
 .user-menu-trigger svg { width:22px; height:22px; stroke-width:2.8; }
 .user-detail-page { min-height:0; flex:1; overflow-y:auto; padding:16px 16px 60px; }
 .user-buttons { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
-.user-vitals { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); border-top:1px solid rgb(var(--border)); border-bottom:1px solid rgb(var(--border)); margin-bottom:24px; }
-.user-vitals>div { padding:20px 24px; border-right:1px solid rgb(var(--border)); }
-.user-vitals>div:first-child { padding-left:0; }
+.user-vitals { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:8px; margin-bottom:24px; }
+.user-vitals>div { min-width:0; padding:20px 24px; border-radius:var(--radius-xl); background:rgb(var(--surface)); }
+.user-vitals>div:first-child { background:rgb(var(--lavender)); }
 .user-vitals>div:last-child { border:0; }
 .user-vitals span,.user-vitals small { display:block; color:rgb(var(--text-muted)); font-size:13px; }
-.user-vitals strong { display:block; font-size:28px; color:rgb(var(--text)); margin:8px 0 4px; font-weight:700; }
+.user-vitals strong { display:block; font-size:clamp(20px, 2.5vw, 36px); overflow-wrap:anywhere; color:rgb(var(--text)); margin:8px 0 4px; font-weight:700; }
 .user-detail-tabs { display:flex; gap:4px; overflow-x:auto; border-bottom:1px solid rgb(var(--border)); margin-bottom:24px; }
 .user-detail-tabs button { min-height:44px; padding:12px 16px; font-size:14px; font-weight:650; white-space:nowrap; color:rgb(var(--text-muted)); cursor:pointer; }
 .user-detail-tabs button[aria-current=page] { color:rgb(var(--accent)); box-shadow:inset 0 -2px rgb(var(--accent)); }
 .user-detail-grid { display:grid; grid-template-columns:minmax(0,1.8fr) minmax(300px,1fr); gap:24px; align-items:start; }
 .user-detail-main,.user-detail-aside { min-width:0; display:grid; gap:20px; }
-.user-section { min-width:0; padding:22px; border-radius:13px; border:1px solid rgb(var(--border)); background:rgb(var(--surface)); }
+.user-section { min-width:0; padding:24px; border-radius:var(--radius-xl); border:1px solid rgb(var(--border)); background:rgb(var(--surface)); }
 .user-section h2 { color:rgb(var(--text)); font-size:18px; font-weight:700; margin-bottom:12px; }
 .user-section>.user-buttons,.user-section>button { margin-top:16px; }
 .user-section>.rounded-xl { margin-bottom:16px; }
@@ -28,9 +28,6 @@
 .user-facts dt { color:rgb(var(--text-muted)); }
 .user-facts dd { margin:0; color:rgb(var(--text)); text-align:right; }
 .user-field { display:grid; gap:8px; margin:16px 0; font-size:14px; color:rgb(var(--text)); }
-.user-link-modes { display:flex; flex-wrap:wrap; gap:8px; }
-.user-link-modes button { min-height:44px; padding:10px 16px; border:1px solid rgb(var(--border)); border-radius:8px; font-weight:650; }
-.user-link-modes button[aria-pressed=true] { background:rgb(var(--accent)/.1); border-color:rgb(var(--accent)); color:rgb(var(--accent)); }
 .user-link-details summary { min-height:44px; padding:12px 0; font-size:14px; cursor:pointer; }
 .user-inline-form { max-width:1100px; }
 .user-inline-form .people-form-body { padding:0; }

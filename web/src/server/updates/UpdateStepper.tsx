@@ -1,21 +1,8 @@
 import { useStrings } from "../../i18n";
-import { cn } from "../../lib/cn";
 import { StatePill } from "../../ui/StatePill";
 import { IconRefresh, IconWarning } from "../../ui/icons";
-import type { UpdatePhase } from "./updatePhase.helpers";
+import { HAPPY_PATH, updatePhaseStep, type UpdatePhase } from "./updatePhase.helpers";
 
-const GROUPS: Array<{ phases: UpdatePhase[]; labelPhase: UpdatePhase }> = [
-  { phases: ["checking"], labelPhase: "checking" },
-  { phases: ["downloading", "verifying"], labelPhase: "downloading" },
-  { phases: ["staging"], labelPhase: "staging" },
-  { phases: ["installing"], labelPhase: "installing" },
-  { phases: ["restarting", "health"], labelPhase: "restarting" },
-  { phases: ["done"], labelPhase: "done" },
-];
-
-// The engine exposes eight happy-path phases. On the narrow horizontal track
-// closely related technical phases are grouped into six readable milestones;
-// the header still names the exact current engine phase.
 export function UpdateStepper({
   phase,
   detail,
@@ -56,48 +43,22 @@ export function UpdateStepper({
     );
   }
 
-  const activeIndex = Math.max(
-    0,
-    GROUPS.findIndex((group) => group.phases.includes(phase)),
-  );
-  const finished = phase === "done";
+  const { stepIndex, terminal } = updatePhaseStep(phase);
+  const t = s.server.updates;
 
   return (
-    <div>
-      <div className="mb-3 flex items-baseline justify-between gap-3">
-        <p className="truncate text-meta font-semibold text-text">
-          {s.server.updates.phases[phase]}
-        </p>
-        <span className="shrink-0 font-mono text-micro font-semibold tabular-nums text-accent">
-          {activeIndex + 1} {s.server.updates.stepOf} {GROUPS.length}
-        </span>
-      </div>
-
-      <div className="pb-1">
-        <ol className="relative grid w-full grid-cols-6">
-          <span className="absolute left-[8.33%] right-[8.33%] top-[7px] h-px bg-border-strong" aria-hidden="true" />
-          {GROUPS.map((group, index) => {
-            const done = finished || index < activeIndex;
-            const active = !finished && index === activeIndex;
-            return (
-              <li key={group.labelPhase} className="relative z-[1] min-w-0 text-center">
-                <span
-                  className={cn(
-                    "mx-auto mb-1.5 block h-[15px] w-[15px] rounded-full border-[3px] border-surface-sunken ring-1",
-                    done && "bg-ok ring-ok",
-                    active && "bg-accent ring-accent shadow-[0_0_0_5px_rgba(58,167,216,0.08)]",
-                    !done && !active && "bg-border-strong ring-border-strong",
-                  )}
-                  aria-hidden="true"
-                />
-                <span className={cn("block truncate px-0.5 text-[8px] sm:px-1 sm:text-[9px]", done || active ? "text-text-muted" : "text-text-faint")}>
-                  {s.server.updates.phases[group.labelPhase]}
-                </span>
-              </li>
-            );
-          })}
-        </ol>
-      </div>
+    <div className="workspace-card">
+      <p className="mb-3 font-semibold" role="status">{t.phases[phase] ?? t.progressWaiting}</p>
+      <ol className="divide-y divide-border">
+        {HAPPY_PATH.map((step, index) => {
+          const active = !terminal && index === stepIndex;
+          const done = terminal || index < stepIndex;
+          return <li key={step} aria-current={active ? "step" : undefined} className="flex flex-wrap items-center justify-between gap-2 py-2 text-sm">
+            <span>{t.phases[step]}</span>
+            <StatePill state={done ? "ok" : "muted"}>{done ? t.progressDone : active ? t.running : t.progressWaiting}</StatePill>
+          </li>;
+        })}
+      </ol>
 
       {detail && <p className="mt-2 break-words font-mono text-micro leading-relaxed text-text-faint">{detail}</p>}
       {streamFallback && (

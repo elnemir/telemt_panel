@@ -64,7 +64,7 @@ function ConnectionLinksForm({user, allowAddressOverride, settingsError}: {user:
     {webUnavailable&&<p className="user-note">{s.people.webAccess.unavailable}</p>}
     {!!profiles.length&&!links.some(l=>l.kind==="web")&&<p className="user-note text-warn">{t.webSecretUnavailable}</p>}
     {!link?<p className="user-note">{s.people.detail.noLinks}</p>:<>
-      <div className="user-link-modes" role="group" aria-label={t.linkKind}>{kinds.map(k=><button type="button" key={k} aria-pressed={activeKind===k} onClick={()=>{setKind(k);setSelected("");setAddress({link:"",host:""});setManual(null);setQR(false);}}>{names[k]}</button>)}</div>
+      <div className="workspace-segments" role="group" aria-label={t.linkKind}>{kinds.map(k=><button type="button" key={k} aria-pressed={activeKind===k} onClick={()=>{setKind(k);setSelected("");setAddress({link:"",host:""});setManual(null);setQR(false);}}>{names[k]}</button>)}</div>
       <label className="user-field"><span>{allowAddressOverride&&activeKind!=="web"?s.linkAddress.sourceVariant:t.linkVariant}</span><Select value={link.url} onChange={e=>{setSelected(e.target.value);setAddress({link:"",host:""});setManual(null);setQR(false);}}>{options.map(l=><option key={l.url} value={l.url}>{[l.endpoint,l.domain,l.profileMode,l.primary?t.primary:null].filter(Boolean).join(" · ")}</option>)}</Select></label>
       {allowAddressOverride&&activeKind!=="web"&&<div className="space-y-2">
         <label className="user-field"><span>{s.linkAddress.address}</span><Select value={selectedAddress} disabled={config.isPending||config.isFetching||config.isError||domains.length===0} onChange={event=>{setAddress({link:link.url,host:event.target.value});setManual(null);}}>
@@ -73,7 +73,8 @@ function ConnectionLinksForm({user, allowAddressOverride, settingsError}: {user:
         </Select></label>
         <p className="user-note">{config.isPending||config.isFetching?s.linkAddress.loading:config.isError?s.linkAddress.unavailable:domains.length===0?s.linkAddress.empty:s.linkAddress.hint}</p>
       </div>}
-      <div className="user-buttons"><Button onClick={()=>void copy("tg")}>{s.common.copy} {activeKind==="web"?"WEB":"tg://"}</Button>{activeKind!=="web"&&<Button variant="secondary" onClick={()=>void copy("tme")}>{s.common.copy} t.me</Button>}<Button variant="secondary" onClick={()=>setQR(!qr)}>QR</Button></div>
+      <p className="rounded-lg bg-[rgb(var(--lavender))] p-3 text-sm text-text">{s.linkCredentialNotice}</p>
+      <div className="user-buttons"><Button onClick={()=>void copy("tg")}>{s.common.copy} {activeKind==="web"?"WEB":"tg://"}</Button>{activeKind!=="web"&&<Button variant="secondary" onClick={()=>void copy("tme")}>{s.common.copy} t.me</Button>}<Button variant="secondary" aria-expanded={qr} onClick={()=>setQR(!qr)}>QR</Button></div>
       <p className="user-note">{activeKind==="web"?t.webFormat:t.primaryHint}</p>
       <details className="user-link-details"><summary>{t.showLink}</summary><CopyField value={displayedLink!.url}/></details>
       {qr&&<QR key={displayedLink!.url} value={displayedLink!.url} size={160}/>}

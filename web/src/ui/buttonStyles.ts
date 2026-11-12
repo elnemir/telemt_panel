@@ -9,14 +9,14 @@ export type ButtonSize = "md" | "sm";
 // full-bleed red button reads as the page's loudest element even when it
 // is the rarest action.
 const variantClasses: Record<ButtonVariant, string> = {
-  primary: "bg-accent-strong text-accent-text hover:bg-accent active:brightness-95",
+  primary: "bg-accent-strong text-accent-text hover:brightness-110 active:brightness-95",
   secondary: "bg-surface-2 text-text hover:bg-surface-3 active:bg-surface-3",
   ghost: "bg-transparent text-text-muted hover:bg-surface-2 hover:text-text",
   danger: "bg-error/12 text-error hover:bg-error/20 active:bg-error/25",
 };
 
 const sizeClasses: Record<ButtonSize, string> = {
-  md: "tap-target rounded-lg px-4 text-[15px]",
+  md: "tap-target rounded-lg px-4 text-sm",
   sm: "min-h-[38px] rounded-md px-2.5 text-micro",
 };
 
@@ -34,7 +34,7 @@ export function buttonClasses(
   className?: string,
 ): string {
   return cn(
-    "inline-flex items-center justify-center gap-2 whitespace-nowrap font-semibold",
+    "inline-flex items-center justify-center gap-2 max-w-full whitespace-normal break-words text-center font-semibold",
     "transition-colors disabled:cursor-not-allowed disabled:opacity-50",
     sizeClasses[size],
     variantClasses[variant],

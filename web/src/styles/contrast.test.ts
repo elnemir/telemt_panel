@@ -356,3 +356,17 @@ describe.each(THEMES)("Показатели tiles keep their text over the area 
     }
   }
 });
+
+// New Figma surfaces carry ordinary body text, not decorative labels.
+describe.each(THEMES)("redesign surfaces keep text readable (%s)", (name, p) => {
+  for (const surface of ["lavender", "mint"] as const) {
+    for (const role of ["text", "text-muted"] as const) {
+      it(`${role} on ${surface} clears AA`, () => {
+        expect(contrast(token(p, role), token(p, surface)), `${name}: ${role}/${surface}`).toBeGreaterThanOrEqual(AA);
+      });
+    }
+  }
+  it("hero label clears AA", () => {
+    expect(contrast(token(p, "hero-text"), token(p, "hero"))).toBeGreaterThanOrEqual(AA);
+  });
+});

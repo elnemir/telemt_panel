@@ -21,6 +21,7 @@ export function ClustersPage() {
  const [selected,setSelected]=useState(""),[name,setName]=useState("");
  const id=selected||clusters.data?.[0]?.id||"";
  const cluster=useQuery({...getClusterOptions({path:{cluster_id:id}}),enabled:!!id,refetchInterval:5000});
+ const [rename,setRename]=useState<{id:string; revision:number; name:string}>();
  const [offset,setOffset]=useState(0),[node,setNode]=useState("");
  const identities=useQuery({...listClusterIdentitiesOptions({path:{cluster_id:id},query:{offset}}),enabled:!!id,refetchInterval:5000});
  const [identityID,setIdentityID]=useState("");
@@ -35,26 +36,35 @@ export function ClustersPage() {
  const headers={"If-Match":String(c?.revision??0)};
  const choose=(value:string)=>{setSelected(value);setOffset(0);setIdentityID("");setNode("");setError(undefined);};
  const err=error??status.error??clusters.error??cluster.error??identities.error??identity.error;
- return <main className="mx-auto w-full max-w-6xl space-y-6 p-4 pb-24">
+ return <div className="w-full space-y-6">
   <PageHeader title={t.title} description={t.description}/>
   {err!=null&&<p role="alert" className="text-warn">{apiErrorMessage(err as {code?:unknown},s)}</p>}
   {status.isPending&&<p>{t.loading}</p>}
-  {status.data&&!status.data.enabled&&<section className="rounded-xl border border-border bg-surface p-4"><h2 className="font-semibold">{t.setup}</h2><p>{status.data.available?t.setupFull:t.setupLite}</p></section>}
+  {status.data&&!status.data.enabled&&<section className="workspace-card"><h2 className="font-semibold">{t.setup}</h2><p>{status.data.available?t.setupFull:t.setupLite}</p></section>}
   {status.data?.enabled&&<>
-   <section className="rounded-xl border border-border bg-surface p-4 space-y-3">
+   <section className="workspace-card space-y-4">
     <form className="flex flex-wrap items-end gap-3" onSubmit={e=>{e.preventDefault();run(async()=>{const {data}=await createCluster({body:{name},throwOnError:true});choose(data.id);setName("");});}}>
      <label className="min-w-0 flex-1">{t.name}<Input required disabled={busy} maxLength={128} value={name} onChange={e=>setName(e.target.value)}/></label><Button disabled={busy||!name.trim()}>{t.create}</Button>
     </form>
-    {!!clusters.data?.length&&<label className="block">{t.select}<Select aria-label={t.select} disabled={busy} value={id} onChange={e=>choose(e.target.value)}>{clusters.data.map(c=><option key={c.id} value={c.id}>{c.name}</option>)}</Select></label>}
+    {!!clusters.data?.length && <ul className="divide-y divide-border" aria-label={t.select}>
+      {clusters.data.map(item => <li key={item.id} className="py-1">
+        <button type="button" disabled={busy} aria-pressed={item.id===id}
+          className="tap-target flex w-full flex-wrap items-center justify-between gap-2 rounded-lg px-3 text-left hover:bg-surface-2 aria-pressed:bg-[rgb(var(--lavender))]"
+          onClick={()=>choose(item.id)}>
+          <strong className="min-w-0 break-all">{item.name}</strong>
+          <span className="text-sm text-text-muted">{t.revision} {item.revision}</span>
+        </button>
+      </li>)}
+    </ul>}
     {!clusters.isPending&&clusters.data?.length===0&&<p>{t.empty}</p>}
    </section>
    {c&&<>
-    <section className="rounded-xl border border-border bg-surface p-4 space-y-3">
+    <section className="workspace-card space-y-4">
      <div className="flex flex-wrap justify-between gap-3"><h2 className="text-lg font-semibold">{c.name}</h2><div className="flex flex-wrap gap-2">
-      <Button variant="secondary" disabled={busy||!name.trim()} onClick={()=>run(async()=>{await renameCluster({path:{cluster_id:c.id},headers,body:{name},throwOnError:true});setName("");})}>{t.rename}</Button>
+      <Button variant="secondary" disabled={busy} onClick={()=>setRename({id:c.id,revision:c.revision,name:c.name})}>{t.rename}</Button>
       <Button variant="secondary" disabled={busy||!!cluster.data?.members.length||!!identities.data?.length||offset>0} onClick={()=>{if(window.confirm(t.deleteConfirm))run(async()=>{await deleteCluster({path:{cluster_id:c.id},headers,throwOnError:true});choose("");});}}>{t.delete}</Button>
      </div></div>
-     <p className="text-sm text-text-muted">{t.revision}: {c.revision} · {t.renameHint}</p>
+     <p className="text-sm text-text-muted">{t.revision}: {c.revision}</p>
      <Button variant="secondary" disabled={busy} onClick={()=>setRouting({clusterID:c.id,members:cluster.data?.members??[]})}>{t.routing.title}</Button>
      <h3 className="font-medium">{t.members}</h3>
      <p className="text-sm text-text-muted">{t.memberHint}</p>
@@ -64,14 +74,14 @@ export function ClustersPage() {
      </li>)}</ul>
      <div className="flex flex-wrap items-end gap-3"><label className="min-w-0 flex-1">{t.node}<Select aria-label={t.node} disabled={busy} value={node} onChange={e=>setNode(e.target.value)}><option value="">{t.chooseNode}</option>{nodes.data?.nodes.filter(n=>n.enabled&&!cluster.data?.members.some(m=>m.node_id===n.id)).map(n=><option key={n.id} value={n.id}>{n.name}</option>)}</Select></label><Button disabled={busy||!node} onClick={()=>run(async()=>{await addClusterMember({path:{cluster_id:c.id},headers,body:{node_id:node},throwOnError:true});setNode("");})}>{t.addNode}</Button></div>
     </section>
-    <section className="rounded-xl border border-border bg-surface p-4 space-y-3">
+    <section className="workspace-card space-y-4">
      <div className="flex flex-wrap items-center justify-between gap-3"><h2 className="text-lg font-semibold">{t.identities}</h2><Button disabled={busy} onClick={()=>setEditor({clusterID:c.id,revision:c.revision})}>{t.newIdentity}</Button></div>
      <p className="text-sm text-text-muted">{t.identityHint}</p>
      <ul className="space-y-2">{identities.data?.map(i=><li key={i.id}><button type="button" className="w-full rounded-lg border border-border p-3 text-left hover:bg-surface-2" onClick={()=>setIdentityID(i.id)}><strong>{i.username}</strong><span className="ml-3 text-sm text-text-muted">{i.revoked?t.revoked:i.policy.enabled?t.enabled:t.disabled} · {t.revision} {i.revision}</span></button></li>)}</ul>
      {!identities.isPending&&identities.data?.length===0&&<p>{t.noIdentities}</p>}
      <div className="flex gap-2"><Button variant="secondary" disabled={offset===0||busy} onClick={()=>setOffset(Math.max(0,offset-100))}>{t.previous}</Button><Button variant="secondary" disabled={identities.data?.length!==100||busy} onClick={()=>setOffset(offset+100)}>{t.next}</Button></div>
     </section>
-    {identity.data&&identity.data.identity.cluster_id===c.id&&<section className="rounded-xl border border-border bg-surface p-4 space-y-3" aria-label={t.delivery}>
+    {identity.data&&identity.data.identity.cluster_id===c.id&&<section className="workspace-card space-y-4" aria-label={t.delivery}>
      <h2 className="text-lg font-semibold">{identity.data.identity.username} · {t.delivery}</h2>
      <p className="text-sm text-text-muted">{t.deliveryHint}</p>
      <div className="flex flex-wrap gap-2"><Button disabled={busy||identity.data.identity.revoked} onClick={()=>setEditor({clusterID:c.id,revision:c.revision,identity:identity.data!.identity})}>{t.edit}</Button><Button variant="secondary" disabled={busy} onClick={()=>run(async()=>{await retryClusterIdentity({path:{identity_id:identityID},headers:{"If-Match":String(identity.data!.identity.revision)},throwOnError:true});})}>{t.retry}</Button></div>
@@ -82,9 +92,26 @@ export function ClustersPage() {
     </section>}
    </>}
   </>}
+  {rename && <Sheet open title={t.rename} onClose={()=>{if(!busy)setRename(undefined);}}>
+    <form className="space-y-4" onSubmit={event=>{
+      event.preventDefault();
+      run(async()=>{
+        await renameCluster({path:{cluster_id:rename.id},headers:{"If-Match":String(rename.revision)},body:{name:rename.name},throwOnError:true});
+        setRename(undefined);
+      });
+    }}>
+      <label className="block">{t.name}<Input required maxLength={128} value={rename.name} disabled={busy}
+        onChange={event=>setRename({...rename,name:event.target.value})}/></label>
+      {error!=null&&<p role="alert" className="text-warn">{apiErrorMessage(error as {code?:unknown},s)}</p>}
+      <div className="flex flex-wrap gap-2">
+        <Button disabled={busy||!rename.name.trim()}>{t.rename}</Button>
+        <Button type="button" variant="secondary" disabled={busy} onClick={()=>setRename(undefined)}>{s.nodes.cancel}</Button>
+      </div>
+    </form>
+  </Sheet>}
   {routing&&<RoutingEditor {...routing} close={()=>setRouting(undefined)} saved={refresh}/>}
   {editor&&<IdentityEditor {...editor} close={()=>setEditor(undefined)} saved={async id=>{setEditor(undefined);setIdentityID(id);await refresh();}}/>}
- </main>;
+ </div>;
 }
 
 const blankPolicy:ClusterIdentityPolicy={enabled:true,max_tcp_conns:null,max_unique_ips:null,rate_limit_up_bps:null,rate_limit_down_bps:null,expiration_rfc3339:"",user_ad_tag:""};

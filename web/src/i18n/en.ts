@@ -222,6 +222,7 @@ export const en: Dict = {
   }
 },
   configFiles: {
+    view: "Configuration view",
   "title": "Configuration files",
   "description": "Full configuration of the selected node: sections and fields, validation before saving, and backups.",
   "installHint": "This section requires an agent with config_path and config_binary configured and config-file-v1 support.",
@@ -271,7 +272,34 @@ export const en: Dict = {
     "datetime": "Date and time"
   }
 },
+  linkCredentialNotice: "Links and QR codes contain access credentials. Share them only with the recipient.",
+  snapshotExplorer: {
+    title: "Snapshot fields",
+    show: "Show fields",
+    hide: "Hide fields",
+    source: "Source",
+    search: "Search by full path",
+    stale: "Data may be stale",
+    limited: "Only part of the snapshot is shown",
+    unavailable: "Snapshot unavailable",
+    noMatches: "No matching fields",
+    path: "Full path",
+    type: "Type",
+    value: "Value",
+    sources: { me_writers: "ME / writers", dcs: "DC", upstreams: "Upstreams", me_pool_state: "ME / pool", me_quality: "ME / quality", nat_stun: "NAT / STUN" },
+  },
   nodes: {
+    healthReachable: "Control API responds",
+    registryManaged: "Managed by the node registry",
+    registry: "Nodes",
+    registryHint: "Registered nodes and Control API status.",
+    search: "Search by name",
+    noMatches: "No matching nodes",
+    healthUnavailable: "Control API unavailable",
+    current: "Current node",
+    readOnly: "Read only",
+    open: "Open overview",
+
     agent: "Node agent (optional)",
     agentHint: "Enables service control and logs. Install the agent separately; its identity and address cannot be changed after binding. Enter an environment variable name, never its token.",
     agentAddress: "Agent URL",
@@ -306,6 +334,8 @@ export const en: Dict = {
     "loading": "Loading nodes…"
 },
   shell: {
+    platformGroup: "Platform",
+    controlSpace: "CONTROL SPACE",
     menu: "Menu",
     navLabel: "Main navigation",
     historyTemporary: "SQLite unavailable · temporary history",
@@ -631,6 +661,9 @@ export const en: Dict = {
     },
   },
   overview: {
+    description: "Selected node health and actions that need your attention.",
+    heroEyebrow: "SELECTED NODE",
+    diagnostics: "Open diagnostics",
     title: "Overview",
     onlineOf: "{online} of {total}",
     onlineSummary: "{online} of {total} · {connections} conn.",
@@ -2569,6 +2602,7 @@ export const en: Dict = {
     },
   },
   journal: {
+    runtime: "Telemt events",
     connectingTitle:"Connecting to logs",connectingDescription:"Waiting for the source to connect. No lines yet does not mean the log is empty.",
     streamEndedTitle:"Log stream ended",streamEndedDescription:"The source is no longer sending lines. Received entries are kept; you can reconnect.",
     sourceErrorTitle:"Logs unavailable",sourceErrorSource:"Source",sourceErrorTarget:"Service, container or file",sourceErrorExitCode:"Exit code",
@@ -3264,6 +3298,8 @@ export const en: Dict = {
         rolled_back: "Rollback complete",
         failed: "Failed",
       },
+      progressDone: "Completed",
+      progressWaiting: "Waiting",
       stepOf: "of",
       rollbackCompleted: "The previous version was restored automatically",
       rollbackInProgress: "Restoring the previous version",

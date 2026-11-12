@@ -38,11 +38,7 @@ export interface WidgetFrameProps {
 // this frame (its own body decides what to show), so the title/hide/diag
 // affordances stay available regardless of the underlying data's state.
 //
-// The prototype's card is a flat `--sur` block with a 14px radius and no
-// outline — the border is kept because on the light theme `--surface` is
-// pure white against a near-white page and the card would otherwise have no
-// edge at all; `--border` is subtle enough on dark not to read as a
-// hairline box.
+// Figma card shell: 20px radius, 24px desktop spacing and a flat surface.
 export function WidgetFrame({
   title,
   titleTooltip,
@@ -55,13 +51,13 @@ export function WidgetFrame({
 }: WidgetFrameProps) {
   const s = useStrings();
   return (
-    <div className={cn("flex flex-col gap-2.5 rounded-xl border border-border bg-surface p-3.5", className)}>
-      <div className="flex items-center gap-2">
+    <div className={cn("flex min-w-0 flex-col gap-4 rounded-xl bg-surface p-4 sm:p-6", className)}>
+      <div className="flex flex-wrap items-center gap-2">
         <div className="flex min-w-0 items-center gap-2">
           {/* h2, not h3: a widget is a top-level section of Сводка and there
               is no intermediate heading above it — h1 straight to h3 left a
               gap in the outline a screen reader reads as a missing level. */}
-          <h2 className="truncate text-[13px] font-semibold text-text" title={titleTooltip}>
+          <h2 className="break-words text-lg font-bold text-text" title={titleTooltip}>
             {title}
           </h2>
           {badge}

@@ -18,8 +18,8 @@ export function OverviewPage() {
   const s = useStrings();
   return (
     <div className="w-full">
-      <PageHeader title={s.overview.title} />
-      <div className="flex flex-col gap-4 lg:gap-5">
+      <PageHeader title={s.overview.title} description={s.overview.description} />
+      <div className="flex flex-col gap-6">
 
         <HealthHero />
         <StatRow />
@@ -27,12 +27,12 @@ export function OverviewPage() {
         {/* The operator workspace has one primary scan column and a dedicated
             event rail. Below xl the rail rejoins the content so tablet and
             phone widths never squeeze operational cards into empty slivers. */}
-        <div className="grid min-w-0 grid-cols-1 items-start gap-4 xl:grid-cols-[minmax(0,1fr)_clamp(300px,23vw,400px)] xl:gap-5">
-          <div className="flex min-w-0 flex-col gap-4 xl:gap-5">
+        <div className="grid min-w-0 grid-cols-1 items-start gap-6 xl:grid-cols-[minmax(0,1fr)_clamp(300px,23vw,400px)] xl:gap-6">
+          <div className="flex min-w-0 flex-col gap-6">
             <Problems />
             <DcWidget />
 
-            <div className="grid min-w-0 grid-cols-1 items-stretch gap-4 md:grid-cols-2 min-[120rem]:grid-cols-3 xl:gap-5 [&>*]:h-full" data-testid="overview-support-grid">
+            <div className="grid min-w-0 grid-cols-1 items-stretch gap-4 md:grid-cols-2 min-[120rem]:grid-cols-3 xl:gap-6 [&>*]:h-full" data-testid="overview-support-grid">
               <MePoolWidget />
               <UpstreamsWidget />
               <div className="min-w-0 xl:col-span-2 min-[120rem]:col-span-1 [&>*]:h-full"><OnlineNow /></div>

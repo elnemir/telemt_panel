@@ -31,9 +31,7 @@ import {
   windowSeries,
 } from "./statRow.helpers";
 
-// One metric, described once and rendered twice: as a desktop tile and as a
-// phone row. Two renderings of the same object cannot disagree about which
-// number belongs to which label.
+// One live metric and one responsive tile, preserving coverage and unknowns.
 interface Metric {
   key: string;
   Icon: ComponentType<IconProps>;
@@ -60,75 +58,20 @@ const TONE_TEXT: Record<SparklineTone, string> = {
   muted: "text-text-muted",
 };
 
-const CHART_FADE = "linear-gradient(to right, transparent 0%, rgba(0,0,0,0.55) 42%, #000 72%)";
-
-// Tile — the presentation both viewports share (M5 S1 on the desktop grid,
-// S2 on the phone's 2×2 per concept §21): the chart is not a thumbnail beside
-// the number, it IS the tile's background, filled at the alpha
-// styles/contrast.test.ts holds it to so the label, the value and the caption
-// all stay AA over it. The whole tile is the link to the domain's Пульс page.
-//
-// Responsive sizing keeps one semantic tile in the layout at every viewport;
-// there is no separate compact copy or enclosing widget frame.
+// The same live metric is rendered once at every viewport. Charts remain
+// available as real history; the large value and coverage caption lead.
 function Tile({ metric }: { metric: Metric }) {
   const { Icon } = metric;
   return (
-    <Link
-      to="/pulse/diag/$domain"
-      params={{ domain: metric.domain }}
-      className={cn(
-        "relative flex min-h-[96px] min-w-0 flex-col overflow-hidden rounded-xl border border-border p-3 md:min-h-[104px] md:p-3.5",
-        "bg-surface transition-colors hover:border-border-strong",
-      )}
-    >
-      {metric.series.length >= 2 && (
-        // The chart is faded out under the text: the number and the caption
-        // sit at the left, so the mask keeps the curve to the right half
-        // where nothing is written over it. The tile still clears AA at the
-        // fill's FULL strength (styles/contrast.test.ts) — this only makes a
-        // legible tile more legible.
-        <span
-          aria-hidden="true"
-          className="pointer-events-none absolute inset-x-0 bottom-0 h-[64%]"
-          style={{
-            maskImage: CHART_FADE,
-            WebkitMaskImage: CHART_FADE,
-          }}
-        >
-          <Sparkline values={metric.series} tone={metric.tone} area decorative />
-        </span>
-      )}
-      <span aria-hidden="true" className="pointer-events-none absolute inset-y-0 left-0 w-[72%] bg-gradient-to-r from-surface via-surface/95 to-transparent" />
-      <span className="relative flex items-start gap-1.5 md:items-center">
-        <Icon className={cn("mt-[2px] h-3.5 w-3.5 shrink-0 md:mt-0", TONE_TEXT[metric.tone])} />
-        {/* «АКТИВНЫЕ ПОЛЬЗОВАТЕЛИ» wants 108px of the 102 a 144px phone tile
-            leaves beside the icon, and a KPI labelled «АКТИВНЫЕ ПОЛЬЗОВАТЕЛ…»
-            is a KPI you have to guess at. So the phone label drops to 10.5px
-            without letter-spacing and wraps into two RESERVED lines, keeping
-            all four numbers on one baseline; break-words is the net for any
-            label longer still. min-w-0 is what lets it wrap at all — a flex
-            item never shrinks below its content width without it, and
-            `overflow-hidden` would cut the word instead of breaking it. */}
-        <span
-          className={cn(
-            "line-clamp-2 min-h-[26px] min-w-0 flex-1 break-words text-[10.5px] font-semibold uppercase leading-[1.25] text-text-muted",
-            "md:min-h-0 md:truncate md:text-micro md:tracking-[0.06em]",
-          )}
-        >
-          {metric.label}
-        </span>
+    <Link to="/pulse/diag/$domain" params={{ domain: metric.domain }}
+      className={cn("overview-metric", metric.key === "connections" && "overview-metric-accent", metric.key === "quality" && metric.tone === "ok" && "overview-metric-ok")}>
+      <span className="flex min-w-0 items-start gap-2 text-xs font-bold text-text-muted">
+        <Icon className={cn("h-4 w-4 shrink-0", TONE_TEXT[metric.tone])} />
+        <span className="min-w-0 break-words">{metric.label}</span>
       </span>
-      <span
-        className={cn(
-          "relative mt-auto block font-mono font-bold leading-none tabular-nums text-text",
-          "pt-2 text-[22px] md:pt-3 md:text-[30px]",
-        )}
-      >
-        {metric.value}
-      </span>
-      <span className="relative -ml-1 mt-1.5 block h-[17px] max-w-full self-start truncate rounded bg-surface/90 px-1 text-micro leading-[17px] text-text-muted">
-        {metric.caption}
-      </span>
+      <span className="overview-metric-value">{metric.value}</span>
+      <span className="text-xs leading-relaxed text-text-muted">{metric.caption}</span>
+      {metric.series.length >= 2 && <span aria-hidden="true" className="mt-auto block h-8"><Sparkline values={metric.series} tone={metric.tone} decorative /></span>}
     </Link>
   );
 }
@@ -155,9 +98,9 @@ export function StatRow() {
 
   if (!stats.data) {
     return (
-      <div className="grid grid-cols-2 gap-2.5 md:gap-3 lg:grid-cols-4 lg:gap-5">
+      <div className="grid grid-cols-2 gap-3 md:gap-4 lg:grid-cols-4">
         {Array.from({ length: 4 }, (_, index) => (
-          <Skeleton key={index} className="h-24 w-full rounded-xl" />
+          <Skeleton key={index} className="h-40 w-full rounded-xl" />
         ))}
       </div>
     );
@@ -251,7 +194,7 @@ export function StatRow() {
   return (
     <section
       aria-label={s.pulse.widgets.stat_row}
-      className="grid grid-cols-2 gap-2.5 md:gap-3 lg:grid-cols-4 lg:gap-5"
+      className="grid grid-cols-2 gap-3 md:gap-4 lg:grid-cols-4"
       data-testid="kpi-grid"
     >
       {metrics.map((m) => (

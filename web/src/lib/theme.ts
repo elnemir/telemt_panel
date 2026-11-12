@@ -64,8 +64,8 @@ export function resolvedColorScheme(theme: Theme): "dark" | "light" {
 // the status bar and the PWA splash with this, and a value that is off by a
 // shade shows as a seam above the page.
 const THEME_COLOR: Record<Exclude<Theme, "system">, string> = {
-  dark: "#12171d",
-  light: "#f3f5f8",
+  dark: "#11121b",
+  light: "#f5f5fa",
   mocha: "#211e1a",
   parchment: "#f3ead9",
 };

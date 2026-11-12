@@ -6,13 +6,9 @@ export interface CardProps {
   children: ReactNode;
 }
 
-// Card — the prototype's panel: a flat `--sur` block with a 14px radius and
-// no border (the border only appears in the light theme, where surface and
-// page are both near-white). Every screen's "block of related content" is
-// this, so the app has one card and not one per section.
 export function Card({ className, children }: CardProps) {
   return (
-    <div className={cn("rounded-xl bg-surface p-4", className)}>{children}</div>
+    <div className={cn("rounded-xl bg-surface p-4 sm:p-5", className)}>{children}</div>
   );
 }
 
@@ -52,7 +48,7 @@ export interface CardTitleProps {
   action?: ReactNode;
 }
 
-// CardTitle — the 13px semibold heading the prototype puts at the top of a
+// CardTitle — the heading at the top of a
 // card, with an optional trailing slot on the same baseline. The row wraps
 // rather than squeezing: the heading keeps a 10rem floor, so on a 360px
 // phone a wide action (a «Завершить все остальные» button) drops to its own
@@ -60,7 +56,7 @@ export interface CardTitleProps {
 export function CardTitle({ className, children, action }: CardTitleProps) {
   return (
     <div className={cn("flex flex-wrap items-center gap-2", className)}>
-      <h3 className="min-w-[10rem] flex-1 truncate text-[13px] font-semibold text-text">
+      <h3 className="min-w-0 basis-40 flex-1 break-words text-base font-bold text-text">
         {children}
       </h3>
       {action !== undefined && <div className="ml-auto flex shrink-0 items-center gap-2">{action}</div>}

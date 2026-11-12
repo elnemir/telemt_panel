@@ -18,7 +18,7 @@ import { useLogout } from "../auth/useLogout";
 import { useAuthDisabled } from "../auth/useAuthDisabled";
 import { AuthDisabledNotice } from "../auth/AuthDisabledNotice";
 import { Sheet } from "../ui/Sheet";
-import { IconLogout, IconMore, IconSettings } from "../ui/icons";
+import { IconLogout, IconMore, IconSettings, IconServer, IconJournal } from "../ui/icons";
 import { HistoryNotice } from "./HistoryNotice";
 import { PanelLogo } from "../branding/branding";
 import { useBranding } from "../branding/useBranding";
@@ -37,7 +37,7 @@ export function Shell({ children }: { children: ReactNode }) {
   const [mobileMoreOpen, setMobileMoreOpen] = useState(false);
   const [railMoreOpen, setRailMoreOpen] = useState(false);
   const ownsLayout = pathname === "/people" || pathname.startsWith("/people/");
-  const managementActive = MORE_NAV_ITEMS.some((item) => isNavItemActive(item.to, pathname));
+  const managementActive = MORE_NAV_ITEMS.some((item) => isNavItemActive(item.to, pathname)) || pathname === "/nodes" || pathname === "/clusters" || pathname === "/billing";
 
   useEffect(() => {
     if (!railMoreOpen) return;
@@ -94,7 +94,7 @@ export function Shell({ children }: { children: ReactNode }) {
             "flex min-h-0 flex-1 flex-col",
             ownsLayout
               ? "overflow-hidden"
-              : "overflow-y-auto px-4 py-4 pb-[76px] min-[600px]:pb-4",
+              : "overflow-y-auto p-4 pb-[84px] min-[600px]:p-6 min-[1180px]:p-8",
           )}
         >
           <div
@@ -164,10 +164,12 @@ function FullSidebar({ pathname }: { pathname: string }) {
   const logout = useLogout();
   const authDisabled = useAuthDisabled();
   return (
-    <aside data-testid="full-sidebar" className="hidden w-[240px] shrink-0 flex-col border-r border-border bg-surface px-3 py-4 min-[1180px]:flex">
-      <div className="flex items-center gap-2.5 px-2.5 pb-5">
-        <BrandMark />
-        <span title={branding.title} className="min-w-0 flex-1 truncate text-sm font-bold text-text">{branding.title}</span>
+    <aside data-testid="full-sidebar" className="hidden w-[236px] shrink-0 flex-col overflow-y-auto bg-surface px-6 py-6 min-[1180px]:flex">
+      <div className="flex flex-wrap items-center gap-2.5 border-b border-border pb-5 mb-5">
+        {branding.logo_mode === "default" && branding.title === "Telemt Panel"
+          ? <span className="text-[32px] font-bold leading-[1.45] text-accent">telemt</span>
+          : <><BrandMark /><span title={branding.title} className="min-w-0 flex-1 break-words text-lg font-bold text-text">{branding.title}</span></>}
+        <span className="w-full text-xs font-bold text-text-muted">{s.shell.controlSpace}</span>
       </div>
       <SidebarGroup label={s.shell.overviewGroup} items={SIDEBAR_OVERVIEW_NAV_ITEMS} pathname={pathname} />
       <SidebarGroup
@@ -176,6 +178,7 @@ function FullSidebar({ pathname }: { pathname: string }) {
         pathname={pathname}
         className="mt-5"
       />
+      <div className="mt-5"><p className="px-2.5 pb-1.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-text-faint">{s.shell.platformGroup}</p><PlatformLinks pathname={pathname} /></div>
       <div className="mt-auto flex flex-col gap-2 pt-4">
         <StatusStrip variant="card" />
         <div className="flex items-center gap-1">
@@ -225,9 +228,9 @@ function SidebarGroup({
               to={to}
               aria-current={active ? "page" : undefined}
               className={cn(
-                "tap-target flex items-center gap-3 rounded-lg px-3 text-row font-semibold",
-                "text-text-faint transition-colors hover:bg-surface-2 hover:text-text",
-                active && "bg-accent/14 text-accent",
+                "tap-target flex items-center gap-2.5 rounded-[10px] px-2.5 text-sm font-medium",
+                "transition-colors hover:bg-surface-2 hover:text-text",
+                active ? "bg-[rgb(var(--lavender))] text-accent" : "text-text-muted",
               )}
             >
               <Icon className="h-[18px] w-[18px] shrink-0" />
@@ -250,8 +253,8 @@ function RailLink({ item, active }: { item: NavItem; active: boolean }) {
       aria-label={s.nav[labelKey]}
       aria-current={active ? "page" : undefined}
       className={cn(
-        "tap-target flex w-11 items-center justify-center rounded-lg text-text-faint transition-colors hover:bg-surface-2 hover:text-text",
-        active && "bg-accent/14 text-accent",
+        "tap-target flex w-11 items-center justify-center rounded-lg transition-colors hover:bg-surface-2 hover:text-text",
+        active ? "bg-[rgb(var(--lavender))] text-accent" : "text-text-muted",
       )}
     >
       <Icon className="h-5 w-5" />
@@ -285,13 +288,14 @@ function SecondaryLinks({ onNavigate }: { onNavigate: () => void }) {
   const authDisabled = useAuthDisabled();
   return (
     <div role="menu" className="flex flex-col gap-1">
+      <PlatformLinks onNavigate={onNavigate} menu />
       {MORE_NAV_ITEMS.map(({ to, labelKey, Icon }) => (
         <Link
           key={to}
           to={to}
           role="menuitem"
           onClick={onNavigate}
-          className="tap-target flex items-center gap-3 rounded-lg px-3 text-row font-semibold text-text-muted transition-colors hover:bg-surface-2 hover:text-text"
+          className="tap-target flex items-center gap-2.5 rounded-[10px] px-2.5 text-sm font-medium text-text-muted transition-colors hover:bg-surface-2 hover:text-text"
         >
           <Icon className="h-5 w-5 shrink-0" />
           {s.nav[labelKey]}
@@ -301,7 +305,7 @@ function SecondaryLinks({ onNavigate }: { onNavigate: () => void }) {
         to="/server/settings"
         role="menuitem"
         onClick={onNavigate}
-        className="tap-target flex items-center gap-3 rounded-lg px-3 text-row font-semibold text-text-muted transition-colors hover:bg-surface-2 hover:text-text"
+        className="tap-target flex items-center gap-2.5 rounded-[10px] px-2.5 text-sm font-medium text-text-muted transition-colors hover:bg-surface-2 hover:text-text"
       >
         <IconSettings className="h-5 w-5 shrink-0" />
         {s.shell.panelSettings}
@@ -319,4 +323,21 @@ function SecondaryLinks({ onNavigate }: { onNavigate: () => void }) {
       </button>}
     </div>
   );
+}
+
+// Platform destinations never change the document-bound node scope.
+function PlatformLinks({ pathname, onNavigate, menu = false }: { pathname?: string; onNavigate?: () => void; menu?: boolean }) {
+  const s = useStrings();
+  const items = [
+    { to: "/nodes", label: s.nodes.registry, Icon: IconServer },
+    { to: "/clusters", label: s.clusters.title, Icon: IconServer },
+    { to: "/billing", label: s.billing.title, Icon: IconJournal },
+  ];
+  return <div className="flex flex-col gap-1">{items.map(({ to, label, Icon }) =>
+    <Link key={to} to={to} role={menu ? "menuitem" : undefined} onClick={onNavigate}
+      aria-current={pathname === to ? "page" : undefined}
+      className={cn("tap-target flex items-center gap-2.5 rounded-[10px] px-2.5 text-sm font-medium hover:bg-surface-2 hover:text-text", pathname === to ? "bg-[rgb(var(--lavender))] text-accent" : "text-text-muted")}>
+      <Icon className="h-[18px] w-[18px] shrink-0" />{label}
+    </Link>
+  )}</div>;
 }

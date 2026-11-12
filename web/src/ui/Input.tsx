@@ -18,9 +18,9 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
     <input
       ref={ref}
       className={cn(
-        "h-11 w-full rounded-lg border border-border bg-surface-2 px-3.5 text-base text-text",
+        "h-11 w-full rounded-lg border border-border bg-surface px-3.5 text-base text-text",
         "placeholder:text-text-faint",
-        "focus-visible:border-accent",
+        "focus-visible:border-accent aria-invalid:border-error",
         "disabled:cursor-not-allowed disabled:opacity-50",
         monospace && "font-mono",
         className,

@@ -1,3 +1,4 @@
+import { SnapshotExplorer } from "../diag/SnapshotExplorer";
 import type { ComponentType } from "react";
 import { PageHeader } from "../../ui/PageHeader";
 import { Link } from "@tanstack/react-router";
@@ -355,6 +356,7 @@ export function PulseHub() {
         <TrafficAnalytics />
         <HubGroup title={s.hub.groups.evidence} note={s.hub.groups.evidenceNote} cards={evidence} nowMs={nowMs} />
 
+        <SnapshotExplorer />
         {webCard && (
           <section className="flex flex-col gap-2.5">
             <h2 className="px-0.5 text-[13px] font-bold text-text">{s.hub.groups.additional}</h2>

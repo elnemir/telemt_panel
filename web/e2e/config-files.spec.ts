@@ -62,6 +62,10 @@ test("typed source edit, durable backup, conflict and recovery with real CLI",as
   await sheet.getByLabel("Значение",{exact:true}).fill("debug");
   await sheet.getByRole("button",{name:"Применить к черновику"}).click();
   await expect(sheet).toBeHidden({timeout:30000});
+  await page.getByRole("button",{name:"Сравнить исходный файл и изменения",exact:true}).click();
+  const comparison=page.locator("pre");
+  await expect(comparison.first()).toContainText('log_level = "normal"');
+  await expect(comparison.last()).toContainText('log_level = "debug"');
   const save=page.getByRole("button",{name:"Сохранить файл",exact:true});
   await expect(save).toBeDisabled();
   await page.getByRole("button",{name:"Проверить",exact:true}).click();

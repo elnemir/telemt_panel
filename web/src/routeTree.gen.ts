@@ -17,6 +17,7 @@ import { Route as AuthedBillingRouteImport } from './routes/_authed/billing'
 import { Route as AuthedClustersRouteImport } from './routes/_authed/clusters'
 import { Route as AuthedGeographyRouteImport } from './routes/_authed/geography'
 import { Route as AuthedJournalRouteImport } from './routes/_authed/journal'
+import { Route as AuthedNodesRouteImport } from './routes/_authed/nodes'
 import { Route as AuthedOverviewRouteImport } from './routes/_authed/overview'
 import { Route as AuthedPeopleRouteRouteImport } from './routes/_authed/people/route'
 import { Route as AuthedPulseRouteRouteImport } from './routes/_authed/pulse/route'
@@ -72,6 +73,11 @@ const AuthedGeographyRoute = AuthedGeographyRouteImport.update({
 const AuthedJournalRoute = AuthedJournalRouteImport.update({
   id: '/journal',
   path: '/journal',
+  getParentRoute: () => AuthedRoute,
+} as any)
+const AuthedNodesRoute = AuthedNodesRouteImport.update({
+  id: '/nodes',
+  path: '/nodes',
   getParentRoute: () => AuthedRoute,
 } as any)
 const AuthedOverviewRoute = AuthedOverviewRouteImport.update({
@@ -171,6 +177,7 @@ export interface FileRoutesByFullPath {
   '/clusters': typeof AuthedClustersRoute
   '/geography': typeof AuthedGeographyRoute
   '/journal': typeof AuthedJournalRoute
+  '/nodes': typeof AuthedNodesRoute
   '/overview': typeof AuthedOverviewRoute
   '/web': typeof AuthedWebRoute
   '/dev/ui': typeof DevUiRoute
@@ -194,6 +201,7 @@ export interface FileRoutesByTo {
   '/clusters': typeof AuthedClustersRoute
   '/geography': typeof AuthedGeographyRoute
   '/journal': typeof AuthedJournalRoute
+  '/nodes': typeof AuthedNodesRoute
   '/overview': typeof AuthedOverviewRoute
   '/web': typeof AuthedWebRoute
   '/dev/ui': typeof DevUiRoute
@@ -222,6 +230,7 @@ export interface FileRoutesById {
   '/_authed/clusters': typeof AuthedClustersRoute
   '/_authed/geography': typeof AuthedGeographyRoute
   '/_authed/journal': typeof AuthedJournalRoute
+  '/_authed/nodes': typeof AuthedNodesRoute
   '/_authed/overview': typeof AuthedOverviewRoute
   '/_authed/web': typeof AuthedWebRoute
   '/dev/ui': typeof DevUiRoute
@@ -250,6 +259,7 @@ export interface FileRouteTypes {
     | '/clusters'
     | '/geography'
     | '/journal'
+    | '/nodes'
     | '/overview'
     | '/web'
     | '/dev/ui'
@@ -273,6 +283,7 @@ export interface FileRouteTypes {
     | '/clusters'
     | '/geography'
     | '/journal'
+    | '/nodes'
     | '/overview'
     | '/web'
     | '/dev/ui'
@@ -300,6 +311,7 @@ export interface FileRouteTypes {
     | '/_authed/clusters'
     | '/_authed/geography'
     | '/_authed/journal'
+    | '/_authed/nodes'
     | '/_authed/overview'
     | '/_authed/web'
     | '/dev/ui'
@@ -380,6 +392,13 @@ declare module '@tanstack/react-router' {
       path: '/journal'
       fullPath: '/journal'
       preLoaderRoute: typeof AuthedJournalRouteImport
+      parentRoute: typeof AuthedRoute
+    }
+    '/_authed/nodes': {
+      id: '/_authed/nodes'
+      path: '/nodes'
+      fullPath: '/nodes'
+      preLoaderRoute: typeof AuthedNodesRouteImport
       parentRoute: typeof AuthedRoute
     }
     '/_authed/overview': {
@@ -561,6 +580,7 @@ interface AuthedRouteChildren {
   AuthedClustersRoute: typeof AuthedClustersRoute
   AuthedGeographyRoute: typeof AuthedGeographyRoute
   AuthedJournalRoute: typeof AuthedJournalRoute
+  AuthedNodesRoute: typeof AuthedNodesRoute
   AuthedOverviewRoute: typeof AuthedOverviewRoute
   AuthedWebRoute: typeof AuthedWebRoute
 }
@@ -573,6 +593,7 @@ const AuthedRouteChildren: AuthedRouteChildren = {
   AuthedClustersRoute: AuthedClustersRoute,
   AuthedGeographyRoute: AuthedGeographyRoute,
   AuthedJournalRoute: AuthedJournalRoute,
+  AuthedNodesRoute: AuthedNodesRoute,
   AuthedOverviewRoute: AuthedOverviewRoute,
   AuthedWebRoute: AuthedWebRoute,
 }

@@ -240,6 +240,7 @@ export const ru = {
   }
 },
   configFiles: {
+    view: "Вид конфигурации",
   "title": "Файлы конфигурации",
   "description": "Полная конфигурация выбранной ноды: разделы и поля, проверка перед сохранением и резервные копии.",
   "installHint": "Для этого раздела нужен агент с настроенными config_path и config_binary и поддержкой config-file-v1.",
@@ -289,7 +290,34 @@ export const ru = {
     "datetime": "Дата и время"
   }
 },
+  linkCredentialNotice: "Ссылки и QR содержат данные доступа. Передавайте их только получателю.",
+  snapshotExplorer: {
+    title: "Технические поля снимка",
+    show: "Показать поля",
+    hide: "Скрыть поля",
+    source: "Раздел",
+    search: "Поиск по полному пути",
+    stale: "Данные могли устареть",
+    limited: "Показана часть полей снимка",
+    unavailable: "Снимок недоступен",
+    noMatches: "Совпадений нет",
+    path: "Полный путь",
+    type: "Тип",
+    value: "Значение",
+    sources: { me_writers: "ME / writers", dcs: "DC", upstreams: "Upstreams", me_pool_state: "ME / pool", me_quality: "ME / quality", nat_stun: "NAT / STUN" },
+  },
   nodes: {
+    healthReachable: "Control API отвечает",
+    registryManaged: "Добавлена в реестр",
+    registry: "Ноды",
+    registryHint: "Реестр нод и состояние Control API.",
+    search: "Поиск по имени",
+    noMatches: "Ноды не найдены",
+    healthUnavailable: "Нет ответа Control API",
+    current: "Текущая нода",
+    readOnly: "Только чтение",
+    open: "Открыть сводку",
+
     agent: "Агент ноды (необязательно)",
     agentHint: "Управление службой и просмотр логов. Установите агент отдельно; после привязки адрес и идентификатор неизменяемы. Укажите имя переменной окружения, а не токен.",
     agentAddress: "Адрес агента",
@@ -324,6 +352,8 @@ export const ru = {
     "loading": "Загрузка нод…"
 },
   shell: {
+    platformGroup: "Платформа",
+    controlSpace: "ПАНЕЛЬ УПРАВЛЕНИЯ",
     menu: "Меню",
     navLabel: "Основная навигация",
     historyTemporary: "SQLite недоступна · история временная",
@@ -670,6 +700,9 @@ export const ru = {
   },
   // Сводка — the operational dashboard's page chrome.
   overview: {
+    description: "Состояние выбранной ноды и действия, которым нужно внимание.",
+    heroEyebrow: "ВЫБРАННАЯ НОДА",
+    diagnostics: "Открыть диагностику",
     title: "Сводка",
     onlineOf: "{online} из {total}",
     onlineSummary: "{online} из {total} · {connections} соед.",
@@ -2750,6 +2783,7 @@ export const ru = {
     },
   },
   journal: {
+    runtime: "События Telemt",
     connectingTitle:"Подключаемся к журналу",connectingDescription:"Ожидаем подтверждение источника. Отсутствие строк пока не означает, что журнал пуст.",
     streamEndedTitle:"Поток журнала завершён",streamEndedDescription:"Источник больше не передаёт строки. Полученные записи сохранены; можно подключиться снова.",
     sourceErrorTitle:"Журнал недоступен",sourceErrorSource:"Источник",sourceErrorTarget:"Служба, контейнер или файл",sourceErrorExitCode:"Код завершения",
@@ -3475,6 +3509,8 @@ export const ru = {
         rolled_back: "Откат выполнен",
         failed: "Ошибка",
       },
+      progressDone: "Завершено",
+      progressWaiting: "Ожидается",
       stepOf: "из",
       rollbackCompleted: "Предыдущая версия восстановлена автоматически",
       rollbackInProgress: "Восстанавливается предыдущая версия",

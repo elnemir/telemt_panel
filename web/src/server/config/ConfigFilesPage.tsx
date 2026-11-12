@@ -26,6 +26,7 @@ export function ConfigFilesPage() {
   const backups=useQuery({...managedListConfigBackupsOptions({path}),retry:false,gcTime:0,refetchOnWindowFocus:false});
   const [draft,setDraft]=useState<Draft>();
   const [raw,setRaw]=useState(false);
+  const [compare,setCompare]=useState(false);
   const [field,setField]=useState<FieldChoice>();
   const [value,setValue]=useState("");
   const [fieldName,setFieldName]=useState("");
@@ -61,21 +62,39 @@ export function ConfigFilesPage() {
     await backups.refetch();
   }
   return <ServerShell title={t.title}>
-    <p className="px-4 text-sm text-text-muted">{t.description}</p>
+    <p className="text-sm text-text-muted">{t.description}</p>
     {query.isPending && <p className="p-4">{s.nodes.loading}</p>}
     {query.error && <p role="alert" className="p-4 text-warn">{apiErrorMessage(query.error,s)} {t.installHint}</p>}
-    <div className="flex flex-wrap gap-2 px-4">
+    <div className="flex flex-wrap items-center gap-2">
       <Button variant="secondary" disabled={busy} onClick={()=>{if((!dirty&&!pendingKey&&!field)||window.confirm(t.discardConfirm))run(refresh);}}>{t.refresh}</Button>
+      <a href="#config-backups" className="tap-target inline-flex items-center px-3 text-accent">{t.backups}</a>
       <Link to="/server/platform" className="self-center text-accent">{t.service}</Link>
     </div>
-    {active && <section className="flex min-w-0 flex-col gap-4 p-4">
+    {active && <section className="workspace-card flex flex-col gap-4">
       <label className="text-sm">{t.source}<Select value={active.source.id} disabled={editDisabled} onChange={e=>{
         if(dirty&&!window.confirm(t.discardConfirm))return;
         const source=query.data?.sources.find(x=>x.id===e.target.value);
         if(source&&query.data){setDraft({source,content:source.content,tree:source.tree,revision:query.data.revision});setValidated(undefined);}
       }}>{query.data?.sources.map(source=><option key={source.id} value={source.id}>{source.name}</option>)}</Select></label>
-      <div className="flex flex-wrap gap-2">
-        <Button variant="secondary" disabled={editDisabled} onClick={()=>raw ? run(()=>render([])):setRaw(true)}>{raw?t.structured:t.raw}</Button>
+      <div className="workspace-segments" role="group" aria-label={t.view}>
+        <button type="button" aria-pressed={!compare&&!raw} disabled={editDisabled} onClick={()=>{
+          if(raw || !active.tree) run(async()=>{await render([]);setCompare(false);});
+          else setCompare(false);
+        }}>{t.structured}</button>
+        <button type="button" aria-pressed={!compare&&raw} onClick={()=>{setRaw(true);setCompare(false);}}>{t.raw}</button>
+        <button type="button" aria-pressed={compare} onClick={()=>setCompare(true)}>{t.preview}</button>
+      </div>
+      {compare ? <div className="grid min-w-0 gap-4 lg:grid-cols-2">
+        {[{label:t.before,content:active.source.content},{label:t.after,content:active.content}].map(({label,content})=>
+          <section className="min-w-0 rounded-lg bg-surface-2 p-3" key={label}>
+            <h2 className="mb-2 text-sm font-semibold">{label}</h2>
+            <pre className="max-h-96 overflow-auto whitespace-pre-wrap break-words text-sm" tabIndex={0}>{content}</pre>
+          </section>
+        )}
+      </div> : raw ? <textarea aria-label={t.raw} spellCheck={false} className="min-h-96 w-full rounded-lg border border-border bg-surface-2 p-4 font-mono text-sm" disabled={editDisabled} value={active.content} onChange={e=>{setDraft({...active,content:e.target.value,tree:null});setValidated(undefined);}} />
+        : active.tree ? <ConfigTreeEditor tree={active.tree} disabled={editDisabled} choose={choose} remove={remove}/>
+        : <p className="text-warn">{t.noTree}</p>}
+      <div className="flex flex-wrap items-center gap-2">
         <Button variant="secondary" disabled={editDisabled} onClick={()=>run(async()=>{await managedValidateConfigFile({path,body:input(),throwOnError:true});setValidated(active.content);setNotice(t.valid);})}>{t.validate}</Button>
         <Button disabled={busy||!dirty||validated!==active.content} onClick={()=>{
           if(!pendingKey&&!window.confirm(t.applyConfirm))return;
@@ -86,25 +105,21 @@ export function ConfigFilesPage() {
           });
         }}>{pendingKey?t.retryCommand:t.apply}</Button>
       </div>
-      {raw ? <label>{t.raw}<textarea spellCheck={false} className="min-h-96 w-full rounded-lg border border-border bg-surface p-3 font-mono text-sm" disabled={editDisabled} value={active.content} onChange={e=>{setDraft({...active,content:e.target.value,tree:null});setValidated(undefined);}} /></label>
-        : active.tree ? <ConfigTreeEditor tree={active.tree} disabled={editDisabled} choose={choose} remove={remove}/>
-        : <p className="text-warn">{t.noTree} <Button variant="secondary" onClick={()=>setRaw(true)}>{t.raw}</Button></p>}
-      <details className="rounded-lg border border-border p-3"><summary>{t.preview}</summary><div className="mt-3 grid min-w-0 gap-3 lg:grid-cols-2"><div><strong>{t.before}</strong><pre className="max-h-80 overflow-auto whitespace-pre-wrap break-all text-xs">{active.source.content}</pre></div><div><strong>{t.after}</strong><pre className="max-h-80 overflow-auto whitespace-pre-wrap break-all text-xs">{active.content}</pre></div></div></details>
     </section>}
     {pendingKey && <section className="mx-4 rounded-lg border border-warn p-3 text-sm"><p>{t.commandPending}</p><code className="block break-all">{pendingKey}</code>
       <Button variant="secondary" disabled={busy} onClick={()=>run(async()=>{const {data}=await managedGetAgentCommand({path:{...path,key:pendingKey},throwOnError:true});setOutcome(data.status);})}>{t.inspectCommand}</Button>
       {outcome!==undefined && <p>{outcome===0?t.unknown:`${t.commandStatus}: ${outcome}`}</p>}
     </section>}
     {error!==undefined && <p role="alert" className="px-4 text-warn">{apiErrorMessage(error as {code?:unknown},s)}</p>}
-    {notice && <p role="status" className="px-4 text-success">{notice}</p>}
-    <section className="m-4 rounded-lg border border-border p-4"><h2 className="font-semibold">{t.backups}</h2><p className="text-sm text-text-muted">{t.backupsHint}</p>
+    {notice && <p role="status" className="px-4 text-ok">{notice}</p>}
+    <section id="config-backups" className="workspace-card scroll-mt-4"><h2 className="text-xl font-bold">{t.backups}</h2><p className="text-sm text-text-muted">{t.backupsHint}</p>
       {backups.error && <p role="alert" className="text-warn">{apiErrorMessage(backups.error,s)}</p>}
       {backups.data?.map(backup=><div key={backup.id} className="mt-3 flex flex-wrap gap-2 border-t border-border pt-3"><span className="min-w-0 flex-1 break-all text-sm">{backup.source.name}<br/>{new Date(backup.created*1000).toLocaleString()}</span>
         <Button size="sm" variant="secondary" disabled={editDisabled} onClick={()=>{if(dirty&&!window.confirm(t.discardConfirm))return;run(async()=>{
           const {data}=await managedGetConfigBackup({path:{...path,key:backup.id},throwOnError:true});
           const source=query.data?.sources.find(x=>x.id===data.source.id);
           if(!source||!query.data)throw {code:"config_source_not_found"};
-          setDraft({source,revision:query.data.revision,content:data.source.content,tree:null});setRaw(true);setValidated(undefined);setNotice(t.restoreDraft);
+          setDraft({source,revision:query.data.revision,content:data.source.content,tree:null});setRaw(true);setCompare(false);setValidated(undefined);setNotice(t.restoreDraft);
         });}}>{t.restore}</Button>
         <Button size="sm" variant="secondary" disabled={busy} onClick={()=>{if(window.confirm(t.deleteBackupConfirm))run(async()=>{await managedDeleteConfigBackup({path:{...path,key:backup.id},headers:{"Idempotency-Key":commandKey()},throwOnError:true});await backups.refetch();});}}>{t.remove}</Button>
       </div>)}
