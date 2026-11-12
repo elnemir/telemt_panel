@@ -1,3 +1,4 @@
+import { nodeAPIPath } from "../../nodes/scope";
 import { client } from "./generated/client.gen";
 import { getMeQueryKey } from "./generated/@tanstack/react-query.gen";
 import { getBasePath, withBasePath } from "../base-path";
@@ -18,6 +19,28 @@ client.setConfig({
   // config.Config.BasePath's own normalization.
   baseUrl: getBasePath(),
   credentials: "include",
+});
+
+// Capture the immutable document scope before the fetch, never a mutable
+// selection. Explicit registry/scoped URLs and global admin APIs are unchanged.
+client.interceptors.request.use(async (request) => {
+  const url = new URL(request.url);
+  const base = getBasePath();
+  if (url.origin !== window.location.origin || !url.pathname.startsWith(base + "/api/")) return request;
+  const path = nodeAPIPath(url.pathname.slice(base.length));
+  if (base + path === url.pathname) return request;
+  url.pathname = base + path;
+  // Request.body is a ReadableStream: passing the Request as RequestInit
+  // would turn ordinary JSON uploads into streaming uploads (HTTP/2-only in
+  // Chromium). Materialize the existing body while preserving fetch options.
+  return new Request(url, {
+    method: request.method, headers: request.headers,
+    body: request.body ? await request.clone().blob() : undefined,
+    credentials: request.credentials, mode: request.mode, cache: request.cache,
+    redirect: request.redirect, referrer: request.referrer,
+    referrerPolicy: request.referrerPolicy, integrity: request.integrity,
+    keepalive: request.keepalive, signal: request.signal,
+  });
 });
 
 // Global 401 handling (Task 4 deliverable A): any authenticated request
@@ -43,6 +66,8 @@ client.interceptors.response.use((response, request) => {
   }
 
   const requestUrl = new URL(request.url);
+  // Customer authentication has its own cookie, cache and login screen.
+  if(requestUrl.pathname.startsWith(getBasePath()+"/api/customer/")) return response;
   removeGeography(queryClient);
   if (EXCLUDED_PATHS.some((p) => requestUrl.pathname.endsWith(p))) {
     return response;

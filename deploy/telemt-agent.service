@@ -1,0 +1,18 @@
+[Unit]
+Description=Telemt node management agent
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=telemt-agent
+Group=telemt-agent
+EnvironmentFile=/etc/telemt-agent/environment
+ExecStart=/usr/local/bin/telemt-agent --config /etc/telemt-agent/config.toml
+StateDirectory=telemt-agent
+UMask=0077
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

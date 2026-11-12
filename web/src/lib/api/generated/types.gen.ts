@@ -4,6 +4,591 @@ export type ClientOptions = {
     baseUrl: `${string}://${string}` | `${string}://{subscription_origin}` | (string & {});
 };
 
+export type UserCopyOptions = {
+    limits: boolean;
+    expiration: boolean;
+    enabled: boolean;
+    ad_tag: boolean;
+    overwrite: boolean;
+};
+
+export type UserCopySelection = {
+    source_id: string;
+    username: string;
+    targets: Array<string>;
+    options: UserCopyOptions;
+};
+
+export type UserCopyFields = {
+    username: string;
+    user_ad_tag?: string;
+    max_tcp_conns?: number;
+    max_unique_ips?: number;
+    data_quota_bytes?: number;
+    expiration_rfc3339?: string;
+    /**
+     * Bits per second; 0 is unlimited. Telemt 3.5.8+ accepts at most 100000000000.
+     */
+    rate_limit_up_bps?: number;
+    /**
+     * Bits per second; 0 is unlimited. Telemt 3.5.8+ accepts at most 100000000000.
+     */
+    rate_limit_down_bps?: number;
+    enabled?: boolean;
+};
+
+export type UserCopyTarget = {
+    node_id: string;
+    node_revision: number;
+    revision: string;
+    exists: boolean;
+    state: 'ready' | 'skipped' | 'unavailable' | 'persisted' | 'unconfirmed' | 'rejected' | 'unknown';
+    code?: string;
+    in_runtime: boolean;
+};
+
+export type UserCopyPreview = {
+    token: string;
+    expires_at: string;
+    selection: UserCopySelection;
+    source_revision: string;
+    source_node_revision: number;
+    fields: UserCopyFields;
+    targets: Array<UserCopyTarget>;
+};
+
+export type UserCopyResult = {
+    source_id: string;
+    username: string;
+    targets: Array<UserCopyTarget>;
+};
+
+export type BillingInvoice = {
+    id: string;
+    /**
+     * Exact int64 decimal string; do not parse as floating point.
+     */
+    number: string;
+    customer_id: string;
+    subscription_id: string;
+    account_id: string;
+    plan_id: string;
+    plan_version: number;
+    currency: string;
+    currency_scale: number;
+    /**
+     * Exact int64 decimal string; do not parse as floating point.
+     */
+    amount_minor: string;
+    test: boolean;
+    status: 'pending' | 'paid' | 'test_paid';
+    terms: BillingPlanTerms;
+    created_at: number;
+    paid_at: number | null;
+};
+
+export type BillingPayment = {
+    id: string;
+    account_id: string;
+    provider: 'robokassa' | 'yoomoney';
+    external_id: string;
+    customer_id: string;
+    invoice_id: string;
+    /**
+     * Exact int64 decimal string; do not parse as floating point.
+     */
+    gross_minor: string;
+    /**
+     * Exact int64 decimal string; do not parse as floating point.
+     */
+    net_minor: string | null;
+    currency: string;
+    test: boolean;
+    kind: 'service_payment' | 'unallocated_payment' | 'test_payment';
+    payment_at: number;
+    time_source: 'provider' | 'verified_notification';
+    received_at: number;
+};
+
+export type BillingPlanTerms = {
+    currency: string;
+    currency_scale: number;
+    /**
+     * Exact int64 decimal string; do not parse as floating point.
+     */
+    price_minor: string;
+    /**
+     * Exact int64 decimal string; do not parse as floating point.
+     */
+    duration_seconds: string;
+    /**
+     * Exact int64 decimal string; do not parse as floating point.
+     */
+    quota_bytes: string | null;
+    /**
+     * Explicit tolerance required for finite quota; null for unlimited. Enforcement requires separate provisioning.
+     */
+    overrun_bytes: string | null;
+    node_policy: ClusterIdentityPolicy;
+};
+
+export type BillingPlanUpdate = {
+    name: string;
+    enabled: boolean;
+    terms: BillingPlanTerms;
+};
+
+export type BillingPlanCreate = {
+    cluster_id: string;
+    name: string;
+    enabled: boolean;
+    terms: BillingPlanTerms;
+};
+
+export type BillingPlan = {
+    id: string;
+    cluster_id: string;
+    name: string;
+    enabled: boolean;
+    terms: BillingPlanTerms;
+    revision: number;
+    version: number;
+    created_at: number;
+    updated_at: number;
+};
+
+export type ServiceReceipt = {
+    name: string;
+    tax: string;
+    payment_method: string;
+    tax_system: string;
+};
+
+export type PaymentAccountConfig = {
+    merchant?: string;
+    algorithm?: '' | 'MD5' | 'SHA256';
+    password1_env?: string;
+    password2_env?: string;
+    wallet?: string;
+    notification_secret_env?: string;
+    receipt?: ServiceReceipt | null;
+};
+
+export type PaymentAccountUpdate = {
+    name: string;
+    enabled: boolean;
+};
+
+export type PaymentAccountCreate = {
+    name: string;
+    provider: 'robokassa' | 'yoomoney';
+    test: boolean;
+    enabled: boolean;
+    config: PaymentAccountConfig;
+};
+
+export type PaymentAccount = {
+    id: string;
+    name: string;
+    provider: 'robokassa' | 'yoomoney';
+    test: boolean;
+    enabled: boolean;
+    config: PaymentAccountConfig;
+    revision: number;
+    created_at: number;
+    updated_at: number;
+};
+
+export type CustomerAuthMethods = {
+    enabled: boolean;
+    email: boolean;
+    email_delivery: boolean;
+    telegram: boolean;
+};
+
+export type PortalCustomer = {
+    id: string;
+    email: string;
+    email_verified: boolean;
+    telegram_linked: boolean;
+    enabled: boolean;
+    created_at: number;
+};
+
+export type CustomerPaymentOption = {
+    id: string;
+    name: string;
+    provider: 'robokassa' | 'yoomoney';
+    currency: 'RUB';
+};
+
+export type CustomerSubscription = {
+    id: string;
+    customer_id: string;
+    cluster_id: string;
+    identity_id: string;
+    enabled: boolean;
+    created_at: number;
+};
+
+export type CustomerPaidPeriod = {
+    id: string;
+    subscription_id: string;
+    invoice_id: string;
+    plan_id: string;
+    plan_version: number;
+    starts_at: number;
+    ends_at: number;
+    terms: BillingPlanTerms;
+};
+
+export type CustomerSubscriptionDetail = {
+    subscription: CustomerSubscription;
+    current_period: CustomerPaidPeriod | null;
+    paid_through: number | null;
+    server_time: number;
+    access_status: 'not_provisioned' | 'disabled' | 'unpaid' | 'configured';
+    usage_available: boolean;
+    access: CustomerServiceAccess;
+};
+
+export type CustomerConnectionLink = {
+    mode: 'classic' | 'secure' | 'faketls';
+    url: string;
+};
+
+export type CustomerServiceNode = {
+    node_id: string;
+    status: 'pending' | 'conflict' | 'unavailable' | 'quota_empty' | 'configured';
+    checked_at: number;
+    budget_until: number;
+    links: Array<CustomerConnectionLink>;
+};
+
+export type CustomerQuotaUsage = {
+    period_id: string;
+    quota_bytes: string | null;
+    overrun_bytes: string | null;
+    granted_bytes: string;
+    observed_bytes: string;
+    unknown_bytes: string;
+    allocations: number;
+    last_reported_at: number | null;
+};
+
+export type CustomerServiceAccess = {
+    status: 'not_provisioned' | 'disabled' | 'unpaid' | 'configured';
+    nodes: Array<CustomerServiceNode>;
+    usage: CustomerQuotaUsage | null;
+};
+
+export type CustomerInvoiceInput = {
+    subscription_id?: string;
+    plan_id: string;
+    account_id: string;
+    request_key: string;
+};
+
+export type CustomerCheckoutForm = {
+    action: 'https://auth.robokassa.ru/Merchant/Index.aspx' | 'https://yoomoney.ru/quickpay/confirm';
+    method: 'POST';
+    fields: {
+        [key: string]: string;
+    };
+};
+
+export type IngressTarget = {
+    node_id: string;
+    native_address: string;
+    web_address: string;
+    weight: number;
+    drain: boolean;
+};
+
+export type IngressConfig = {
+    domain: string;
+    native_port: number;
+    /**
+     * Current Telemt bridge uses HTTPS port 443.
+     */
+    web_port: 443;
+    native_balance: 'roundrobin' | 'leastconn' | 'source';
+    targets: Array<IngressTarget>;
+};
+
+export type ClusterRouting = {
+    revision: number;
+    config: IngressConfig | null;
+};
+
+export type PlatformStatus = {
+    available: boolean;
+    enabled: boolean;
+};
+
+export type Cluster = {
+    id: string;
+    name: string;
+    revision: number;
+    created_at: number;
+    updated_at: number;
+};
+
+export type ClusterMember = {
+    node_id: string;
+    cluster_id: string;
+    state: 'active' | 'removing';
+    weight: number;
+    drain: boolean;
+};
+
+export type ClusterDetail = {
+    cluster: Cluster;
+    members: Array<ClusterMember>;
+};
+
+export type ClusterIdentityPolicy = {
+    enabled: boolean;
+    max_tcp_conns: number | null;
+    max_unique_ips: number | null;
+    rate_limit_up_bps: number | null;
+    rate_limit_down_bps: number | null;
+    expiration_rfc3339: string;
+    user_ad_tag: string;
+};
+
+export type ClusterIdentity = {
+    id: string;
+    cluster_id: string;
+    username: string;
+    policy: ClusterIdentityPolicy;
+    revision: number;
+    revoked: boolean;
+    billing_managed: boolean;
+    created_at: number;
+    updated_at: number;
+};
+
+export type ClusterIdentityInput = {
+    username: string;
+    policy: ClusterIdentityPolicy;
+    secret?: string;
+};
+
+export type ClusterIdentityUpdate = {
+    policy: ClusterIdentityPolicy;
+    rotate_secret: boolean;
+    revoke: boolean;
+};
+
+export type ClusterIdentityJob = {
+    identity_id: string;
+    node_id: string;
+    desired_revision: number;
+    applied_revision: number;
+    status: 'pending' | 'running' | 'applied' | 'conflict' | 'unavailable';
+    attempts: number;
+    next_attempt: number;
+    last_code: string;
+    in_runtime: boolean;
+    updated_at: number;
+};
+
+export type ClusterIdentityDetail = {
+    identity: ClusterIdentity;
+    jobs: Array<ClusterIdentityJob>;
+};
+
+export type ConfigTree = {
+    kind: 'table' | 'array' | 'string' | 'integer' | 'float' | 'boolean' | 'datetime';
+    /**
+     * Decoded string or exact scalar literal. Integers never use a JSON floating point number.
+     */
+    value: string;
+    children: Array<{
+        key: string;
+        node: ConfigTree;
+    }>;
+};
+
+export type ConfigFileSource = {
+    id: string;
+    name: string;
+    content: string;
+    tree?: ConfigTree | null;
+};
+
+export type ConfigFileSnapshot = {
+    protocol: 1;
+    revision: string;
+    sources: Array<ConfigFileSource>;
+};
+
+export type ConfigFileInput = {
+    revision: string;
+    source_id: string;
+    content: string;
+    edits?: Array<{
+        path: Array<string | number>;
+        /**
+         * TOML value literal; null removes the selected key or array item.
+         */
+        literal: string | null;
+    }>;
+};
+
+export type ConfigFileResult = {
+    protocol: 1;
+    revision: string;
+    valid?: boolean;
+    persisted?: boolean;
+    runtime_convergence: 'unknown';
+    restart_may_be_required?: boolean;
+};
+
+export type ConfigFileRendered = {
+    protocol: 1;
+    revision: string;
+    content: string;
+    tree: ConfigTree;
+};
+
+export type ConfigFileBackup = {
+    id: string;
+    created: number;
+    revision: string;
+    source: ConfigFileSource;
+};
+
+export type AgentCommand = {
+    key: string;
+    action: string;
+    started: number;
+    /**
+     * Saved HTTP result status; zero is an unresolved intent. Never retry an unresolved command automatically.
+     */
+    status: number;
+    body?: {
+        [key: string]: unknown;
+    };
+};
+
+export type NodeInput = {
+    name: string;
+    /**
+     * Absolute HTTP(S) URL, optional base path; no userinfo, query, fragment, encoded or dot segments. Private addresses are allowed.
+     */
+    api_url: string;
+    enabled: boolean;
+    /**
+     * Environment variable containing exact Authorization value. Empty disables auth. A missing/empty referenced variable prevents requests.
+     */
+    auth_header_env?: string;
+    /**
+     * Optional agent HTTPS URL (HTTP only on loopback); supply all three agent fields. Immutable once bound.
+     */
+    agent_url?: string;
+    /**
+     * Expected installed agent identity; immutable once bound. 16-128 ASCII letters, digits, underscores or hyphens.
+     */
+    agent_id?: string;
+    /**
+     * Panel process environment variable with exact agent Authorization value (at least 32 characters). Never a token value.
+     */
+    agent_auth_env?: string;
+    labels?: {
+        [key: string]: string;
+    };
+};
+
+export type Node = {
+    name: string;
+    /**
+     * Absolute HTTP(S) URL, optional base path; no userinfo, query, fragment, encoded or dot segments. Private addresses are allowed.
+     */
+    api_url: string;
+    enabled: boolean;
+    /**
+     * Environment variable containing exact Authorization value. Empty disables auth. A missing/empty referenced variable prevents requests.
+     */
+    auth_header_env?: string;
+    /**
+     * Optional agent HTTPS URL (HTTP only on loopback); supply all three agent fields. Immutable once bound.
+     */
+    agent_url?: string;
+    /**
+     * Expected installed agent identity; immutable once bound. 16-128 ASCII letters, digits, underscores or hyphens.
+     */
+    agent_id?: string;
+    /**
+     * Panel process environment variable with exact agent Authorization value (at least 32 characters). Never a token value.
+     */
+    agent_auth_env?: string;
+    labels: {
+        [key: string]: string;
+    };
+    id: string;
+    source: 'registry' | 'configuration';
+    revision: number;
+    /**
+     * Credential reference/configuration present; does not prove it is resolvable.
+     */
+    auth_configured: boolean;
+    /**
+     * Zero timestamp for configuration-managed default.
+     */
+    created_at: string;
+    updated_at: string;
+};
+
+export type NodeList = {
+    nodes: Array<Node>;
+    /**
+     * False means registry disappears at process restart, like the existing panel state policy.
+     */
+    state_durable: boolean;
+};
+
+/**
+ * Snapshot from the selected node.
+ */
+export type NodeHealthSnapshot = {
+    node_id: string;
+    node_revision: number;
+    data: {
+        status: string;
+        read_only: boolean;
+    };
+};
+
+/**
+ * Telemt users without panel traffic/quota/subpage enrichment. Optional panel-only User fields are absent.
+ */
+export type NodeUsersSnapshot = {
+    node_id: string;
+    node_revision: number;
+    /**
+     * Telemt source revision, distinct from node_revision.
+     */
+    revision?: string;
+    data: Array<User>;
+};
+
+/**
+ * Snapshot from the selected node.
+ */
+export type NodeConfigSnapshot = {
+    node_id: string;
+    node_revision: number;
+    /**
+     * Telemt source revision, distinct from node_revision.
+     */
+    revision?: string;
+    data: {
+        [key: string]: unknown;
+    };
+};
+
 export type QuotaScheduleRule = {
     kind: 'interval' | 'cron';
     days?: number;
@@ -213,7 +798,7 @@ export type Error = {
      * Machine code. Panel codes actually emitted today (grepped from every WriteError call site): bad_request, invalid_credentials, rate_limited, session_expired, session_revoke_failed, csrf_rejected, auth_disabled, internal_error, not_found, telemt_response_too_large, history_timeout, telemt_unreachable, capability_absent, capability_unavailable, manual_restart_required, update_locked, sublink_unavailable, log_tail_unavailable, log_stream_unavailable, log_source_error, invalid_webauthn_origin, invalid_webauthn_challenge, invalid_webauthn_response, webauthn_credential_exists, passkey_unavailable, quota_reset_busy, quota_confirmation_expired, quota_operation_unavailable, invalid_toml, invalid_config_path, config_unset_unsupported, no_changes, toml_projection_failed. capability_absent (501) vs capability_unavailable (503) are deliberately distinct, not aliases: capability_absent means the route itself doesn't exist on this Telemt build (a bare 404/405 with no error envelope — detected reactively, after attempting the call: rotate-secret, enable/disable, POST /api/telemt/reload, GET /api/telemt/reload/{id}); capability_unavailable means the route exists but the feature behind it is switched off on this Telemt — either known up front from the SDK's cached Capabilities probe (GET/PATCH /api/telemt/config, config_api) or reported by the response itself (GET /api/telemt/tls-fingerprints, whose enabled:false means runtime_edge_enabled is off; read from the response rather than probed so an unreachable Telemt still maps to 502 telemt_unreachable). Reserved for milestones not yet implemented: telemt_auth_failed (superseded on /api/telemt/info by a reachable:false body, not an error status — kept here for /api/telemt/config, M3). A well-formed Telemt *APIError whose status is 4xx and isn't otherwise mapped above is passed through verbatim with Telemt's own code — notably user_exists, last_user_forbidden, read_only, revision_conflict, reload_in_progress, reload_not_found, ambiguous_listeners (the latter two absent from Telemt's own documented error-code table but confirmed against its source, M3), plus any other code in Telemt's own set (07-telemt-sdk.md): bad_request, access_not_editable, section_not_editable, field_not_editable, unauthorized, forbidden, method_not_allowed, config_patch_not_atomic, payload_too_large, api_disabled, maestro_unavailable — except access_not_editable/section_not_editable/field_not_editable/ config_patch_not_atomic/ambiguous_listeners on PATCH /api/telemt/config, which the panel remaps to HTTP 422 regardless of Telemt's own status. The WEB group (Telemt >= 3.5.3, internal/telemt/types_web.go) adds web_runtime_mismatch, web_issuance_enabled, web_operation_in_progress, web_snapshot_busy, web_session_not_found, web_operation_not_found and unsupported_media_type; web_runtime_unavailable is listed because it is Telemt's own code, but the panel remaps it to capability_unavailable (rule R5) so the closed-capability gate is drawn instead of an error. Every code in this enum must carry a message in BOTH dictionaries — web/src/i18n/i18n.test.ts walks this list.
      *
      */
-    code: 'bad_request' | 'tls_invalid_candidate' | 'tls_manual_required' | 'tls_prepare_busy' | 'tls_prepare_unavailable' | 'tls_listener_unavailable' | 'tls_challenge_unavailable' | 'tls_cache_unavailable' | 'tls_certificate_invalid' | 'tls_certificate_untrusted' | 'tls_acquisition_failed' | 'tls_prepare_failed' | 'tls_prepare_timeout' | 'tls_config_changed' | 'tls_receipt_invalid' | 'tls_save_failed' | 'tls_restart_not_pending' | 'tls_restart_failed' | 'conflict' | 'confirmation_required' | 'invalid_credentials' | 'rate_limited' | 'session_expired' | 'session_revoke_failed' | 'logs_stream_limit' | 'telemt_response_too_large' | 'csrf_rejected' | 'auth_disabled' | 'quota_reset_busy' | 'invalid_quota_schedule' | 'quota_schedule_conflict' | 'quota_schedule_storage' | 'quota_schedule_unavailable' | 'quota_confirmation_expired' | 'quota_operation_unavailable' | 'internal_error' | 'history_timeout' | 'branding_invalid_title' | 'branding_invalid_mode' | 'branding_invalid_path' | 'branding_logo_unreadable' | 'branding_invalid_image' | 'not_found' | 'telemt_unreachable' | 'capability_absent' | 'capability_unavailable' | 'manual_restart_required' | 'manual_service_control_required' | 'service_action_unconfirmed' | 'update_locked' | 'update_version_unsupported' | 'sublink_unavailable' | 'log_tail_unavailable' | 'log_stream_unavailable' | 'log_source_error' | 'invalid_webauthn_origin' | 'invalid_webauthn_challenge' | 'invalid_webauthn_response' | 'webauthn_credential_exists' | 'passkey_unavailable' | 'telemt_auth_failed' | 'user_exists' | 'last_user_forbidden' | 'read_only' | 'revision_conflict' | 'invalid_toml' | 'invalid_config_path' | 'config_unset_unsupported' | 'no_changes' | 'toml_projection_failed' | 'reload_in_progress' | 'reload_not_found' | 'ambiguous_listeners' | 'access_not_editable' | 'section_not_editable' | 'field_not_editable' | 'unauthorized' | 'forbidden' | 'method_not_allowed' | 'config_patch_not_atomic' | 'payload_too_large' | 'api_disabled' | 'maestro_unavailable' | 'unsupported_media_type' | 'web_runtime_unavailable' | 'web_snapshot_busy' | 'web_runtime_mismatch' | 'web_issuance_enabled' | 'web_operation_in_progress' | 'web_session_not_found' | 'web_operation_not_found' | 'web_vhost_not_found' | 'web_profile_required';
+    code: 'node_registry_unavailable' | 'node_not_found' | 'node_disabled' | 'node_revision_conflict' | 'node_configuration_managed' | 'node_credentials_unavailable' | 'invalid_node' | 'node_registry_full' | 'node_persistence_failed' | 'node_revision_required' | 'invalid_node_revision' | 'node_upstream_unavailable' | 'node_upstream_timeout' | 'node_operation_unavailable' | 'node_agent_unavailable' | 'node_agent_identity_mismatch' | 'invalid_agent_command_key' | 'agent_command_conflict' | 'agent_command_unconfirmed' | 'agent_command_capacity' | 'agent_binding_conflict' | 'config_tool_unavailable' | 'config_backup_unavailable' | 'config_backup_not_found' | 'config_source_unavailable' | 'config_graph_limit' | 'customer_email_delivery_failed' | 'customer_method_unavailable' | 'customer_invalid' | 'customer_auth_failed' | 'payment_configuration_unavailable' | 'payment_signature_invalid' | 'payment_invalid' | 'node_cluster_owned' | 'user_cluster_owned' | 'platform_conflict' | 'platform_invalid' | 'platform_not_found' | 'platform_unavailable' | 'copy_not_found' | 'copy_source_changed' | 'copy_preview_expired' | 'copy_preview_capacity' | 'copy_invalid' | 'copy_source_unavailable' | 'copy_unavailable' | 'config_source_limit' | 'config_source_not_found' | 'config_include_topology_changed' | 'config_validation_unavailable' | 'config_validation_failed' | 'config_preparation_failed' | 'config_request_invalid' | 'config_request_limit' | 'config_editor_invalid' | 'bad_request' | 'tls_invalid_candidate' | 'tls_manual_required' | 'tls_prepare_busy' | 'tls_prepare_unavailable' | 'tls_listener_unavailable' | 'tls_challenge_unavailable' | 'tls_cache_unavailable' | 'tls_certificate_invalid' | 'tls_certificate_untrusted' | 'tls_acquisition_failed' | 'tls_prepare_failed' | 'tls_prepare_timeout' | 'tls_config_changed' | 'tls_receipt_invalid' | 'tls_save_failed' | 'tls_restart_not_pending' | 'tls_restart_failed' | 'conflict' | 'confirmation_required' | 'invalid_credentials' | 'rate_limited' | 'session_expired' | 'session_revoke_failed' | 'logs_stream_limit' | 'telemt_response_too_large' | 'csrf_rejected' | 'auth_disabled' | 'quota_reset_busy' | 'invalid_quota_schedule' | 'quota_schedule_conflict' | 'quota_schedule_storage' | 'quota_schedule_unavailable' | 'quota_confirmation_expired' | 'quota_operation_unavailable' | 'internal_error' | 'history_timeout' | 'branding_invalid_title' | 'branding_invalid_mode' | 'branding_invalid_path' | 'branding_logo_unreadable' | 'branding_invalid_image' | 'not_found' | 'telemt_unreachable' | 'capability_absent' | 'capability_unavailable' | 'manual_restart_required' | 'manual_service_control_required' | 'service_action_unconfirmed' | 'update_locked' | 'update_version_unsupported' | 'sublink_unavailable' | 'log_tail_unavailable' | 'log_stream_unavailable' | 'log_source_error' | 'invalid_webauthn_origin' | 'invalid_webauthn_challenge' | 'invalid_webauthn_response' | 'webauthn_credential_exists' | 'passkey_unavailable' | 'telemt_auth_failed' | 'user_exists' | 'last_user_forbidden' | 'read_only' | 'revision_conflict' | 'invalid_toml' | 'invalid_config_path' | 'config_unset_unsupported' | 'no_changes' | 'toml_projection_failed' | 'reload_in_progress' | 'reload_not_found' | 'ambiguous_listeners' | 'access_not_editable' | 'section_not_editable' | 'field_not_editable' | 'unauthorized' | 'forbidden' | 'method_not_allowed' | 'config_patch_not_atomic' | 'payload_too_large' | 'api_disabled' | 'maestro_unavailable' | 'unsupported_media_type' | 'web_runtime_unavailable' | 'web_snapshot_busy' | 'web_runtime_mismatch' | 'web_issuance_enabled' | 'web_operation_in_progress' | 'web_session_not_found' | 'web_operation_not_found' | 'web_vhost_not_found' | 'web_profile_required';
     message: string;
 };
 
@@ -746,6 +1331,10 @@ export type HostInfo = {
         log_tail: boolean;
         log_stream: boolean;
         self_update: boolean;
+        /**
+         * Agent full-file tool configured; each operation verifies protocol capability.
+         */
+        config_file?: boolean;
         /**
          * Independently permitted start of the configured Telemt service.
          */
@@ -1514,6 +2103,6412 @@ export type GeoIpLocation = {
 };
 
 export type Username = string;
+
+export type PrepareUserCopyData = {
+    body: UserCopySelection;
+    path?: never;
+    query?: never;
+    url: '/api/user-copies/prepare';
+};
+
+export type PrepareUserCopyErrors = {
+    /**
+     * Rejected, unavailable or unconfirmed operation; no automatic retry with a new key.
+     */
+    400: Error;
+    /**
+     * Rejected, unavailable or unconfirmed operation; no automatic retry with a new key.
+     */
+    401: Error;
+    /**
+     * Rejected, unavailable or unconfirmed operation; no automatic retry with a new key.
+     */
+    403: Error;
+    /**
+     * Rejected, unavailable or unconfirmed operation; no automatic retry with a new key.
+     */
+    404: Error;
+    /**
+     * Rejected, unavailable or unconfirmed operation; no automatic retry with a new key.
+     */
+    409: Error;
+    /**
+     * Rejected, unavailable or unconfirmed operation; no automatic retry with a new key.
+     */
+    503: Error;
+};
+
+export type PrepareUserCopyError = PrepareUserCopyErrors[keyof PrepareUserCopyErrors];
+
+export type PrepareUserCopyResponses = {
+    /**
+     * Conflict preview without secrets
+     */
+    200: UserCopyPreview;
+};
+
+export type PrepareUserCopyResponse = PrepareUserCopyResponses[keyof PrepareUserCopyResponses];
+
+export type ExecuteUserCopyData = {
+    body: {
+        token: string;
+    };
+    headers: {
+        'Idempotency-Key': string;
+    };
+    path?: never;
+    query?: never;
+    url: '/api/user-copies';
+};
+
+export type ExecuteUserCopyErrors = {
+    /**
+     * Rejected, unavailable or unconfirmed operation; no automatic retry with a new key.
+     */
+    400: Error;
+    /**
+     * Rejected, unavailable or unconfirmed operation; no automatic retry with a new key.
+     */
+    401: Error;
+    /**
+     * Rejected, unavailable or unconfirmed operation; no automatic retry with a new key.
+     */
+    403: Error;
+    /**
+     * Rejected, unavailable or unconfirmed operation; no automatic retry with a new key.
+     */
+    404: Error;
+    /**
+     * Rejected, unavailable or unconfirmed operation; no automatic retry with a new key.
+     */
+    409: Error;
+    /**
+     * Rejected, unavailable or unconfirmed operation; no automatic retry with a new key.
+     */
+    503: Error;
+};
+
+export type ExecuteUserCopyError = ExecuteUserCopyErrors[keyof ExecuteUserCopyErrors];
+
+export type ExecuteUserCopyResponses = {
+    /**
+     * Per-target persistence and runtime visibility
+     */
+    200: UserCopyResult;
+};
+
+export type ExecuteUserCopyResponse = ExecuteUserCopyResponses[keyof ExecuteUserCopyResponses];
+
+export type GetUserCopyData = {
+    body?: never;
+    path: {
+        key: string;
+    };
+    query?: never;
+    url: '/api/user-copies/{key}';
+};
+
+export type GetUserCopyErrors = {
+    /**
+     * Rejected, unavailable or unconfirmed operation; no automatic retry with a new key.
+     */
+    400: Error;
+    /**
+     * Rejected, unavailable or unconfirmed operation; no automatic retry with a new key.
+     */
+    401: Error;
+    /**
+     * Rejected, unavailable or unconfirmed operation; no automatic retry with a new key.
+     */
+    403: Error;
+    /**
+     * Rejected, unavailable or unconfirmed operation; no automatic retry with a new key.
+     */
+    404: Error;
+    /**
+     * Rejected, unavailable or unconfirmed operation; no automatic retry with a new key.
+     */
+    409: Error;
+    /**
+     * Rejected, unavailable or unconfirmed operation; no automatic retry with a new key.
+     */
+    503: Error;
+};
+
+export type GetUserCopyError = GetUserCopyErrors[keyof GetUserCopyErrors];
+
+export type GetUserCopyResponses = {
+    /**
+     * Durable journal outcome; status zero means unknown
+     */
+    200: AgentCommand;
+};
+
+export type GetUserCopyResponse = GetUserCopyResponses[keyof GetUserCopyResponses];
+
+export type ListBillingInvoicesData = {
+    body?: never;
+    path?: never;
+    query?: {
+        offset?: number;
+    };
+    url: '/api/billing/invoices';
+};
+
+export type ListBillingInvoicesErrors = {
+    /**
+     * Rejected or unavailable.
+     */
+    400: Error;
+    /**
+     * Rejected or unavailable.
+     */
+    401: Error;
+    /**
+     * Rejected or unavailable.
+     */
+    403: Error;
+    /**
+     * Rejected or unavailable.
+     */
+    404: Error;
+    /**
+     * Rejected or unavailable.
+     */
+    409: Error;
+    /**
+     * Rejected or unavailable.
+     */
+    428: Error;
+    /**
+     * Rejected or unavailable.
+     */
+    503: Error;
+};
+
+export type ListBillingInvoicesError = ListBillingInvoicesErrors[keyof ListBillingInvoicesErrors];
+
+export type ListBillingInvoicesResponses = {
+    /**
+     * Administrator invoice history, up to 100 items, newest first.
+     */
+    200: Array<BillingInvoice>;
+};
+
+export type ListBillingInvoicesResponse = ListBillingInvoicesResponses[keyof ListBillingInvoicesResponses];
+
+export type ListBillingPaymentsData = {
+    body?: never;
+    path?: never;
+    query?: {
+        offset?: number;
+    };
+    url: '/api/billing/payments';
+};
+
+export type ListBillingPaymentsErrors = {
+    /**
+     * Rejected or unavailable.
+     */
+    400: Error;
+    /**
+     * Rejected or unavailable.
+     */
+    401: Error;
+    /**
+     * Rejected or unavailable.
+     */
+    403: Error;
+    /**
+     * Rejected or unavailable.
+     */
+    404: Error;
+    /**
+     * Rejected or unavailable.
+     */
+    409: Error;
+    /**
+     * Rejected or unavailable.
+     */
+    428: Error;
+    /**
+     * Rejected or unavailable.
+     */
+    503: Error;
+};
+
+export type ListBillingPaymentsError = ListBillingPaymentsErrors[keyof ListBillingPaymentsErrors];
+
+export type ListBillingPaymentsResponses = {
+    /**
+     * Verified payments, including unallocated transfers and separate test events; up to 100 newest items. No signatures or credential values.
+     */
+    200: Array<BillingPayment>;
+};
+
+export type ListBillingPaymentsResponse = ListBillingPaymentsResponses[keyof ListBillingPaymentsResponses];
+
+export type ListBillingPlansData = {
+    body?: never;
+    path?: never;
+    query?: {
+        cluster_id?: string;
+    };
+    url: '/api/billing/plans';
+};
+
+export type ListBillingPlansErrors = {
+    /**
+     * Rejected or unavailable.
+     */
+    400: Error;
+    /**
+     * Rejected or unavailable.
+     */
+    401: Error;
+    /**
+     * Rejected or unavailable.
+     */
+    403: Error;
+    /**
+     * Rejected or unavailable.
+     */
+    404: Error;
+    /**
+     * Rejected or unavailable.
+     */
+    409: Error;
+    /**
+     * Rejected or unavailable.
+     */
+    428: Error;
+    /**
+     * Rejected or unavailable.
+     */
+    503: Error;
+};
+
+export type ListBillingPlansError = ListBillingPlansErrors[keyof ListBillingPlansErrors];
+
+export type ListBillingPlansResponses = {
+    /**
+     * Admin tariff catalogue, including disabled plans; max 1000.
+     */
+    200: Array<BillingPlan>;
+};
+
+export type ListBillingPlansResponse = ListBillingPlansResponses[keyof ListBillingPlansResponses];
+
+export type CreateBillingPlanData = {
+    body: BillingPlanCreate;
+    path?: never;
+    query?: never;
+    url: '/api/billing/plans';
+};
+
+export type CreateBillingPlanErrors = {
+    /**
+     * Rejected or unavailable.
+     */
+    400: Error;
+    /**
+     * Rejected or unavailable.
+     */
+    401: Error;
+    /**
+     * Rejected or unavailable.
+     */
+    403: Error;
+    /**
+     * Rejected or unavailable.
+     */
+    404: Error;
+    /**
+     * Rejected or unavailable.
+     */
+    409: Error;
+    /**
+     * Rejected or unavailable.
+     */
+    428: Error;
+    /**
+     * Rejected or unavailable.
+     */
+    503: Error;
+};
+
+export type CreateBillingPlanError = CreateBillingPlanErrors[keyof CreateBillingPlanErrors];
+
+export type CreateBillingPlanResponses = {
+    /**
+     * Create explicit cluster-bound tariff. Does not activate proxy access.
+     */
+    201: BillingPlan;
+};
+
+export type CreateBillingPlanResponse = CreateBillingPlanResponses[keyof CreateBillingPlanResponses];
+
+export type GetBillingPlanData = {
+    body?: never;
+    path: {
+        plan_id: string;
+    };
+    query?: never;
+    url: '/api/billing/plans/{plan_id}';
+};
+
+export type GetBillingPlanErrors = {
+    /**
+     * Rejected or unavailable.
+     */
+    400: Error;
+    /**
+     * Rejected or unavailable.
+     */
+    401: Error;
+    /**
+     * Rejected or unavailable.
+     */
+    403: Error;
+    /**
+     * Rejected or unavailable.
+     */
+    404: Error;
+    /**
+     * Rejected or unavailable.
+     */
+    409: Error;
+    /**
+     * Rejected or unavailable.
+     */
+    428: Error;
+    /**
+     * Rejected or unavailable.
+     */
+    503: Error;
+};
+
+export type GetBillingPlanError = GetBillingPlanErrors[keyof GetBillingPlanErrors];
+
+export type GetBillingPlanResponses = {
+    /**
+     * Current terms and revision.
+     */
+    200: BillingPlan;
+};
+
+export type GetBillingPlanResponse = GetBillingPlanResponses[keyof GetBillingPlanResponses];
+
+export type UpdateBillingPlanData = {
+    body: BillingPlanUpdate;
+    headers: {
+        'If-Match': string;
+    };
+    path: {
+        plan_id: string;
+    };
+    query?: never;
+    url: '/api/billing/plans/{plan_id}';
+};
+
+export type UpdateBillingPlanErrors = {
+    /**
+     * Rejected or unavailable.
+     */
+    400: Error;
+    /**
+     * Rejected or unavailable.
+     */
+    401: Error;
+    /**
+     * Rejected or unavailable.
+     */
+    403: Error;
+    /**
+     * Rejected or unavailable.
+     */
+    404: Error;
+    /**
+     * Rejected or unavailable.
+     */
+    409: Error;
+    /**
+     * Rejected or unavailable.
+     */
+    428: Error;
+    /**
+     * Rejected or unavailable.
+     */
+    503: Error;
+};
+
+export type UpdateBillingPlanError = UpdateBillingPlanErrors[keyof UpdateBillingPlanErrors];
+
+export type UpdateBillingPlanResponses = {
+    /**
+     * New immutable version. Existing invoices and periods retain original terms.
+     */
+    204: void;
+};
+
+export type UpdateBillingPlanResponse = UpdateBillingPlanResponses[keyof UpdateBillingPlanResponses];
+
+export type ListPaymentAccountsData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/billing/payment-accounts';
+};
+
+export type ListPaymentAccountsErrors = {
+    /**
+     * Rejected or unavailable.
+     */
+    400: Error;
+    /**
+     * Rejected or unavailable.
+     */
+    401: Error;
+    /**
+     * Rejected or unavailable.
+     */
+    403: Error;
+    /**
+     * Rejected or unavailable.
+     */
+    404: Error;
+    /**
+     * Rejected or unavailable.
+     */
+    409: Error;
+    /**
+     * Rejected or unavailable.
+     */
+    428: Error;
+    /**
+     * Rejected or unavailable.
+     */
+    503: Error;
+};
+
+export type ListPaymentAccountsError = ListPaymentAccountsErrors[keyof ListPaymentAccountsErrors];
+
+export type ListPaymentAccountsResponses = {
+    /**
+     * Admin payment connections, env names only; max 64.
+     */
+    200: Array<PaymentAccount>;
+};
+
+export type ListPaymentAccountsResponse = ListPaymentAccountsResponses[keyof ListPaymentAccountsResponses];
+
+export type CreatePaymentAccountData = {
+    body: PaymentAccountCreate;
+    path?: never;
+    query?: never;
+    url: '/api/billing/payment-accounts';
+};
+
+export type CreatePaymentAccountErrors = {
+    /**
+     * Rejected or unavailable.
+     */
+    400: Error;
+    /**
+     * Rejected or unavailable.
+     */
+    401: Error;
+    /**
+     * Rejected or unavailable.
+     */
+    403: Error;
+    /**
+     * Rejected or unavailable.
+     */
+    404: Error;
+    /**
+     * Rejected or unavailable.
+     */
+    409: Error;
+    /**
+     * Rejected or unavailable.
+     */
+    428: Error;
+    /**
+     * Rejected or unavailable.
+     */
+    503: Error;
+};
+
+export type CreatePaymentAccountError = CreatePaymentAccountErrors[keyof CreatePaymentAccountErrors];
+
+export type CreatePaymentAccountResponses = {
+    /**
+     * Immutable provider, merchant and environment. TELEMT_PAYMENT_* credential references. Creation does not verify provider access.
+     */
+    201: PaymentAccount;
+};
+
+export type CreatePaymentAccountResponse = CreatePaymentAccountResponses[keyof CreatePaymentAccountResponses];
+
+export type GetPaymentAccountData = {
+    body?: never;
+    path: {
+        account_id: string;
+    };
+    query?: never;
+    url: '/api/billing/payment-accounts/{account_id}';
+};
+
+export type GetPaymentAccountErrors = {
+    /**
+     * Rejected or unavailable.
+     */
+    400: Error;
+    /**
+     * Rejected or unavailable.
+     */
+    401: Error;
+    /**
+     * Rejected or unavailable.
+     */
+    403: Error;
+    /**
+     * Rejected or unavailable.
+     */
+    404: Error;
+    /**
+     * Rejected or unavailable.
+     */
+    409: Error;
+    /**
+     * Rejected or unavailable.
+     */
+    428: Error;
+    /**
+     * Rejected or unavailable.
+     */
+    503: Error;
+};
+
+export type GetPaymentAccountError = GetPaymentAccountErrors[keyof GetPaymentAccountErrors];
+
+export type GetPaymentAccountResponses = {
+    /**
+     * Connection without resolved secrets.
+     */
+    200: PaymentAccount;
+};
+
+export type GetPaymentAccountResponse = GetPaymentAccountResponses[keyof GetPaymentAccountResponses];
+
+export type UpdatePaymentAccountData = {
+    body: PaymentAccountUpdate;
+    headers: {
+        'If-Match': string;
+    };
+    path: {
+        account_id: string;
+    };
+    query?: never;
+    url: '/api/billing/payment-accounts/{account_id}';
+};
+
+export type UpdatePaymentAccountErrors = {
+    /**
+     * Rejected or unavailable.
+     */
+    400: Error;
+    /**
+     * Rejected or unavailable.
+     */
+    401: Error;
+    /**
+     * Rejected or unavailable.
+     */
+    403: Error;
+    /**
+     * Rejected or unavailable.
+     */
+    404: Error;
+    /**
+     * Rejected or unavailable.
+     */
+    409: Error;
+    /**
+     * Rejected or unavailable.
+     */
+    428: Error;
+    /**
+     * Rejected or unavailable.
+     */
+    503: Error;
+};
+
+export type UpdatePaymentAccountError = UpdatePaymentAccountErrors[keyof UpdatePaymentAccountErrors];
+
+export type UpdatePaymentAccountResponses = {
+    /**
+     * Change name and new-checkout availability. In-flight callbacks still accepted when disabled.
+     */
+    204: void;
+};
+
+export type UpdatePaymentAccountResponse = UpdatePaymentAccountResponses[keyof UpdatePaymentAccountResponses];
+
+export type ReceivePaymentNotificationData = {
+    body: {
+        [key: string]: string;
+    };
+    path: {
+        account_id: string;
+    };
+    query?: never;
+    url: '/api/payments/{account_id}/notify';
+};
+
+export type ReceivePaymentNotificationErrors = {
+    /**
+     * Rejected or unavailable.
+     */
+    400: Error;
+    /**
+     * Rejected or unavailable.
+     */
+    401: Error;
+    /**
+     * Rejected or unavailable.
+     */
+    403: Error;
+    /**
+     * Rejected or unavailable.
+     */
+    404: Error;
+    /**
+     * Rejected or unavailable.
+     */
+    409: Error;
+    /**
+     * Form content type required.
+     */
+    415: Error;
+    /**
+     * Rejected or unavailable.
+     */
+    428: Error;
+    /**
+     * Rejected or unavailable.
+     */
+    503: Error;
+};
+
+export type ReceivePaymentNotificationError = ReceivePaymentNotificationErrors[keyof ReceivePaymentNotificationErrors];
+
+export type ReceivePaymentNotificationResponses = {
+    /**
+     * Robokassa OK<InvId> or YooMoney OK, including durable replay.
+     */
+    200: string;
+};
+
+export type ReceivePaymentNotificationResponse = ReceivePaymentNotificationResponses[keyof ReceivePaymentNotificationResponses];
+
+export type GetCustomerAuthMethodsData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/customer/auth/methods';
+};
+
+export type GetCustomerAuthMethodsErrors = {
+    /**
+     * Rejected, expired or unavailable.
+     */
+    400: Error;
+    /**
+     * Rejected, expired or unavailable.
+     */
+    401: Error;
+    /**
+     * Rejected, expired or unavailable.
+     */
+    403: Error;
+    /**
+     * Rejected, expired or unavailable.
+     */
+    404: Error;
+    /**
+     * Rejected, expired or unavailable.
+     */
+    409: Error;
+    /**
+     * Rejected, expired or unavailable.
+     */
+    429: Error;
+    /**
+     * Rejected, expired or unavailable.
+     */
+    503: Error;
+};
+
+export type GetCustomerAuthMethodsError = GetCustomerAuthMethodsErrors[keyof GetCustomerAuthMethodsErrors];
+
+export type GetCustomerAuthMethodsResponses = {
+    /**
+     * Enabled portal methods. Email delivery readiness is separate from existing password login.
+     */
+    200: CustomerAuthMethods;
+};
+
+export type GetCustomerAuthMethodsResponse = GetCustomerAuthMethodsResponses[keyof GetCustomerAuthMethodsResponses];
+
+export type CustomerLoginData = {
+    body: {
+        email: string;
+        /**
+         * 12–72 UTF-8 bytes. No truncation. Never logged or stored in plaintext.
+         */
+        password: string;
+    };
+    path?: never;
+    query?: never;
+    url: '/api/customer/auth/login';
+};
+
+export type CustomerLoginErrors = {
+    /**
+     * Rejected, expired or unavailable.
+     */
+    400: Error;
+    /**
+     * Rejected, expired or unavailable.
+     */
+    401: Error;
+    /**
+     * Rejected, expired or unavailable.
+     */
+    403: Error;
+    /**
+     * Rejected, expired or unavailable.
+     */
+    404: Error;
+    /**
+     * Rejected, expired or unavailable.
+     */
+    409: Error;
+    /**
+     * Rejected, expired or unavailable.
+     */
+    429: Error;
+    /**
+     * Rejected, expired or unavailable.
+     */
+    503: Error;
+};
+
+export type CustomerLoginError = CustomerLoginErrors[keyof CustomerLoginErrors];
+
+export type CustomerLoginResponses = {
+    /**
+     * Password login; issues separate HttpOnly customer cookie. Admin sessions never authorize this API. Same-origin CSRF required.
+     */
+    200: PortalCustomer;
+};
+
+export type CustomerLoginResponse = CustomerLoginResponses[keyof CustomerLoginResponses];
+
+export type CustomerRegisterData = {
+    body: {
+        email: string;
+        /**
+         * 12–72 UTF-8 bytes. No truncation. Never logged or stored in plaintext.
+         */
+        password: string;
+    };
+    path?: never;
+    query?: never;
+    url: '/api/customer/auth/register';
+};
+
+export type CustomerRegisterErrors = {
+    /**
+     * Rejected, expired or unavailable.
+     */
+    400: Error;
+    /**
+     * Rejected, expired or unavailable.
+     */
+    401: Error;
+    /**
+     * Rejected, expired or unavailable.
+     */
+    403: Error;
+    /**
+     * Rejected, expired or unavailable.
+     */
+    404: Error;
+    /**
+     * Rejected, expired or unavailable.
+     */
+    409: Error;
+    /**
+     * Rejected, expired or unavailable.
+     */
+    429: Error;
+    /**
+     * Rejected, expired or unavailable.
+     */
+    503: Error;
+};
+
+export type CustomerRegisterError = CustomerRegisterErrors[keyof CustomerRegisterErrors];
+
+export type CustomerRegisterResponses = {
+    /**
+     * Request mailbox verification. Generic response for existing accounts; delivery failure is not reported as success. Customer is created only after proof.
+     */
+    202: unknown;
+};
+
+export type CustomerRecoverData = {
+    body: {
+        email: string;
+    };
+    path?: never;
+    query?: never;
+    url: '/api/customer/auth/recover';
+};
+
+export type CustomerRecoverErrors = {
+    /**
+     * Rejected, expired or unavailable.
+     */
+    400: Error;
+    /**
+     * Rejected, expired or unavailable.
+     */
+    401: Error;
+    /**
+     * Rejected, expired or unavailable.
+     */
+    403: Error;
+    /**
+     * Rejected, expired or unavailable.
+     */
+    404: Error;
+    /**
+     * Rejected, expired or unavailable.
+     */
+    409: Error;
+    /**
+     * Rejected, expired or unavailable.
+     */
+    429: Error;
+    /**
+     * Rejected, expired or unavailable.
+     */
+    503: Error;
+};
+
+export type CustomerRecoverError = CustomerRecoverErrors[keyof CustomerRecoverErrors];
+
+export type CustomerRecoverResponses = {
+    /**
+     * Generic recovery request. SMTP must be configured; unknown or disabled accounts are not disclosed.
+     */
+    202: unknown;
+};
+
+export type CompleteCustomerEmailData = {
+    body: {
+        token: string;
+        /**
+         * 12–72 UTF-8 bytes. No truncation. Never logged or stored in plaintext.
+         */
+        password?: string;
+    };
+    path?: never;
+    query?: never;
+    url: '/api/customer/auth/email/complete';
+};
+
+export type CompleteCustomerEmailErrors = {
+    /**
+     * Rejected, expired or unavailable.
+     */
+    400: Error;
+    /**
+     * Rejected, expired or unavailable.
+     */
+    401: Error;
+    /**
+     * Rejected, expired or unavailable.
+     */
+    403: Error;
+    /**
+     * Rejected, expired or unavailable.
+     */
+    404: Error;
+    /**
+     * Rejected, expired or unavailable.
+     */
+    409: Error;
+    /**
+     * Rejected, expired or unavailable.
+     */
+    429: Error;
+    /**
+     * Rejected, expired or unavailable.
+     */
+    503: Error;
+};
+
+export type CompleteCustomerEmailError = CompleteCustomerEmailErrors[keyof CompleteCustomerEmailErrors];
+
+export type CompleteCustomerEmailResponses = {
+    /**
+     * Consume one-time proof. Password is required for reset, omitted for register/link. Reset revokes previous customer sessions.
+     */
+    200: PortalCustomer;
+};
+
+export type CompleteCustomerEmailResponse = CompleteCustomerEmailResponses[keyof CompleteCustomerEmailResponses];
+
+export type LinkCustomerEmailData = {
+    body: {
+        email: string;
+        /**
+         * 12–72 UTF-8 bytes. No truncation. Never logged or stored in plaintext.
+         */
+        password: string;
+    };
+    path?: never;
+    query?: never;
+    url: '/api/customer/auth/email/link';
+};
+
+export type LinkCustomerEmailErrors = {
+    /**
+     * Rejected, expired or unavailable.
+     */
+    400: Error;
+    /**
+     * Rejected, expired or unavailable.
+     */
+    401: Error;
+    /**
+     * Rejected, expired or unavailable.
+     */
+    403: Error;
+    /**
+     * Rejected, expired or unavailable.
+     */
+    404: Error;
+    /**
+     * Rejected, expired or unavailable.
+     */
+    409: Error;
+    /**
+     * Rejected, expired or unavailable.
+     */
+    429: Error;
+    /**
+     * Rejected, expired or unavailable.
+     */
+    503: Error;
+};
+
+export type LinkCustomerEmailError = LinkCustomerEmailErrors[keyof LinkCustomerEmailErrors];
+
+export type LinkCustomerEmailResponses = {
+    /**
+     * Add email/password to a Telegram-only customer. Requires fresh customer authentication within five minutes; no merging of existing accounts.
+     */
+    202: unknown;
+};
+
+export type CustomerLogoutData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/customer/auth/logout';
+};
+
+export type CustomerLogoutErrors = {
+    /**
+     * Rejected, expired or unavailable.
+     */
+    400: Error;
+    /**
+     * Rejected, expired or unavailable.
+     */
+    401: Error;
+    /**
+     * Rejected, expired or unavailable.
+     */
+    403: Error;
+    /**
+     * Rejected, expired or unavailable.
+     */
+    404: Error;
+    /**
+     * Rejected, expired or unavailable.
+     */
+    409: Error;
+    /**
+     * Rejected, expired or unavailable.
+     */
+    429: Error;
+    /**
+     * Rejected, expired or unavailable.
+     */
+    503: Error;
+};
+
+export type CustomerLogoutError = CustomerLogoutErrors[keyof CustomerLogoutErrors];
+
+export type CustomerLogoutResponses = {
+    /**
+     * Durably revoke current customer cookie; administrator sessions are unchanged.
+     */
+    204: void;
+};
+
+export type CustomerLogoutResponse = CustomerLogoutResponses[keyof CustomerLogoutResponses];
+
+export type GetCustomerMeData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/customer/auth/me';
+};
+
+export type GetCustomerMeErrors = {
+    /**
+     * Rejected, expired or unavailable.
+     */
+    400: Error;
+    /**
+     * Rejected, expired or unavailable.
+     */
+    401: Error;
+    /**
+     * Rejected, expired or unavailable.
+     */
+    403: Error;
+    /**
+     * Rejected, expired or unavailable.
+     */
+    404: Error;
+    /**
+     * Rejected, expired or unavailable.
+     */
+    409: Error;
+    /**
+     * Rejected, expired or unavailable.
+     */
+    429: Error;
+    /**
+     * Rejected, expired or unavailable.
+     */
+    503: Error;
+};
+
+export type GetCustomerMeError = GetCustomerMeErrors[keyof GetCustomerMeErrors];
+
+export type GetCustomerMeResponses = {
+    /**
+     * Current customer; no password hash, Telegram subject or session token.
+     */
+    200: PortalCustomer;
+};
+
+export type GetCustomerMeResponse = GetCustomerMeResponses[keyof GetCustomerMeResponses];
+
+export type StartCustomerTelegramData = {
+    body: {
+        link: boolean;
+    };
+    path?: never;
+    query?: never;
+    url: '/api/customer/auth/telegram/start';
+};
+
+export type StartCustomerTelegramErrors = {
+    /**
+     * Rejected, expired or unavailable.
+     */
+    400: Error;
+    /**
+     * Rejected, expired or unavailable.
+     */
+    401: Error;
+    /**
+     * Rejected, expired or unavailable.
+     */
+    403: Error;
+    /**
+     * Rejected, expired or unavailable.
+     */
+    404: Error;
+    /**
+     * Rejected, expired or unavailable.
+     */
+    409: Error;
+    /**
+     * Rejected, expired or unavailable.
+     */
+    429: Error;
+    /**
+     * Rejected, expired or unavailable.
+     */
+    503: Error;
+};
+
+export type StartCustomerTelegramError = StartCustomerTelegramErrors[keyof StartCustomerTelegramErrors];
+
+export type StartCustomerTelegramResponses = {
+    /**
+     * Start Telegram code + PKCE + nonce flow; sets HttpOnly Lax browser-binding cookie. link=true requires fresh customer session.
+     */
+    200: {
+        url: string;
+    };
+};
+
+export type StartCustomerTelegramResponse = StartCustomerTelegramResponses[keyof StartCustomerTelegramResponses];
+
+export type CompleteCustomerTelegramData = {
+    body?: never;
+    path?: never;
+    query?: {
+        state?: string;
+        code?: string;
+        error?: string;
+    };
+    url: '/api/customer/auth/telegram/callback';
+};
+
+export type CompleteCustomerTelegramErrors = {
+    /**
+     * Rejected, expired or unavailable.
+     */
+    400: Error;
+    /**
+     * Rejected, expired or unavailable.
+     */
+    401: Error;
+    /**
+     * Rejected, expired or unavailable.
+     */
+    403: Error;
+    /**
+     * Rejected, expired or unavailable.
+     */
+    404: Error;
+    /**
+     * Rejected, expired or unavailable.
+     */
+    409: Error;
+    /**
+     * Rejected, expired or unavailable.
+     */
+    429: Error;
+    /**
+     * Rejected, expired or unavailable.
+     */
+    503: Error;
+};
+
+export type CompleteCustomerTelegramError = CompleteCustomerTelegramErrors[keyof CompleteCustomerTelegramErrors];
+
+export type ListCustomerPlansData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/customer/plans';
+};
+
+export type ListCustomerPlansErrors = {
+    /**
+     * Rejected, expired or unavailable.
+     */
+    400: Error;
+    /**
+     * Rejected, expired or unavailable.
+     */
+    401: Error;
+    /**
+     * Rejected, expired or unavailable.
+     */
+    403: Error;
+    /**
+     * Rejected, expired or unavailable.
+     */
+    404: Error;
+    /**
+     * Rejected, expired or unavailable.
+     */
+    409: Error;
+    /**
+     * Rejected, expired or unavailable.
+     */
+    429: Error;
+    /**
+     * Rejected, expired or unavailable.
+     */
+    503: Error;
+};
+
+export type ListCustomerPlansError = ListCustomerPlansErrors[keyof ListCustomerPlansErrors];
+
+export type ListCustomerPlansResponses = {
+    /**
+     * Enabled tariffs only. Price/currency compatibility is checked when creating an invoice.
+     */
+    200: Array<BillingPlan>;
+};
+
+export type ListCustomerPlansResponse = ListCustomerPlansResponses[keyof ListCustomerPlansResponses];
+
+export type ListCustomerPaymentOptionsData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/customer/payment-options';
+};
+
+export type ListCustomerPaymentOptionsErrors = {
+    /**
+     * Rejected, expired or unavailable.
+     */
+    400: Error;
+    /**
+     * Rejected, expired or unavailable.
+     */
+    401: Error;
+    /**
+     * Rejected, expired or unavailable.
+     */
+    403: Error;
+    /**
+     * Rejected, expired or unavailable.
+     */
+    404: Error;
+    /**
+     * Rejected, expired or unavailable.
+     */
+    409: Error;
+    /**
+     * Rejected, expired or unavailable.
+     */
+    429: Error;
+    /**
+     * Rejected, expired or unavailable.
+     */
+    503: Error;
+};
+
+export type ListCustomerPaymentOptionsError = ListCustomerPaymentOptionsErrors[keyof ListCustomerPaymentOptionsErrors];
+
+export type ListCustomerPaymentOptionsResponses = {
+    /**
+     * Enabled live payment choices without merchant configuration or credential references.
+     */
+    200: Array<CustomerPaymentOption>;
+};
+
+export type ListCustomerPaymentOptionsResponse = ListCustomerPaymentOptionsResponses[keyof ListCustomerPaymentOptionsResponses];
+
+export type ListCustomerSubscriptionsData = {
+    body?: never;
+    path?: never;
+    query?: {
+        offset?: number;
+    };
+    url: '/api/customer/subscriptions';
+};
+
+export type ListCustomerSubscriptionsErrors = {
+    /**
+     * Rejected, expired or unavailable.
+     */
+    400: Error;
+    /**
+     * Rejected, expired or unavailable.
+     */
+    401: Error;
+    /**
+     * Rejected, expired or unavailable.
+     */
+    403: Error;
+    /**
+     * Rejected, expired or unavailable.
+     */
+    404: Error;
+    /**
+     * Rejected, expired or unavailable.
+     */
+    409: Error;
+    /**
+     * Rejected, expired or unavailable.
+     */
+    429: Error;
+    /**
+     * Rejected, expired or unavailable.
+     */
+    503: Error;
+};
+
+export type ListCustomerSubscriptionsError = ListCustomerSubscriptionsErrors[keyof ListCustomerSubscriptionsErrors];
+
+export type ListCustomerSubscriptionsResponses = {
+    /**
+     * Own subscriptions only, up to 100 per page.
+     */
+    200: Array<CustomerSubscription>;
+};
+
+export type ListCustomerSubscriptionsResponse = ListCustomerSubscriptionsResponses[keyof ListCustomerSubscriptionsResponses];
+
+export type GetCustomerSubscriptionData = {
+    body?: never;
+    path: {
+        subscription_id: string;
+    };
+    query?: never;
+    url: '/api/customer/subscriptions/{subscription_id}';
+};
+
+export type GetCustomerSubscriptionErrors = {
+    /**
+     * Rejected, expired or unavailable.
+     */
+    400: Error;
+    /**
+     * Rejected, expired or unavailable.
+     */
+    401: Error;
+    /**
+     * Rejected, expired or unavailable.
+     */
+    403: Error;
+    /**
+     * Rejected, expired or unavailable.
+     */
+    404: Error;
+    /**
+     * Rejected, expired or unavailable.
+     */
+    409: Error;
+    /**
+     * Rejected, expired or unavailable.
+     */
+    429: Error;
+    /**
+     * Rejected, expired or unavailable.
+     */
+    503: Error;
+};
+
+export type GetCustomerSubscriptionError = GetCustomerSubscriptionErrors[keyof GetCustomerSubscriptionErrors];
+
+export type GetCustomerSubscriptionResponses = {
+    /**
+     * Own subscription, paid-through status, managed node delivery and current-period usage. Links require confirmed matching identity/grant with an unexpired lease. Configured is not an external availability probe. Unknown usage includes reserved or unreported bytes, never treated as zero.
+     */
+    200: CustomerSubscriptionDetail;
+};
+
+export type GetCustomerSubscriptionResponse = GetCustomerSubscriptionResponses[keyof GetCustomerSubscriptionResponses];
+
+export type ListCustomerPeriodsData = {
+    body?: never;
+    path: {
+        subscription_id: string;
+    };
+    query?: {
+        offset?: number;
+    };
+    url: '/api/customer/subscriptions/{subscription_id}/periods';
+};
+
+export type ListCustomerPeriodsErrors = {
+    /**
+     * Rejected, expired or unavailable.
+     */
+    400: Error;
+    /**
+     * Rejected, expired or unavailable.
+     */
+    401: Error;
+    /**
+     * Rejected, expired or unavailable.
+     */
+    403: Error;
+    /**
+     * Rejected, expired or unavailable.
+     */
+    404: Error;
+    /**
+     * Rejected, expired or unavailable.
+     */
+    409: Error;
+    /**
+     * Rejected, expired or unavailable.
+     */
+    429: Error;
+    /**
+     * Rejected, expired or unavailable.
+     */
+    503: Error;
+};
+
+export type ListCustomerPeriodsError = ListCustomerPeriodsErrors[keyof ListCustomerPeriodsErrors];
+
+export type ListCustomerPeriodsResponses = {
+    /**
+     * Own immutable paid periods; up to 100, newest first. Another customer subscription returns 404.
+     */
+    200: Array<CustomerPaidPeriod>;
+};
+
+export type ListCustomerPeriodsResponse = ListCustomerPeriodsResponses[keyof ListCustomerPeriodsResponses];
+
+export type ListCustomerInvoicesData = {
+    body?: never;
+    path?: never;
+    query?: {
+        offset?: number;
+    };
+    url: '/api/customer/invoices';
+};
+
+export type ListCustomerInvoicesErrors = {
+    /**
+     * Rejected, expired or unavailable.
+     */
+    400: Error;
+    /**
+     * Rejected, expired or unavailable.
+     */
+    401: Error;
+    /**
+     * Rejected, expired or unavailable.
+     */
+    403: Error;
+    /**
+     * Rejected, expired or unavailable.
+     */
+    404: Error;
+    /**
+     * Rejected, expired or unavailable.
+     */
+    409: Error;
+    /**
+     * Rejected, expired or unavailable.
+     */
+    429: Error;
+    /**
+     * Rejected, expired or unavailable.
+     */
+    503: Error;
+};
+
+export type ListCustomerInvoicesError = ListCustomerInvoicesErrors[keyof ListCustomerInvoicesErrors];
+
+export type ListCustomerInvoicesResponses = {
+    /**
+     * Own invoices only, up to 100 newest first.
+     */
+    200: Array<BillingInvoice>;
+};
+
+export type ListCustomerInvoicesResponse = ListCustomerInvoicesResponses[keyof ListCustomerInvoicesResponses];
+
+export type CreateCustomerInvoiceData = {
+    body: CustomerInvoiceInput;
+    path?: never;
+    query?: never;
+    url: '/api/customer/invoices';
+};
+
+export type CreateCustomerInvoiceErrors = {
+    /**
+     * Rejected, expired or unavailable.
+     */
+    400: Error;
+    /**
+     * Rejected, expired or unavailable.
+     */
+    401: Error;
+    /**
+     * Rejected, expired or unavailable.
+     */
+    403: Error;
+    /**
+     * Rejected, expired or unavailable.
+     */
+    404: Error;
+    /**
+     * Rejected, expired or unavailable.
+     */
+    409: Error;
+    /**
+     * Rejected, expired or unavailable.
+     */
+    429: Error;
+    /**
+     * Rejected, expired or unavailable.
+     */
+    503: Error;
+};
+
+export type CreateCustomerInvoiceError = CreateCustomerInvoiceErrors[keyof CreateCustomerInvoiceErrors];
+
+export type CreateCustomerInvoiceResponses = {
+    /**
+     * Fix current tariff version and amount. customer_id comes exclusively from session. Durable request_key replay returns the same invoice; changed payload conflicts.
+     */
+    201: BillingInvoice;
+};
+
+export type CreateCustomerInvoiceResponse = CreateCustomerInvoiceResponses[keyof CreateCustomerInvoiceResponses];
+
+export type GetCustomerInvoiceData = {
+    body?: never;
+    path: {
+        invoice_id: string;
+    };
+    query?: never;
+    url: '/api/customer/invoices/{invoice_id}';
+};
+
+export type GetCustomerInvoiceErrors = {
+    /**
+     * Rejected, expired or unavailable.
+     */
+    400: Error;
+    /**
+     * Rejected, expired or unavailable.
+     */
+    401: Error;
+    /**
+     * Rejected, expired or unavailable.
+     */
+    403: Error;
+    /**
+     * Rejected, expired or unavailable.
+     */
+    404: Error;
+    /**
+     * Rejected, expired or unavailable.
+     */
+    409: Error;
+    /**
+     * Rejected, expired or unavailable.
+     */
+    429: Error;
+    /**
+     * Rejected, expired or unavailable.
+     */
+    503: Error;
+};
+
+export type GetCustomerInvoiceError = GetCustomerInvoiceErrors[keyof GetCustomerInvoiceErrors];
+
+export type GetCustomerInvoiceResponses = {
+    /**
+     * Own invoice; another customer invoice returns 404. Success redirects cannot modify this status.
+     */
+    200: BillingInvoice;
+};
+
+export type GetCustomerInvoiceResponse = GetCustomerInvoiceResponses[keyof GetCustomerInvoiceResponses];
+
+export type CustomerCheckoutData = {
+    body: {
+        method: 'AC' | 'PC';
+    };
+    path: {
+        invoice_id: string;
+    };
+    query?: never;
+    url: '/api/customer/invoices/{invoice_id}/checkout';
+};
+
+export type CustomerCheckoutErrors = {
+    /**
+     * Rejected, expired or unavailable.
+     */
+    400: Error;
+    /**
+     * Rejected, expired or unavailable.
+     */
+    401: Error;
+    /**
+     * Rejected, expired or unavailable.
+     */
+    403: Error;
+    /**
+     * Rejected, expired or unavailable.
+     */
+    404: Error;
+    /**
+     * Rejected, expired or unavailable.
+     */
+    409: Error;
+    /**
+     * Rejected, expired or unavailable.
+     */
+    429: Error;
+    /**
+     * Rejected, expired or unavailable.
+     */
+    503: Error;
+};
+
+export type CustomerCheckoutError = CustomerCheckoutErrors[keyof CustomerCheckoutErrors];
+
+export type CustomerCheckoutResponses = {
+    /**
+     * Signed form for own pending invoice. Browser submits only on explicit payment action. Return URL is configuration-owned. No payment or entitlement is created by this request.
+     */
+    200: CustomerCheckoutForm;
+};
+
+export type CustomerCheckoutResponse = CustomerCheckoutResponses[keyof CustomerCheckoutResponses];
+
+export type GetPlatformStatusData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/platform';
+};
+
+export type GetPlatformStatusErrors = {
+    /**
+     * Rejected or unavailable; fetch the current revision before retrying.
+     */
+    400: Error;
+    /**
+     * Rejected or unavailable; fetch the current revision before retrying.
+     */
+    401: Error;
+    /**
+     * Rejected or unavailable; fetch the current revision before retrying.
+     */
+    403: Error;
+    /**
+     * Rejected or unavailable; fetch the current revision before retrying.
+     */
+    404: Error;
+    /**
+     * Rejected or unavailable; fetch the current revision before retrying.
+     */
+    409: Error;
+    /**
+     * Rejected or unavailable; fetch the current revision before retrying.
+     */
+    428: Error;
+    /**
+     * Rejected or unavailable; fetch the current revision before retrying.
+     */
+    503: Error;
+};
+
+export type GetPlatformStatusError = GetPlatformStatusErrors[keyof GetPlatformStatusErrors];
+
+export type GetPlatformStatusResponses = {
+    /**
+     * Full-build capability and explicit platform activation.
+     */
+    200: PlatformStatus;
+};
+
+export type GetPlatformStatusResponse = GetPlatformStatusResponses[keyof GetPlatformStatusResponses];
+
+export type ListClustersData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/clusters';
+};
+
+export type ListClustersErrors = {
+    /**
+     * Rejected or unavailable; fetch the current revision before retrying.
+     */
+    400: Error;
+    /**
+     * Rejected or unavailable; fetch the current revision before retrying.
+     */
+    401: Error;
+    /**
+     * Rejected or unavailable; fetch the current revision before retrying.
+     */
+    403: Error;
+    /**
+     * Rejected or unavailable; fetch the current revision before retrying.
+     */
+    404: Error;
+    /**
+     * Rejected or unavailable; fetch the current revision before retrying.
+     */
+    409: Error;
+    /**
+     * Rejected or unavailable; fetch the current revision before retrying.
+     */
+    428: Error;
+    /**
+     * Rejected or unavailable; fetch the current revision before retrying.
+     */
+    503: Error;
+};
+
+export type ListClustersError = ListClustersErrors[keyof ListClustersErrors];
+
+export type ListClustersResponses = {
+    /**
+     * Global clusters; not affected by selected node.
+     */
+    200: Array<Cluster>;
+};
+
+export type ListClustersResponse = ListClustersResponses[keyof ListClustersResponses];
+
+export type CreateClusterData = {
+    body: {
+        name: string;
+    };
+    path?: never;
+    query?: never;
+    url: '/api/clusters';
+};
+
+export type CreateClusterErrors = {
+    /**
+     * Rejected or unavailable; fetch the current revision before retrying.
+     */
+    400: Error;
+    /**
+     * Rejected or unavailable; fetch the current revision before retrying.
+     */
+    401: Error;
+    /**
+     * Rejected or unavailable; fetch the current revision before retrying.
+     */
+    403: Error;
+    /**
+     * Rejected or unavailable; fetch the current revision before retrying.
+     */
+    404: Error;
+    /**
+     * Rejected or unavailable; fetch the current revision before retrying.
+     */
+    409: Error;
+    /**
+     * Rejected or unavailable; fetch the current revision before retrying.
+     */
+    428: Error;
+    /**
+     * Rejected or unavailable; fetch the current revision before retrying.
+     */
+    503: Error;
+};
+
+export type CreateClusterError = CreateClusterErrors[keyof CreateClusterErrors];
+
+export type CreateClusterResponses = {
+    /**
+     * Create a cluster with immutable ID.
+     */
+    201: Cluster;
+};
+
+export type CreateClusterResponse = CreateClusterResponses[keyof CreateClusterResponses];
+
+export type DeleteClusterData = {
+    body?: never;
+    headers: {
+        /**
+         * Positive revision of the cluster or identity owning this operation.
+         */
+        'If-Match': string;
+    };
+    path: {
+        cluster_id: string;
+    };
+    query?: never;
+    url: '/api/clusters/{cluster_id}';
+};
+
+export type DeleteClusterErrors = {
+    /**
+     * Rejected or unavailable; fetch the current revision before retrying.
+     */
+    400: Error;
+    /**
+     * Rejected or unavailable; fetch the current revision before retrying.
+     */
+    401: Error;
+    /**
+     * Rejected or unavailable; fetch the current revision before retrying.
+     */
+    403: Error;
+    /**
+     * Rejected or unavailable; fetch the current revision before retrying.
+     */
+    404: Error;
+    /**
+     * Rejected or unavailable; fetch the current revision before retrying.
+     */
+    409: Error;
+    /**
+     * Rejected or unavailable; fetch the current revision before retrying.
+     */
+    428: Error;
+    /**
+     * Rejected or unavailable; fetch the current revision before retrying.
+     */
+    503: Error;
+};
+
+export type DeleteClusterError = DeleteClusterErrors[keyof DeleteClusterErrors];
+
+export type DeleteClusterResponses = {
+    /**
+     * Delete only an empty cluster with no identities or members.
+     */
+    204: void;
+};
+
+export type DeleteClusterResponse = DeleteClusterResponses[keyof DeleteClusterResponses];
+
+export type GetClusterData = {
+    body?: never;
+    path: {
+        cluster_id: string;
+    };
+    query?: never;
+    url: '/api/clusters/{cluster_id}';
+};
+
+export type GetClusterErrors = {
+    /**
+     * Rejected or unavailable; fetch the current revision before retrying.
+     */
+    400: Error;
+    /**
+     * Rejected or unavailable; fetch the current revision before retrying.
+     */
+    401: Error;
+    /**
+     * Rejected or unavailable; fetch the current revision before retrying.
+     */
+    403: Error;
+    /**
+     * Rejected or unavailable; fetch the current revision before retrying.
+     */
+    404: Error;
+    /**
+     * Rejected or unavailable; fetch the current revision before retrying.
+     */
+    409: Error;
+    /**
+     * Rejected or unavailable; fetch the current revision before retrying.
+     */
+    428: Error;
+    /**
+     * Rejected or unavailable; fetch the current revision before retrying.
+     */
+    503: Error;
+};
+
+export type GetClusterError = GetClusterErrors[keyof GetClusterErrors];
+
+export type GetClusterResponses = {
+    /**
+     * Cluster membership and revision.
+     */
+    200: ClusterDetail;
+};
+
+export type GetClusterResponse = GetClusterResponses[keyof GetClusterResponses];
+
+export type RenameClusterData = {
+    body: {
+        name: string;
+    };
+    headers: {
+        /**
+         * Positive revision of the cluster or identity owning this operation.
+         */
+        'If-Match': string;
+    };
+    path: {
+        cluster_id: string;
+    };
+    query?: never;
+    url: '/api/clusters/{cluster_id}';
+};
+
+export type RenameClusterErrors = {
+    /**
+     * Rejected or unavailable; fetch the current revision before retrying.
+     */
+    400: Error;
+    /**
+     * Rejected or unavailable; fetch the current revision before retrying.
+     */
+    401: Error;
+    /**
+     * Rejected or unavailable; fetch the current revision before retrying.
+     */
+    403: Error;
+    /**
+     * Rejected or unavailable; fetch the current revision before retrying.
+     */
+    404: Error;
+    /**
+     * Rejected or unavailable; fetch the current revision before retrying.
+     */
+    409: Error;
+    /**
+     * Rejected or unavailable; fetch the current revision before retrying.
+     */
+    428: Error;
+    /**
+     * Rejected or unavailable; fetch the current revision before retrying.
+     */
+    503: Error;
+};
+
+export type RenameClusterError = RenameClusterErrors[keyof RenameClusterErrors];
+
+export type RenameClusterResponses = {
+    /**
+     * Rename using the cluster revision.
+     */
+    204: void;
+};
+
+export type RenameClusterResponse = RenameClusterResponses[keyof RenameClusterResponses];
+
+export type GetClusterRoutingData = {
+    body?: never;
+    path: {
+        cluster_id: string;
+    };
+    query?: never;
+    url: '/api/clusters/{cluster_id}/routing';
+};
+
+export type GetClusterRoutingErrors = {
+    /**
+     * Rejected or unavailable; fetch the current revision before retrying.
+     */
+    400: Error;
+    /**
+     * Rejected or unavailable; fetch the current revision before retrying.
+     */
+    401: Error;
+    /**
+     * Rejected or unavailable; fetch the current revision before retrying.
+     */
+    403: Error;
+    /**
+     * Rejected or unavailable; fetch the current revision before retrying.
+     */
+    404: Error;
+    /**
+     * Rejected or unavailable; fetch the current revision before retrying.
+     */
+    409: Error;
+    /**
+     * Rejected or unavailable; fetch the current revision before retrying.
+     */
+    428: Error;
+    /**
+     * Rejected or unavailable; fetch the current revision before retrying.
+     */
+    503: Error;
+};
+
+export type GetClusterRoutingError = GetClusterRoutingErrors[keyof GetClusterRoutingErrors];
+
+export type GetClusterRoutingResponses = {
+    /**
+     * Saved desired ingress policy; not an applied status.
+     */
+    200: ClusterRouting;
+};
+
+export type GetClusterRoutingResponse = GetClusterRoutingResponses[keyof GetClusterRoutingResponses];
+
+export type PutClusterRoutingData = {
+    body: IngressConfig;
+    headers: {
+        /**
+         * Positive revision of the cluster or identity owning this operation.
+         */
+        'If-Match': string;
+    };
+    path: {
+        cluster_id: string;
+    };
+    query?: never;
+    url: '/api/clusters/{cluster_id}/routing';
+};
+
+export type PutClusterRoutingErrors = {
+    /**
+     * Rejected or unavailable; fetch the current revision before retrying.
+     */
+    400: Error;
+    /**
+     * Rejected or unavailable; fetch the current revision before retrying.
+     */
+    401: Error;
+    /**
+     * Rejected or unavailable; fetch the current revision before retrying.
+     */
+    403: Error;
+    /**
+     * Rejected or unavailable; fetch the current revision before retrying.
+     */
+    404: Error;
+    /**
+     * Rejected or unavailable; fetch the current revision before retrying.
+     */
+    409: Error;
+    /**
+     * Rejected or unavailable; fetch the current revision before retrying.
+     */
+    428: Error;
+    /**
+     * Rejected or unavailable; fetch the current revision before retrying.
+     */
+    503: Error;
+};
+
+export type PutClusterRoutingError = PutClusterRoutingErrors[keyof PutClusterRoutingErrors];
+
+export type PutClusterRoutingResponses = {
+    /**
+     * Replace complete active-member routing inventory using cluster CAS. Does not deploy ingress.
+     */
+    204: void;
+};
+
+export type PutClusterRoutingResponse = PutClusterRoutingResponses[keyof PutClusterRoutingResponses];
+
+export type ExportClusterRoutingData = {
+    body?: never;
+    headers: {
+        /**
+         * Positive revision of the cluster or identity owning this operation.
+         */
+        'If-Match': string;
+    };
+    path: {
+        cluster_id: string;
+    };
+    query?: never;
+    url: '/api/clusters/{cluster_id}/routing/export';
+};
+
+export type ExportClusterRoutingErrors = {
+    /**
+     * Rejected or unavailable; fetch the current revision before retrying.
+     */
+    400: Error;
+    /**
+     * Rejected or unavailable; fetch the current revision before retrying.
+     */
+    401: Error;
+    /**
+     * Rejected or unavailable; fetch the current revision before retrying.
+     */
+    403: Error;
+    /**
+     * Rejected or unavailable; fetch the current revision before retrying.
+     */
+    404: Error;
+    /**
+     * Rejected or unavailable; fetch the current revision before retrying.
+     */
+    409: Error;
+    /**
+     * Rejected or unavailable; fetch the current revision before retrying.
+     */
+    428: Error;
+    /**
+     * Rejected or unavailable; fetch the current revision before retrying.
+     */
+    503: Error;
+};
+
+export type ExportClusterRoutingError = ExportClusterRoutingErrors[keyof ExportClusterRoutingErrors];
+
+export type ExportClusterRoutingResponses = {
+    /**
+     * HAProxy configuration, not yet applied.
+     */
+    200: string;
+};
+
+export type ExportClusterRoutingResponse = ExportClusterRoutingResponses[keyof ExportClusterRoutingResponses];
+
+export type AddClusterMemberData = {
+    body: {
+        node_id: string;
+    };
+    headers: {
+        /**
+         * Positive revision of the cluster or identity owning this operation.
+         */
+        'If-Match': string;
+    };
+    path: {
+        cluster_id: string;
+    };
+    query?: never;
+    url: '/api/clusters/{cluster_id}/members';
+};
+
+export type AddClusterMemberErrors = {
+    /**
+     * Rejected or unavailable; fetch the current revision before retrying.
+     */
+    400: Error;
+    /**
+     * Rejected or unavailable; fetch the current revision before retrying.
+     */
+    401: Error;
+    /**
+     * Rejected or unavailable; fetch the current revision before retrying.
+     */
+    403: Error;
+    /**
+     * Rejected or unavailable; fetch the current revision before retrying.
+     */
+    404: Error;
+    /**
+     * Rejected or unavailable; fetch the current revision before retrying.
+     */
+    409: Error;
+    /**
+     * Rejected or unavailable; fetch the current revision before retrying.
+     */
+    428: Error;
+    /**
+     * Rejected or unavailable; fetch the current revision before retrying.
+     */
+    503: Error;
+};
+
+export type AddClusterMemberError = AddClusterMemberErrors[keyof AddClusterMemberErrors];
+
+export type AddClusterMemberResponses = {
+    /**
+     * Join one enabled registered node to this cluster; enqueue non-revoked identities transactionally.
+     */
+    204: void;
+};
+
+export type AddClusterMemberResponse = AddClusterMemberResponses[keyof AddClusterMemberResponses];
+
+export type RemoveClusterMemberData = {
+    body?: never;
+    headers: {
+        /**
+         * Positive revision of the cluster or identity owning this operation.
+         */
+        'If-Match': string;
+    };
+    path: {
+        cluster_id: string;
+        member_id: string;
+    };
+    query?: never;
+    url: '/api/clusters/{cluster_id}/members/{member_id}';
+};
+
+export type RemoveClusterMemberErrors = {
+    /**
+     * Rejected or unavailable; fetch the current revision before retrying.
+     */
+    400: Error;
+    /**
+     * Rejected or unavailable; fetch the current revision before retrying.
+     */
+    401: Error;
+    /**
+     * Rejected or unavailable; fetch the current revision before retrying.
+     */
+    403: Error;
+    /**
+     * Rejected or unavailable; fetch the current revision before retrying.
+     */
+    404: Error;
+    /**
+     * Rejected or unavailable; fetch the current revision before retrying.
+     */
+    409: Error;
+    /**
+     * Rejected or unavailable; fetch the current revision before retrying.
+     */
+    428: Error;
+    /**
+     * Rejected or unavailable; fetch the current revision before retrying.
+     */
+    503: Error;
+};
+
+export type RemoveClusterMemberError = RemoveClusterMemberErrors[keyof RemoveClusterMemberErrors];
+
+export type RemoveClusterMemberResponses = {
+    /**
+     * Request removal. Disable managed accounts with per-node retirement credentials and verify before releasing membership. Failure keeps ownership reserved.
+     */
+    202: unknown;
+};
+
+export type ListClusterIdentitiesData = {
+    body?: never;
+    path: {
+        cluster_id: string;
+    };
+    query?: {
+        offset?: number;
+    };
+    url: '/api/clusters/{cluster_id}/identities';
+};
+
+export type ListClusterIdentitiesErrors = {
+    /**
+     * Rejected or unavailable; fetch the current revision before retrying.
+     */
+    400: Error;
+    /**
+     * Rejected or unavailable; fetch the current revision before retrying.
+     */
+    401: Error;
+    /**
+     * Rejected or unavailable; fetch the current revision before retrying.
+     */
+    403: Error;
+    /**
+     * Rejected or unavailable; fetch the current revision before retrying.
+     */
+    404: Error;
+    /**
+     * Rejected or unavailable; fetch the current revision before retrying.
+     */
+    409: Error;
+    /**
+     * Rejected or unavailable; fetch the current revision before retrying.
+     */
+    428: Error;
+    /**
+     * Rejected or unavailable; fetch the current revision before retrying.
+     */
+    503: Error;
+};
+
+export type ListClusterIdentitiesError = ListClusterIdentitiesErrors[keyof ListClusterIdentitiesErrors];
+
+export type ListClusterIdentitiesResponses = {
+    /**
+     * Up to 100 identities ordered by username; use offset for the next page.
+     */
+    200: Array<ClusterIdentity>;
+};
+
+export type ListClusterIdentitiesResponse = ListClusterIdentitiesResponses[keyof ListClusterIdentitiesResponses];
+
+export type CreateClusterIdentityData = {
+    body: ClusterIdentityInput;
+    headers: {
+        /**
+         * Positive revision of the cluster or identity owning this operation.
+         */
+        'If-Match': string;
+    };
+    path: {
+        cluster_id: string;
+    };
+    query?: never;
+    url: '/api/clusters/{cluster_id}/identities';
+};
+
+export type CreateClusterIdentityErrors = {
+    /**
+     * Rejected or unavailable; fetch the current revision before retrying.
+     */
+    400: Error;
+    /**
+     * Rejected or unavailable; fetch the current revision before retrying.
+     */
+    401: Error;
+    /**
+     * Rejected or unavailable; fetch the current revision before retrying.
+     */
+    403: Error;
+    /**
+     * Rejected or unavailable; fetch the current revision before retrying.
+     */
+    404: Error;
+    /**
+     * Rejected or unavailable; fetch the current revision before retrying.
+     */
+    409: Error;
+    /**
+     * Rejected or unavailable; fetch the current revision before retrying.
+     */
+    428: Error;
+    /**
+     * Rejected or unavailable; fetch the current revision before retrying.
+     */
+    503: Error;
+};
+
+export type CreateClusterIdentityError = CreateClusterIdentityErrors[keyof CreateClusterIdentityErrors];
+
+export type CreateClusterIdentityResponses = {
+    /**
+     * Persist desired identity and delivery jobs. Does not assert successful delivery. If-Match is the cluster revision.
+     */
+    201: ClusterIdentity;
+};
+
+export type CreateClusterIdentityResponse = CreateClusterIdentityResponses[keyof CreateClusterIdentityResponses];
+
+export type GetClusterIdentityData = {
+    body?: never;
+    path: {
+        identity_id: string;
+    };
+    query?: never;
+    url: '/api/identities/{identity_id}';
+};
+
+export type GetClusterIdentityErrors = {
+    /**
+     * Rejected or unavailable; fetch the current revision before retrying.
+     */
+    400: Error;
+    /**
+     * Rejected or unavailable; fetch the current revision before retrying.
+     */
+    401: Error;
+    /**
+     * Rejected or unavailable; fetch the current revision before retrying.
+     */
+    403: Error;
+    /**
+     * Rejected or unavailable; fetch the current revision before retrying.
+     */
+    404: Error;
+    /**
+     * Rejected or unavailable; fetch the current revision before retrying.
+     */
+    409: Error;
+    /**
+     * Rejected or unavailable; fetch the current revision before retrying.
+     */
+    428: Error;
+    /**
+     * Rejected or unavailable; fetch the current revision before retrying.
+     */
+    503: Error;
+};
+
+export type GetClusterIdentityError = GetClusterIdentityErrors[keyof GetClusterIdentityErrors];
+
+export type GetClusterIdentityResponses = {
+    /**
+     * Per-node desired/applied revisions and readback outcomes, without secrets.
+     */
+    200: ClusterIdentityDetail;
+};
+
+export type GetClusterIdentityResponse = GetClusterIdentityResponses[keyof GetClusterIdentityResponses];
+
+export type UpdateClusterIdentityData = {
+    body: ClusterIdentityUpdate;
+    headers: {
+        /**
+         * Positive revision of the cluster or identity owning this operation.
+         */
+        'If-Match': string;
+    };
+    path: {
+        identity_id: string;
+    };
+    query?: never;
+    url: '/api/identities/{identity_id}';
+};
+
+export type UpdateClusterIdentityErrors = {
+    /**
+     * Rejected or unavailable; fetch the current revision before retrying.
+     */
+    400: Error;
+    /**
+     * Rejected or unavailable; fetch the current revision before retrying.
+     */
+    401: Error;
+    /**
+     * Rejected or unavailable; fetch the current revision before retrying.
+     */
+    403: Error;
+    /**
+     * Rejected or unavailable; fetch the current revision before retrying.
+     */
+    404: Error;
+    /**
+     * Rejected or unavailable; fetch the current revision before retrying.
+     */
+    409: Error;
+    /**
+     * Rejected or unavailable; fetch the current revision before retrying.
+     */
+    428: Error;
+    /**
+     * Rejected or unavailable; fetch the current revision before retrying.
+     */
+    503: Error;
+};
+
+export type UpdateClusterIdentityError = UpdateClusterIdentityErrors[keyof UpdateClusterIdentityErrors];
+
+export type UpdateClusterIdentityResponses = {
+    /**
+     * Update desired policy, rotate secret or irreversibly revoke identity. Revoke also rotates the credential. Does not terminate all existing transport sessions.
+     */
+    202: unknown;
+};
+
+export type RetryClusterIdentityData = {
+    body?: never;
+    headers: {
+        /**
+         * Positive revision of the cluster or identity owning this operation.
+         */
+        'If-Match': string;
+    };
+    path: {
+        identity_id: string;
+    };
+    query?: never;
+    url: '/api/identities/{identity_id}/retry';
+};
+
+export type RetryClusterIdentityErrors = {
+    /**
+     * Rejected or unavailable; fetch the current revision before retrying.
+     */
+    400: Error;
+    /**
+     * Rejected or unavailable; fetch the current revision before retrying.
+     */
+    401: Error;
+    /**
+     * Rejected or unavailable; fetch the current revision before retrying.
+     */
+    403: Error;
+    /**
+     * Rejected or unavailable; fetch the current revision before retrying.
+     */
+    404: Error;
+    /**
+     * Rejected or unavailable; fetch the current revision before retrying.
+     */
+    409: Error;
+    /**
+     * Rejected or unavailable; fetch the current revision before retrying.
+     */
+    428: Error;
+    /**
+     * Rejected or unavailable; fetch the current revision before retrying.
+     */
+    503: Error;
+};
+
+export type RetryClusterIdentityError = RetryClusterIdentityErrors[keyof RetryClusterIdentityErrors];
+
+export type RetryClusterIdentityResponses = {
+    /**
+     * Schedule re-observation without stealing a live worker lease.
+     */
+    202: unknown;
+};
+
+export type ListNodesData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/nodes';
+};
+
+export type ListNodesErrors = {
+    /**
+     * Stable error code; no upstream response or credential values.
+     */
+    401: Error;
+    /**
+     * Stable error code; no upstream response or credential values.
+     */
+    403: Error;
+    /**
+     * Stable error code; no upstream response or credential values. Registry persistence or credential reference unavailable.
+     */
+    503: Error;
+};
+
+export type ListNodesError = ListNodesErrors[keyof ListNodesErrors];
+
+export type ListNodesResponses = {
+    /**
+     * Successful node-scoped operation
+     */
+    200: NodeList;
+};
+
+export type ListNodesResponse = ListNodesResponses[keyof ListNodesResponses];
+
+export type CreateNodeData = {
+    body: NodeInput;
+    path?: never;
+    query?: never;
+    url: '/api/nodes';
+};
+
+export type CreateNodeErrors = {
+    /**
+     * Stable error code; no upstream response or credential values.
+     */
+    400: Error;
+    /**
+     * Stable error code; no upstream response or credential values.
+     */
+    401: Error;
+    /**
+     * Stable error code; no upstream response or credential values.
+     */
+    403: Error;
+    /**
+     * Stable error code; no upstream response or credential values. Stale revision, disabled/protected node or registry capacity.
+     */
+    409: Error;
+    /**
+     * Stable error code; no upstream response or credential values. Registry persistence or credential reference unavailable.
+     */
+    503: Error;
+};
+
+export type CreateNodeError = CreateNodeErrors[keyof CreateNodeErrors];
+
+export type CreateNodeResponses = {
+    /**
+     * Successful node-scoped operation
+     */
+    201: Node;
+};
+
+export type CreateNodeResponse = CreateNodeResponses[keyof CreateNodeResponses];
+
+export type DeleteNodeData = {
+    body?: never;
+    headers: {
+        /**
+         * One positive node revision, bare or quoted. Not the upstream config revision. Reread metadata after conflicts or persistence errors.
+         */
+        'If-Match': string;
+    };
+    path: {
+        node_id: string;
+    };
+    query?: never;
+    url: '/api/nodes/{node_id}';
+};
+
+export type DeleteNodeErrors = {
+    /**
+     * Stable error code; no upstream response or credential values.
+     */
+    400: Error;
+    /**
+     * Stable error code; no upstream response or credential values.
+     */
+    401: Error;
+    /**
+     * Stable error code; no upstream response or credential values.
+     */
+    403: Error;
+    /**
+     * Stable error code; no upstream response or credential values.
+     */
+    404: Error;
+    /**
+     * Stable error code; no upstream response or credential values. Stale revision, disabled/protected node or registry capacity.
+     */
+    409: Error;
+    /**
+     * Stable error code; no upstream response or credential values. If-Match required.
+     */
+    428: Error;
+    /**
+     * Stable error code; no upstream response or credential values. Registry persistence or credential reference unavailable.
+     */
+    503: Error;
+};
+
+export type DeleteNodeError = DeleteNodeErrors[keyof DeleteNodeErrors];
+
+export type DeleteNodeResponses = {
+    /**
+     * Successful node-scoped operation
+     */
+    204: void;
+};
+
+export type DeleteNodeResponse = DeleteNodeResponses[keyof DeleteNodeResponses];
+
+export type GetNodeData = {
+    body?: never;
+    path: {
+        node_id: string;
+    };
+    query?: never;
+    url: '/api/nodes/{node_id}';
+};
+
+export type GetNodeErrors = {
+    /**
+     * Stable error code; no upstream response or credential values.
+     */
+    401: Error;
+    /**
+     * Stable error code; no upstream response or credential values.
+     */
+    403: Error;
+    /**
+     * Stable error code; no upstream response or credential values.
+     */
+    404: Error;
+    /**
+     * Stable error code; no upstream response or credential values. Registry persistence or credential reference unavailable.
+     */
+    503: Error;
+};
+
+export type GetNodeError = GetNodeErrors[keyof GetNodeErrors];
+
+export type GetNodeResponses = {
+    /**
+     * Successful node-scoped operation
+     */
+    200: Node;
+};
+
+export type GetNodeResponse = GetNodeResponses[keyof GetNodeResponses];
+
+export type ReplaceNodeData = {
+    body: NodeInput;
+    headers: {
+        /**
+         * One positive node revision, bare or quoted. Not the upstream config revision. Reread metadata after conflicts or persistence errors.
+         */
+        'If-Match': string;
+    };
+    path: {
+        node_id: string;
+    };
+    query?: never;
+    url: '/api/nodes/{node_id}';
+};
+
+export type ReplaceNodeErrors = {
+    /**
+     * Stable error code; no upstream response or credential values.
+     */
+    400: Error;
+    /**
+     * Stable error code; no upstream response or credential values.
+     */
+    401: Error;
+    /**
+     * Stable error code; no upstream response or credential values.
+     */
+    403: Error;
+    /**
+     * Stable error code; no upstream response or credential values.
+     */
+    404: Error;
+    /**
+     * Stable error code; no upstream response or credential values. Stale revision, disabled/protected node or registry capacity.
+     */
+    409: Error;
+    /**
+     * Stable error code; no upstream response or credential values. If-Match required.
+     */
+    428: Error;
+    /**
+     * Stable error code; no upstream response or credential values. Registry persistence or credential reference unavailable.
+     */
+    503: Error;
+};
+
+export type ReplaceNodeError = ReplaceNodeErrors[keyof ReplaceNodeErrors];
+
+export type ReplaceNodeResponses = {
+    /**
+     * Successful node-scoped operation
+     */
+    200: Node;
+};
+
+export type ReplaceNodeResponse = ReplaceNodeResponses[keyof ReplaceNodeResponses];
+
+export type GetNodeHealthData = {
+    body?: never;
+    path: {
+        node_id: string;
+    };
+    query?: never;
+    url: '/api/nodes/{node_id}/health';
+};
+
+export type GetNodeHealthErrors = {
+    /**
+     * Stable error code; no upstream response or credential values.
+     */
+    401: Error;
+    /**
+     * Stable error code; no upstream response or credential values.
+     */
+    403: Error;
+    /**
+     * Stable error code; no upstream response or credential values.
+     */
+    404: Error;
+    /**
+     * Stable error code; no upstream response or credential values. Stale revision, disabled/protected node or registry capacity.
+     */
+    409: Error;
+    /**
+     * Stable error code; no upstream response or credential values.
+     */
+    502: Error;
+    /**
+     * Stable error code; no upstream response or credential values. Registry persistence or credential reference unavailable.
+     */
+    503: Error;
+    /**
+     * Stable error code; no upstream response or credential values.
+     */
+    504: Error;
+};
+
+export type GetNodeHealthError = GetNodeHealthErrors[keyof GetNodeHealthErrors];
+
+export type GetNodeHealthResponses = {
+    /**
+     * Successful node-scoped operation
+     */
+    200: NodeHealthSnapshot;
+};
+
+export type GetNodeHealthResponse = GetNodeHealthResponses[keyof GetNodeHealthResponses];
+
+export type GetNodeUsersData = {
+    body?: never;
+    path: {
+        node_id: string;
+    };
+    query?: never;
+    url: '/api/nodes/{node_id}/users';
+};
+
+export type GetNodeUsersErrors = {
+    /**
+     * Stable error code; no upstream response or credential values.
+     */
+    401: Error;
+    /**
+     * Stable error code; no upstream response or credential values.
+     */
+    403: Error;
+    /**
+     * Stable error code; no upstream response or credential values.
+     */
+    404: Error;
+    /**
+     * Stable error code; no upstream response or credential values. Stale revision, disabled/protected node or registry capacity.
+     */
+    409: Error;
+    /**
+     * Stable error code; no upstream response or credential values.
+     */
+    502: Error;
+    /**
+     * Stable error code; no upstream response or credential values. Registry persistence or credential reference unavailable.
+     */
+    503: Error;
+    /**
+     * Stable error code; no upstream response or credential values.
+     */
+    504: Error;
+};
+
+export type GetNodeUsersError = GetNodeUsersErrors[keyof GetNodeUsersErrors];
+
+export type GetNodeUsersResponses = {
+    /**
+     * Successful node-scoped operation
+     */
+    200: NodeUsersSnapshot;
+};
+
+export type GetNodeUsersResponse = GetNodeUsersResponses[keyof GetNodeUsersResponses];
+
+export type GetNodeConfigData = {
+    body?: never;
+    path: {
+        node_id: string;
+    };
+    query?: never;
+    url: '/api/nodes/{node_id}/config';
+};
+
+export type GetNodeConfigErrors = {
+    /**
+     * Stable error code; no upstream response or credential values.
+     */
+    401: Error;
+    /**
+     * Stable error code; no upstream response or credential values.
+     */
+    403: Error;
+    /**
+     * Stable error code; no upstream response or credential values.
+     */
+    404: Error;
+    /**
+     * Stable error code; no upstream response or credential values. Stale revision, disabled/protected node or registry capacity.
+     */
+    409: Error;
+    /**
+     * Stable error code; no upstream response or credential values.
+     */
+    502: Error;
+    /**
+     * Stable error code; no upstream response or credential values. Registry persistence or credential reference unavailable.
+     */
+    503: Error;
+    /**
+     * Stable error code; no upstream response or credential values.
+     */
+    504: Error;
+};
+
+export type GetNodeConfigError = GetNodeConfigErrors[keyof GetNodeConfigErrors];
+
+export type GetNodeConfigResponses = {
+    /**
+     * Successful node-scoped operation
+     */
+    200: NodeConfigSnapshot;
+};
+
+export type GetNodeConfigResponse = GetNodeConfigResponses[keyof GetNodeConfigResponses];
+
+export type ManagedGetConfigFilesData = {
+    body?: never;
+    path: {
+        node_id: string;
+    };
+    query?: never;
+    url: '/api/nodes/{node_id}/manage/telemt/config/files';
+};
+
+export type ManagedGetConfigFilesErrors = {
+    /**
+     * Node missing, disabled, retired or its credentials/storage unavailable. No fallback to another node.
+     */
+    404: Error;
+    /**
+     * Node missing, disabled, retired or its credentials/storage unavailable. No fallback to another node.
+     */
+    409: Error;
+    /**
+     * Node missing, disabled, retired or its credentials/storage unavailable. No fallback to another node.
+     */
+    503: Error;
+};
+
+export type ManagedGetConfigFilesError = ManagedGetConfigFilesErrors[keyof ManagedGetConfigFilesErrors];
+
+export type ManagedGetConfigFilesResponses = {
+    /**
+     * Exact source graph
+     */
+    200: ConfigFileSnapshot;
+};
+
+export type ManagedGetConfigFilesResponse = ManagedGetConfigFilesResponses[keyof ManagedGetConfigFilesResponses];
+
+export type ManagedRenderConfigFileData = {
+    body: ConfigFileInput;
+    path: {
+        node_id: string;
+    };
+    query?: never;
+    url: '/api/nodes/{node_id}/manage/telemt/config/files/render';
+};
+
+export type ManagedRenderConfigFileErrors = {
+    /**
+     * Node missing, disabled, retired or its credentials/storage unavailable. No fallback to another node.
+     */
+    404: Error;
+    /**
+     * Node missing, disabled, retired or its credentials/storage unavailable. No fallback to another node.
+     */
+    409: Error;
+    /**
+     * Node missing, disabled, retired or its credentials/storage unavailable. No fallback to another node.
+     */
+    503: Error;
+};
+
+export type ManagedRenderConfigFileError = ManagedRenderConfigFileErrors[keyof ManagedRenderConfigFileErrors];
+
+export type ManagedRenderConfigFileResponses = {
+    /**
+     * Rendered candidate
+     */
+    200: ConfigFileRendered;
+};
+
+export type ManagedRenderConfigFileResponse = ManagedRenderConfigFileResponses[keyof ManagedRenderConfigFileResponses];
+
+export type ManagedValidateConfigFileData = {
+    body: ConfigFileInput;
+    path: {
+        node_id: string;
+    };
+    query?: never;
+    url: '/api/nodes/{node_id}/manage/telemt/config/files/validate';
+};
+
+export type ManagedValidateConfigFileErrors = {
+    /**
+     * Node missing, disabled, retired or its credentials/storage unavailable. No fallback to another node.
+     */
+    404: Error;
+    /**
+     * Node missing, disabled, retired or its credentials/storage unavailable. No fallback to another node.
+     */
+    409: Error;
+    /**
+     * Node missing, disabled, retired or its credentials/storage unavailable. No fallback to another node.
+     */
+    503: Error;
+};
+
+export type ManagedValidateConfigFileError = ManagedValidateConfigFileErrors[keyof ManagedValidateConfigFileErrors];
+
+export type ManagedValidateConfigFileResponses = {
+    /**
+     * Validated candidate; no readiness guarantee
+     */
+    200: ConfigFileResult;
+};
+
+export type ManagedValidateConfigFileResponse = ManagedValidateConfigFileResponses[keyof ManagedValidateConfigFileResponses];
+
+export type ManagedApplyConfigFileData = {
+    body: ConfigFileInput;
+    headers?: {
+        /**
+         * Reuse for the same mutation after ambiguous transport failure. Never auto-retry with a new key.
+         */
+        'Idempotency-Key'?: string;
+    };
+    path: {
+        node_id: string;
+    };
+    query?: never;
+    url: '/api/nodes/{node_id}/manage/telemt/config/files/apply';
+};
+
+export type ManagedApplyConfigFileErrors = {
+    /**
+     * Node missing, disabled, retired or its credentials/storage unavailable. No fallback to another node.
+     */
+    404: Error;
+    /**
+     * Node missing, disabled, retired or its credentials/storage unavailable. No fallback to another node.
+     */
+    409: Error;
+    /**
+     * Node missing, disabled, retired or its credentials/storage unavailable. No fallback to another node.
+     */
+    503: Error;
+};
+
+export type ManagedApplyConfigFileError = ManagedApplyConfigFileErrors[keyof ManagedApplyConfigFileErrors];
+
+export type ManagedApplyConfigFileResponses = {
+    /**
+     * Persisted source revision
+     */
+    200: ConfigFileResult;
+};
+
+export type ManagedApplyConfigFileResponse = ManagedApplyConfigFileResponses[keyof ManagedApplyConfigFileResponses];
+
+export type ManagedListConfigBackupsData = {
+    body?: never;
+    path: {
+        node_id: string;
+    };
+    query?: never;
+    url: '/api/nodes/{node_id}/manage/telemt/config/files/backups';
+};
+
+export type ManagedListConfigBackupsErrors = {
+    /**
+     * Node missing, disabled, retired or its credentials/storage unavailable. No fallback to another node.
+     */
+    404: Error;
+    /**
+     * Node missing, disabled, retired or its credentials/storage unavailable. No fallback to another node.
+     */
+    409: Error;
+    /**
+     * Node missing, disabled, retired or its credentials/storage unavailable. No fallback to another node.
+     */
+    503: Error;
+};
+
+export type ManagedListConfigBackupsError = ManagedListConfigBackupsErrors[keyof ManagedListConfigBackupsErrors];
+
+export type ManagedListConfigBackupsResponses = {
+    /**
+     * Backup metadata; content omitted
+     */
+    200: Array<ConfigFileBackup>;
+};
+
+export type ManagedListConfigBackupsResponse = ManagedListConfigBackupsResponses[keyof ManagedListConfigBackupsResponses];
+
+export type ManagedDeleteConfigBackupData = {
+    body?: never;
+    headers?: {
+        /**
+         * Reuse for the same mutation after ambiguous transport failure. Never auto-retry with a new key.
+         */
+        'Idempotency-Key'?: string;
+    };
+    path: {
+        node_id: string;
+        key: string;
+    };
+    query?: never;
+    url: '/api/nodes/{node_id}/manage/telemt/config/files/backups/{key}';
+};
+
+export type ManagedDeleteConfigBackupErrors = {
+    /**
+     * Node missing, disabled, retired or its credentials/storage unavailable. No fallback to another node.
+     */
+    404: Error;
+    /**
+     * Node missing, disabled, retired or its credentials/storage unavailable. No fallback to another node.
+     */
+    409: Error;
+    /**
+     * Node missing, disabled, retired or its credentials/storage unavailable. No fallback to another node.
+     */
+    503: Error;
+};
+
+export type ManagedDeleteConfigBackupError = ManagedDeleteConfigBackupErrors[keyof ManagedDeleteConfigBackupErrors];
+
+export type ManagedDeleteConfigBackupResponses = {
+    /**
+     * Selected backup removed; live source unchanged
+     */
+    204: void;
+};
+
+export type ManagedDeleteConfigBackupResponse = ManagedDeleteConfigBackupResponses[keyof ManagedDeleteConfigBackupResponses];
+
+export type ManagedGetConfigBackupData = {
+    body?: never;
+    path: {
+        node_id: string;
+        key: string;
+    };
+    query?: never;
+    url: '/api/nodes/{node_id}/manage/telemt/config/files/backups/{key}';
+};
+
+export type ManagedGetConfigBackupErrors = {
+    /**
+     * Node missing, disabled, retired or its credentials/storage unavailable. No fallback to another node.
+     */
+    404: Error;
+    /**
+     * Node missing, disabled, retired or its credentials/storage unavailable. No fallback to another node.
+     */
+    409: Error;
+    /**
+     * Node missing, disabled, retired or its credentials/storage unavailable. No fallback to another node.
+     */
+    503: Error;
+};
+
+export type ManagedGetConfigBackupError = ManagedGetConfigBackupErrors[keyof ManagedGetConfigBackupErrors];
+
+export type ManagedGetConfigBackupResponses = {
+    /**
+     * Sensitive backup content for review; restore through a new revision-checked apply
+     */
+    200: ConfigFileBackup;
+};
+
+export type ManagedGetConfigBackupResponse = ManagedGetConfigBackupResponses[keyof ManagedGetConfigBackupResponses];
+
+export type ManagedGetAgentCommandData = {
+    body?: never;
+    path: {
+        node_id: string;
+        key: string;
+    };
+    query?: never;
+    url: '/api/nodes/{node_id}/manage/agent/commands/{key}';
+};
+
+export type ManagedGetAgentCommandErrors = {
+    /**
+     * Node missing, disabled, retired or its credentials/storage unavailable. No fallback to another node.
+     */
+    404: Error;
+    /**
+     * Node missing, disabled, retired or its credentials/storage unavailable. No fallback to another node.
+     */
+    409: Error;
+    /**
+     * Node missing, disabled, retired or its credentials/storage unavailable. No fallback to another node.
+     */
+    503: Error;
+};
+
+export type ManagedGetAgentCommandError = ManagedGetAgentCommandErrors[keyof ManagedGetAgentCommandErrors];
+
+export type ManagedGetAgentCommandResponses = {
+    /**
+     * Persisted command outcome; status 0 means unknown intent, not success.
+     */
+    200: AgentCommand;
+};
+
+export type ManagedGetAgentCommandResponse = ManagedGetAgentCommandResponses[keyof ManagedGetAgentCommandResponses];
+
+export type ManagedGetTelemtInfoData = {
+    body?: never;
+    path: {
+        node_id: string;
+    };
+    query?: never;
+    url: '/api/nodes/{node_id}/manage/telemt/info';
+};
+
+export type ManagedGetTelemtInfoErrors = {
+    /**
+     * Node missing, disabled, retired or its credentials/storage unavailable. No fallback to another node.
+     */
+    404: Error;
+    /**
+     * Node missing, disabled, retired or its credentials/storage unavailable. No fallback to another node.
+     */
+    409: Error;
+    /**
+     * telemt_unreachable | telemt_auth_failed | telemt_response_too_large (upstream response exceeds 8 MiB)
+     */
+    502: Error;
+    /**
+     * Node missing, disabled, retired or its credentials/storage unavailable. No fallback to another node.
+     */
+    503: Error;
+};
+
+export type ManagedGetTelemtInfoError = ManagedGetTelemtInfoErrors[keyof ManagedGetTelemtInfoErrors];
+
+export type ManagedGetTelemtInfoResponses = {
+    /**
+     * Version, connectivity and capability flags (07-telemt-sdk.md §3)
+     */
+    200: TelemtInfo;
+};
+
+export type ManagedGetTelemtInfoResponse = ManagedGetTelemtInfoResponses[keyof ManagedGetTelemtInfoResponses];
+
+export type ManagedPrepareBulkQuotaResetData = {
+    body?: never;
+    path: {
+        node_id: string;
+    };
+    query?: never;
+    url: '/api/nodes/{node_id}/manage/users/operations/quota-reset/prepare';
+};
+
+export type ManagedPrepareBulkQuotaResetErrors = {
+    /**
+     * Invalid input
+     */
+    400: Error;
+    /**
+     * No valid session
+     */
+    401: Error;
+    /**
+     * Quota operation refused or unavailable; no automatic retry of mutations.
+     */
+    403: Error;
+    /**
+     * Node missing, disabled, retired or its credentials/storage unavailable. No fallback to another node.
+     */
+    404: Error;
+    /**
+     * Node missing, disabled, retired or its credentials/storage unavailable. No fallback to another node.
+     */
+    409: Error;
+    /**
+     * Quota operation refused or unavailable; no automatic retry of mutations.
+     */
+    501: Error;
+    /**
+     * Quota operation refused or unavailable; no automatic retry of mutations.
+     */
+    502: Error;
+    /**
+     * Node missing, disabled, retired or its credentials/storage unavailable. No fallback to another node.
+     */
+    503: Error;
+};
+
+export type ManagedPrepareBulkQuotaResetError = ManagedPrepareBulkQuotaResetErrors[keyof ManagedPrepareBulkQuotaResetErrors];
+
+export type ManagedPrepareBulkQuotaResetResponses = {
+    /**
+     * Explicit confirmation required
+     */
+    200: QuotaResetConfirmation;
+};
+
+export type ManagedPrepareBulkQuotaResetResponse = ManagedPrepareBulkQuotaResetResponses[keyof ManagedPrepareBulkQuotaResetResponses];
+
+export type ManagedGetBulkQuotaResetData = {
+    body?: never;
+    path: {
+        node_id: string;
+    };
+    query?: {
+        id?: string;
+        offset?: number;
+    };
+    url: '/api/nodes/{node_id}/manage/users/operations/quota-reset';
+};
+
+export type ManagedGetBulkQuotaResetErrors = {
+    /**
+     * Invalid input
+     */
+    400: Error;
+    /**
+     * No valid session
+     */
+    401: Error;
+    /**
+     * Quota operation refused or unavailable; no automatic retry of mutations.
+     */
+    403: Error;
+    /**
+     * Node missing, disabled, retired or its credentials/storage unavailable. No fallback to another node.
+     */
+    404: Error;
+    /**
+     * Node missing, disabled, retired or its credentials/storage unavailable. No fallback to another node.
+     */
+    409: Error;
+    /**
+     * Node missing, disabled, retired or its credentials/storage unavailable. No fallback to another node.
+     */
+    503: Error;
+};
+
+export type ManagedGetBulkQuotaResetError = ManagedGetBulkQuotaResetErrors[keyof ManagedGetBulkQuotaResetErrors];
+
+export type ManagedGetBulkQuotaResetResponses = {
+    /**
+     * Progress and at most 50 exception records
+     */
+    200: {
+        operation: QuotaResetOperation | null;
+    };
+};
+
+export type ManagedGetBulkQuotaResetResponse = ManagedGetBulkQuotaResetResponses[keyof ManagedGetBulkQuotaResetResponses];
+
+export type ManagedStartBulkQuotaResetData = {
+    body: {
+        token: string;
+    };
+    path: {
+        node_id: string;
+    };
+    query?: never;
+    url: '/api/nodes/{node_id}/manage/users/operations/quota-reset';
+};
+
+export type ManagedStartBulkQuotaResetErrors = {
+    /**
+     * Invalid input
+     */
+    400: Error;
+    /**
+     * No valid session
+     */
+    401: Error;
+    /**
+     * Quota operation refused or unavailable; no automatic retry of mutations.
+     */
+    403: Error;
+    /**
+     * Node missing, disabled, retired or its credentials/storage unavailable. No fallback to another node.
+     */
+    404: Error;
+    /**
+     * Node missing, disabled, retired or its credentials/storage unavailable. No fallback to another node.
+     */
+    409: Error;
+    /**
+     * Quota operation refused or unavailable; no automatic retry of mutations.
+     */
+    501: Error;
+    /**
+     * Quota operation refused or unavailable; no automatic retry of mutations.
+     */
+    502: Error;
+    /**
+     * Node missing, disabled, retired or its credentials/storage unavailable. No fallback to another node.
+     */
+    503: Error;
+};
+
+export type ManagedStartBulkQuotaResetError = ManagedStartBulkQuotaResetErrors[keyof ManagedStartBulkQuotaResetErrors];
+
+export type ManagedStartBulkQuotaResetResponses = {
+    /**
+     * Accepted or previously accepted operation
+     */
+    202: QuotaResetOperation;
+};
+
+export type ManagedStartBulkQuotaResetResponse = ManagedStartBulkQuotaResetResponses[keyof ManagedStartBulkQuotaResetResponses];
+
+export type ManagedGetQuotaScheduleData = {
+    body?: never;
+    path: {
+        node_id: string;
+    };
+    query?: never;
+    url: '/api/nodes/{node_id}/manage/settings/quota-schedule';
+};
+
+export type ManagedGetQuotaScheduleErrors = {
+    /**
+     * Node missing, disabled, retired or its credentials/storage unavailable. No fallback to another node.
+     */
+    404: Error;
+    /**
+     * Node missing, disabled, retired or its credentials/storage unavailable. No fallback to another node.
+     */
+    409: Error;
+    /**
+     * Node missing, disabled, retired or its credentials/storage unavailable. No fallback to another node.
+     */
+    503: Error;
+    /**
+     * Quota operation refused or unavailable; no automatic retry of mutations.
+     */
+    default: Error;
+};
+
+export type ManagedGetQuotaScheduleError = ManagedGetQuotaScheduleErrors[keyof ManagedGetQuotaScheduleErrors];
+
+export type ManagedGetQuotaScheduleResponses = {
+    /**
+     * Common quota schedule and durable execution summary. Disabled by default.
+     */
+    200: QuotaScheduleView;
+};
+
+export type ManagedGetQuotaScheduleResponse = ManagedGetQuotaScheduleResponses[keyof ManagedGetQuotaScheduleResponses];
+
+export type ManagedSaveQuotaScheduleData = {
+    body: GlobalQuotaSchedule;
+    headers: {
+        'If-Match': string;
+    };
+    path: {
+        node_id: string;
+    };
+    query?: never;
+    url: '/api/nodes/{node_id}/manage/settings/quota-schedule';
+};
+
+export type ManagedSaveQuotaScheduleErrors = {
+    /**
+     * Node missing, disabled, retired or its credentials/storage unavailable. No fallback to another node.
+     */
+    404: Error;
+    /**
+     * Node missing, disabled, retired or its credentials/storage unavailable. No fallback to another node.
+     */
+    409: Error;
+    /**
+     * Node missing, disabled, retired or its credentials/storage unavailable. No fallback to another node.
+     */
+    503: Error;
+    /**
+     * Quota operation refused or unavailable; no automatic retry of mutations.
+     */
+    default: Error;
+};
+
+export type ManagedSaveQuotaScheduleError = ManagedSaveQuotaScheduleErrors[keyof ManagedSaveQuotaScheduleErrors];
+
+export type ManagedSaveQuotaScheduleResponses = {
+    /**
+     * Saved for future slots only; does not reset quotas immediately.
+     */
+    200: QuotaScheduleView;
+};
+
+export type ManagedSaveQuotaScheduleResponse = ManagedSaveQuotaScheduleResponses[keyof ManagedSaveQuotaScheduleResponses];
+
+export type ManagedPreviewQuotaScheduleData = {
+    body: {
+        rule: QuotaScheduleRule;
+        timezone: string;
+    };
+    path: {
+        node_id: string;
+    };
+    query?: never;
+    url: '/api/nodes/{node_id}/manage/settings/quota-schedule/preview';
+};
+
+export type ManagedPreviewQuotaScheduleErrors = {
+    /**
+     * Node missing, disabled, retired or its credentials/storage unavailable. No fallback to another node.
+     */
+    404: Error;
+    /**
+     * Node missing, disabled, retired or its credentials/storage unavailable. No fallback to another node.
+     */
+    409: Error;
+    /**
+     * Node missing, disabled, retired or its credentials/storage unavailable. No fallback to another node.
+     */
+    503: Error;
+    /**
+     * Quota operation refused or unavailable; no automatic retry of mutations.
+     */
+    default: Error;
+};
+
+export type ManagedPreviewQuotaScheduleError = ManagedPreviewQuotaScheduleErrors[keyof ManagedPreviewQuotaScheduleErrors];
+
+export type ManagedPreviewQuotaScheduleResponses = {
+    /**
+     * Three next instants calculated with the execution calendar; no task is created.
+     */
+    200: {
+        next_runs: Array<string>;
+        effective_timezone: string;
+    };
+};
+
+export type ManagedPreviewQuotaScheduleResponse = ManagedPreviewQuotaScheduleResponses[keyof ManagedPreviewQuotaScheduleResponses];
+
+export type ManagedGetUserQuotaScheduleData = {
+    body?: never;
+    path: {
+        node_id: string;
+    };
+    query?: never;
+    url: '/api/nodes/{node_id}/manage/users/{username}/quota-schedule';
+};
+
+export type ManagedGetUserQuotaScheduleErrors = {
+    /**
+     * Node missing, disabled, retired or its credentials/storage unavailable. No fallback to another node.
+     */
+    404: Error;
+    /**
+     * Node missing, disabled, retired or its credentials/storage unavailable. No fallback to another node.
+     */
+    409: Error;
+    /**
+     * Node missing, disabled, retired or its credentials/storage unavailable. No fallback to another node.
+     */
+    503: Error;
+    /**
+     * Quota operation refused or unavailable; no automatic retry of mutations.
+     */
+    default: Error;
+};
+
+export type ManagedGetUserQuotaScheduleError = ManagedGetUserQuotaScheduleErrors[keyof ManagedGetUserQuotaScheduleErrors];
+
+export type ManagedGetUserQuotaScheduleResponses = {
+    /**
+     * User override and effective common schedule.
+     */
+    200: QuotaScheduleView;
+};
+
+export type ManagedGetUserQuotaScheduleResponse = ManagedGetUserQuotaScheduleResponses[keyof ManagedGetUserQuotaScheduleResponses];
+
+export type ManagedSaveUserQuotaScheduleData = {
+    body: UserQuotaSchedule;
+    headers: {
+        'If-Match': string;
+    };
+    path: {
+        node_id: string;
+    };
+    query?: never;
+    url: '/api/nodes/{node_id}/manage/users/{username}/quota-schedule';
+};
+
+export type ManagedSaveUserQuotaScheduleErrors = {
+    /**
+     * Node missing, disabled, retired or its credentials/storage unavailable. No fallback to another node.
+     */
+    404: Error;
+    /**
+     * Node missing, disabled, retired or its credentials/storage unavailable. No fallback to another node.
+     */
+    409: Error;
+    /**
+     * Node missing, disabled, retired or its credentials/storage unavailable. No fallback to another node.
+     */
+    503: Error;
+    /**
+     * Quota operation refused or unavailable; no automatic retry of mutations.
+     */
+    default: Error;
+};
+
+export type ManagedSaveUserQuotaScheduleError = ManagedSaveUserQuotaScheduleErrors[keyof ManagedSaveUserQuotaScheduleErrors];
+
+export type ManagedSaveUserQuotaScheduleResponses = {
+    /**
+     * Saved user policy for future slots only.
+     */
+    200: QuotaScheduleView;
+};
+
+export type ManagedSaveUserQuotaScheduleResponse = ManagedSaveUserQuotaScheduleResponses[keyof ManagedSaveUserQuotaScheduleResponses];
+
+export type ManagedGetTelemtConfigData = {
+    body?: never;
+    path: {
+        node_id: string;
+    };
+    query?: never;
+    url: '/api/nodes/{node_id}/manage/telemt/config';
+};
+
+export type ManagedGetTelemtConfigErrors = {
+    /**
+     * Node missing, disabled, retired or its credentials/storage unavailable. No fallback to another node.
+     */
+    404: Error;
+    /**
+     * Node missing, disabled, retired or its credentials/storage unavailable. No fallback to another node.
+     */
+    409: Error;
+    /**
+     * telemt_unreachable | telemt_auth_failed | telemt_response_too_large (upstream response exceeds 8 MiB)
+     */
+    502: Error;
+    /**
+     * Node missing, disabled, retired or its credentials/storage unavailable. No fallback to another node.
+     */
+    503: Error;
+};
+
+export type ManagedGetTelemtConfigError = ManagedGetTelemtConfigErrors[keyof ManagedGetTelemtConfigErrors];
+
+export type ManagedGetTelemtConfigResponses = {
+    /**
+     * Editable sections + revision
+     */
+    200: TelemtConfig;
+};
+
+export type ManagedGetTelemtConfigResponse = ManagedGetTelemtConfigResponses[keyof ManagedGetTelemtConfigResponses];
+
+export type ManagedPatchTelemtConfigData = {
+    body: TelemtConfigPatch;
+    headers: {
+        'If-Match': string;
+    };
+    path: {
+        node_id: string;
+    };
+    query?: {
+        reload?: 'instant' | 'drain';
+        timeout_secs?: number;
+        failure_policy?: 'keep_new' | 'rollback';
+    };
+    url: '/api/nodes/{node_id}/manage/telemt/config';
+};
+
+export type ManagedPatchTelemtConfigErrors = {
+    /**
+     * Invalid input
+     */
+    400: Error;
+    /**
+     * Telemt API is in read_only mode
+     */
+    403: Error;
+    /**
+     * Node missing, disabled, retired or its credentials/storage unavailable. No fallback to another node.
+     */
+    404: Error;
+    /**
+     * Node missing, disabled, retired or its credentials/storage unavailable. No fallback to another node.
+     */
+    409: Error;
+    /**
+     * access_not_editable | section_not_editable | field_not_editable | config_patch_not_atomic | ambiguous_listeners — the patch itself is not applicable, regardless of the HTTP status Telemt used internally.
+     *
+     */
+    422: Error;
+    /**
+     * Preflight upstream failure or telemt_config_outcome_unknown after an unconfirmed write
+     */
+    502: Error;
+    /**
+     * Node missing, disabled, retired or its credentials/storage unavailable. No fallback to another node.
+     */
+    503: Error;
+    /**
+     * telemt_config_outcome_unknown — timed out waiting for write confirmation; check current configuration before retrying
+     */
+    504: Error;
+};
+
+export type ManagedPatchTelemtConfigError = ManagedPatchTelemtConfigErrors[keyof ManagedPatchTelemtConfigErrors];
+
+export type ManagedPatchTelemtConfigResponses = {
+    /**
+     * Applied
+     */
+    200: TelemtConfigPatchResult;
+    /**
+     * Applied and inline reload accepted
+     */
+    202: TelemtConfigPatchResult;
+};
+
+export type ManagedPatchTelemtConfigResponse = ManagedPatchTelemtConfigResponses[keyof ManagedPatchTelemtConfigResponses];
+
+export type ManagedGetTelemtWebAccessData = {
+    body?: never;
+    path: {
+        node_id: string;
+    };
+    query?: never;
+    url: '/api/nodes/{node_id}/manage/telemt/web-access';
+};
+
+export type ManagedGetTelemtWebAccessErrors = {
+    /**
+     * Node missing, disabled, retired or its credentials/storage unavailable. No fallback to another node.
+     */
+    404: Error;
+    /**
+     * Node missing, disabled, retired or its credentials/storage unavailable. No fallback to another node.
+     */
+    409: Error;
+    /**
+     * telemt_unreachable | telemt_auth_failed | telemt_response_too_large (upstream response exceeds 8 MiB)
+     */
+    502: Error;
+    /**
+     * Node missing, disabled, retired or its credentials/storage unavailable. No fallback to another node.
+     */
+    503: Error;
+};
+
+export type ManagedGetTelemtWebAccessError = ManagedGetTelemtWebAccessErrors[keyof ManagedGetTelemtWebAccessErrors];
+
+export type ManagedGetTelemtWebAccessResponses = {
+    /**
+     * WEB access relationships and source config revision
+     */
+    200: WebAccessView;
+};
+
+export type ManagedGetTelemtWebAccessResponse = ManagedGetTelemtWebAccessResponses[keyof ManagedGetTelemtWebAccessResponses];
+
+export type ManagedPutTelemtUserWebAccessData = {
+    body: WebUserAccessUpdate;
+    headers: {
+        'If-Match': string;
+    };
+    path: {
+        node_id: string;
+        username: string;
+    };
+    query?: never;
+    url: '/api/nodes/{node_id}/manage/telemt/web-access/users/{username}';
+};
+
+export type ManagedPutTelemtUserWebAccessErrors = {
+    /**
+     * Invalid input
+     */
+    400: Error;
+    /**
+     * Node missing, disabled, retired or its credentials/storage unavailable. No fallback to another node.
+     */
+    404: Error;
+    /**
+     * Node missing, disabled, retired or its credentials/storage unavailable. No fallback to another node.
+     */
+    409: Error;
+    /**
+     * telemt_unreachable | telemt_auth_failed | telemt_response_too_large (upstream response exceeds 8 MiB)
+     */
+    502: Error;
+    /**
+     * Node missing, disabled, retired or its credentials/storage unavailable. No fallback to another node.
+     */
+    503: Error;
+};
+
+export type ManagedPutTelemtUserWebAccessError = ManagedPutTelemtUserWebAccessErrors[keyof ManagedPutTelemtUserWebAccessErrors];
+
+export type ManagedPutTelemtUserWebAccessResponses = {
+    /**
+     * Configuration updated
+     */
+    200: TelemtConfigPatchResult;
+    /**
+     * Configuration updated and reload accepted
+     */
+    202: TelemtConfigPatchResult;
+};
+
+export type ManagedPutTelemtUserWebAccessResponse = ManagedPutTelemtUserWebAccessResponses[keyof ManagedPutTelemtUserWebAccessResponses];
+
+export type ManagedGetTelemtConfigCatalogData = {
+    body?: never;
+    path: {
+        node_id: string;
+    };
+    query?: never;
+    url: '/api/nodes/{node_id}/manage/telemt/config/catalog';
+};
+
+export type ManagedGetTelemtConfigCatalogErrors = {
+    /**
+     * Node missing, disabled, retired or its credentials/storage unavailable. No fallback to another node.
+     */
+    404: Error;
+    /**
+     * Node missing, disabled, retired or its credentials/storage unavailable. No fallback to another node.
+     */
+    409: Error;
+    /**
+     * Node missing, disabled, retired or its credentials/storage unavailable. No fallback to another node.
+     */
+    503: Error;
+};
+
+export type ManagedGetTelemtConfigCatalogError = ManagedGetTelemtConfigCatalogErrors[keyof ManagedGetTelemtConfigCatalogErrors];
+
+export type ManagedGetTelemtConfigCatalogResponses = {
+    /**
+     * Config field catalog
+     */
+    200: TelemtConfigCatalog;
+};
+
+export type ManagedGetTelemtConfigCatalogResponse = ManagedGetTelemtConfigCatalogResponses[keyof ManagedGetTelemtConfigCatalogResponses];
+
+export type ManagedGetTelemtConfigTomlData = {
+    body?: never;
+    path: {
+        node_id: string;
+    };
+    query?: never;
+    url: '/api/nodes/{node_id}/manage/telemt/config/toml';
+};
+
+export type ManagedGetTelemtConfigTomlErrors = {
+    /**
+     * Node missing, disabled, retired or its credentials/storage unavailable. No fallback to another node.
+     */
+    404: Error;
+    /**
+     * Node missing, disabled, retired or its credentials/storage unavailable. No fallback to another node.
+     */
+    409: Error;
+    /**
+     * toml_projection_failed — a Config API value cannot be represented as exact TOML
+     */
+    500: Error;
+    /**
+     * telemt_unreachable | telemt_auth_failed | telemt_response_too_large (upstream response exceeds 8 MiB)
+     */
+    502: Error;
+    /**
+     * Node missing, disabled, retired or its credentials/storage unavailable. No fallback to another node.
+     */
+    503: Error;
+};
+
+export type ManagedGetTelemtConfigTomlError = ManagedGetTelemtConfigTomlErrors[keyof ManagedGetTelemtConfigTomlErrors];
+
+export type ManagedGetTelemtConfigTomlResponses = {
+    /**
+     * TOML projection and revision
+     */
+    200: TelemtConfigToml;
+};
+
+export type ManagedGetTelemtConfigTomlResponse = ManagedGetTelemtConfigTomlResponses[keyof ManagedGetTelemtConfigTomlResponses];
+
+export type ManagedPatchTelemtConfigTomlData = {
+    body: TelemtConfigTomlRequest;
+    headers: {
+        'If-Match': string;
+    };
+    path: {
+        node_id: string;
+    };
+    query?: {
+        reload?: 'instant' | 'drain';
+        timeout_secs?: number;
+        failure_policy?: 'keep_new' | 'rollback';
+    };
+    url: '/api/nodes/{node_id}/manage/telemt/config/toml';
+};
+
+export type ManagedPatchTelemtConfigTomlErrors = {
+    /**
+     * Invalid input
+     */
+    400: Error;
+    /**
+     * Telemt API is in read_only mode
+     */
+    403: Error;
+    /**
+     * Node missing, disabled, retired or its credentials/storage unavailable. No fallback to another node.
+     */
+    404: Error;
+    /**
+     * Node missing, disabled, retired or its credentials/storage unavailable. No fallback to another node.
+     */
+    409: Error;
+    /**
+     * Telemt rejected the generated patch
+     */
+    422: Error;
+    /**
+     * Preflight upstream failure or telemt_config_outcome_unknown after an unconfirmed write
+     */
+    502: Error;
+    /**
+     * Node missing, disabled, retired or its credentials/storage unavailable. No fallback to another node.
+     */
+    503: Error;
+    /**
+     * telemt_config_outcome_unknown — timed out waiting for write confirmation; check current configuration before retrying
+     */
+    504: Error;
+};
+
+export type ManagedPatchTelemtConfigTomlError = ManagedPatchTelemtConfigTomlErrors[keyof ManagedPatchTelemtConfigTomlErrors];
+
+export type ManagedPatchTelemtConfigTomlResponses = {
+    /**
+     * Applied
+     */
+    200: TelemtConfigPatchResult;
+    /**
+     * Applied and inline reload accepted
+     */
+    202: TelemtConfigPatchResult;
+};
+
+export type ManagedPatchTelemtConfigTomlResponse = ManagedPatchTelemtConfigTomlResponses[keyof ManagedPatchTelemtConfigTomlResponses];
+
+export type ManagedPreviewTelemtConfigTomlData = {
+    body: TelemtConfigTomlRequest;
+    headers: {
+        'If-Match': string;
+    };
+    path: {
+        node_id: string;
+    };
+    query?: never;
+    url: '/api/nodes/{node_id}/manage/telemt/config/toml/preview';
+};
+
+export type ManagedPreviewTelemtConfigTomlErrors = {
+    /**
+     * Invalid input
+     */
+    400: Error;
+    /**
+     * Node missing, disabled, retired or its credentials/storage unavailable. No fallback to another node.
+     */
+    404: Error;
+    /**
+     * Node missing, disabled, retired or its credentials/storage unavailable. No fallback to another node.
+     */
+    409: Error;
+    /**
+     * telemt_unreachable | telemt_auth_failed | telemt_response_too_large (upstream response exceeds 8 MiB)
+     */
+    502: Error;
+    /**
+     * Node missing, disabled, retired or its credentials/storage unavailable. No fallback to another node.
+     */
+    503: Error;
+};
+
+export type ManagedPreviewTelemtConfigTomlError = ManagedPreviewTelemtConfigTomlErrors[keyof ManagedPreviewTelemtConfigTomlErrors];
+
+export type ManagedPreviewTelemtConfigTomlResponses = {
+    /**
+     * Validated preview
+     */
+    200: TelemtConfigTomlPreview;
+};
+
+export type ManagedPreviewTelemtConfigTomlResponse = ManagedPreviewTelemtConfigTomlResponses[keyof ManagedPreviewTelemtConfigTomlResponses];
+
+export type ManagedReloadTelemtData = {
+    body?: {
+        mode?: 'instant' | 'drain';
+        timeout_secs?: number;
+        failure_policy?: 'keep_new' | 'rollback';
+    };
+    path: {
+        node_id: string;
+    };
+    query?: never;
+    url: '/api/nodes/{node_id}/manage/telemt/reload';
+};
+
+export type ManagedReloadTelemtErrors = {
+    /**
+     * Invalid input
+     */
+    400: Error;
+    /**
+     * Telemt API is in read_only mode
+     */
+    403: Error;
+    /**
+     * Node missing, disabled, retired or its credentials/storage unavailable. No fallback to another node.
+     */
+    404: Error;
+    /**
+     * Node missing, disabled, retired or its credentials/storage unavailable. No fallback to another node.
+     */
+    409: Error;
+    /**
+     * capability_absent — offer service restart instead
+     */
+    501: Error;
+    /**
+     * telemt_unreachable | telemt_auth_failed | telemt_response_too_large (upstream response exceeds 8 MiB)
+     */
+    502: Error;
+    /**
+     * Node missing, disabled, retired or its credentials/storage unavailable. No fallback to another node.
+     */
+    503: Error;
+};
+
+export type ManagedReloadTelemtError = ManagedReloadTelemtErrors[keyof ManagedReloadTelemtErrors];
+
+export type ManagedReloadTelemtResponses = {
+    /**
+     * Reload accepted
+     */
+    202: ReloadAccepted;
+};
+
+export type ManagedReloadTelemtResponse = ManagedReloadTelemtResponses[keyof ManagedReloadTelemtResponses];
+
+export type ManagedGetTelemtReloadStatusData = {
+    body?: never;
+    path: {
+        node_id: string;
+        id: number;
+    };
+    query?: never;
+    url: '/api/nodes/{node_id}/manage/telemt/reload/{id}';
+};
+
+export type ManagedGetTelemtReloadStatusErrors = {
+    /**
+     * Invalid input
+     */
+    400: Error;
+    /**
+     * Node missing, disabled, retired or its credentials/storage unavailable. No fallback to another node.
+     */
+    404: Error;
+    /**
+     * Node missing, disabled, retired or its credentials/storage unavailable. No fallback to another node.
+     */
+    409: Error;
+    /**
+     * capability_absent
+     */
+    501: Error;
+    /**
+     * telemt_unreachable | telemt_auth_failed | telemt_response_too_large (upstream response exceeds 8 MiB)
+     */
+    502: Error;
+    /**
+     * Node missing, disabled, retired or its credentials/storage unavailable. No fallback to another node.
+     */
+    503: Error;
+};
+
+export type ManagedGetTelemtReloadStatusError = ManagedGetTelemtReloadStatusErrors[keyof ManagedGetTelemtReloadStatusErrors];
+
+export type ManagedGetTelemtReloadStatusResponses = {
+    /**
+     * Reload status
+     */
+    200: ReloadStatus;
+};
+
+export type ManagedGetTelemtReloadStatusResponse = ManagedGetTelemtReloadStatusResponses[keyof ManagedGetTelemtReloadStatusResponses];
+
+export type ManagedRestartTelemtServiceData = {
+    body?: never;
+    headers?: {
+        'Idempotency-Key'?: string;
+    };
+    path: {
+        node_id: string;
+    };
+    query?: never;
+    url: '/api/nodes/{node_id}/manage/telemt/restart';
+};
+
+export type ManagedRestartTelemtServiceErrors = {
+    /**
+     * Node missing, disabled, retired or its credentials/storage unavailable. No fallback to another node.
+     */
+    404: Error;
+    /**
+     * Node missing, disabled, retired or its credentials/storage unavailable. No fallback to another node.
+     */
+    409: Error;
+    /**
+     * internal_error — the restart op itself failed
+     */
+    502: Error;
+    /**
+     * Node missing, disabled, retired or its credentials/storage unavailable. No fallback to another node.
+     */
+    503: Error;
+};
+
+export type ManagedRestartTelemtServiceError = ManagedRestartTelemtServiceErrors[keyof ManagedRestartTelemtServiceErrors];
+
+export type ManagedRestartTelemtServiceResponses = {
+    /**
+     * Restart initiated
+     */
+    202: unknown;
+};
+
+export type ManagedGetTelemtServiceData = {
+    body?: never;
+    path: {
+        node_id: string;
+    };
+    query?: never;
+    url: '/api/nodes/{node_id}/manage/telemt/service';
+};
+
+export type ManagedGetTelemtServiceErrors = {
+    /**
+     * Node missing, disabled, retired or its credentials/storage unavailable. No fallback to another node.
+     */
+    404: Error;
+    /**
+     * Node missing, disabled, retired or its credentials/storage unavailable. No fallback to another node.
+     */
+    409: Error;
+    /**
+     * Node missing, disabled, retired or its credentials/storage unavailable. No fallback to another node.
+     */
+    503: Error;
+};
+
+export type ManagedGetTelemtServiceError = ManagedGetTelemtServiceErrors[keyof ManagedGetTelemtServiceErrors];
+
+export type ManagedGetTelemtServiceResponses = {
+    /**
+     * Service state and independently checked operation capabilities.
+     */
+    200: TelemtServiceState;
+};
+
+export type ManagedGetTelemtServiceResponse = ManagedGetTelemtServiceResponses[keyof ManagedGetTelemtServiceResponses];
+
+export type ManagedStartTelemtServiceData = {
+    body?: never;
+    headers?: {
+        'Idempotency-Key'?: string;
+    };
+    path: {
+        node_id: string;
+    };
+    query?: never;
+    url: '/api/nodes/{node_id}/manage/telemt/start';
+};
+
+export type ManagedStartTelemtServiceErrors = {
+    /**
+     * Node missing, disabled, retired or its credentials/storage unavailable. No fallback to another node.
+     */
+    404: Error;
+    /**
+     * Node missing, disabled, retired or its credentials/storage unavailable. No fallback to another node.
+     */
+    409: Error;
+    /**
+     * Service control is busy, unavailable or has an unconfirmed result. Inspect the current service state before retrying a command.
+     */
+    502: Error;
+    /**
+     * Node missing, disabled, retired or its credentials/storage unavailable. No fallback to another node.
+     */
+    503: Error;
+};
+
+export type ManagedStartTelemtServiceError = ManagedStartTelemtServiceErrors[keyof ManagedStartTelemtServiceErrors];
+
+export type ManagedStartTelemtServiceResponses = {
+    /**
+     * Start command completed; re-read service state rather than assuming readiness.
+     */
+    202: unknown;
+};
+
+export type ManagedStopTelemtServiceData = {
+    body?: never;
+    headers?: {
+        'Idempotency-Key'?: string;
+    };
+    path: {
+        node_id: string;
+    };
+    query?: never;
+    url: '/api/nodes/{node_id}/manage/telemt/stop';
+};
+
+export type ManagedStopTelemtServiceErrors = {
+    /**
+     * Node missing, disabled, retired or its credentials/storage unavailable. No fallback to another node.
+     */
+    404: Error;
+    /**
+     * Node missing, disabled, retired or its credentials/storage unavailable. No fallback to another node.
+     */
+    409: Error;
+    /**
+     * Service control is busy, unavailable or has an unconfirmed result. Inspect the current service state before retrying a command.
+     */
+    502: Error;
+    /**
+     * Node missing, disabled, retired or its credentials/storage unavailable. No fallback to another node.
+     */
+    503: Error;
+};
+
+export type ManagedStopTelemtServiceError = ManagedStopTelemtServiceErrors[keyof ManagedStopTelemtServiceErrors];
+
+export type ManagedStopTelemtServiceResponses = {
+    /**
+     * Stop command completed; re-read service state to observe the result.
+     */
+    202: unknown;
+};
+
+export type ManagedGetTelemtZeroData = {
+    body?: never;
+    path: {
+        node_id: string;
+    };
+    query?: never;
+    url: '/api/nodes/{node_id}/manage/telemt/zero';
+};
+
+export type ManagedGetTelemtZeroErrors = {
+    /**
+     * Node missing, disabled, retired or its credentials/storage unavailable. No fallback to another node.
+     */
+    404: Error;
+    /**
+     * Node missing, disabled, retired or its credentials/storage unavailable. No fallback to another node.
+     */
+    409: Error;
+    /**
+     * capability_absent — this Telemt build/config does not expose zero/all
+     */
+    501: Error;
+    /**
+     * telemt_unreachable | telemt_auth_failed | telemt_response_too_large (upstream response exceeds 8 MiB)
+     */
+    502: Error;
+    /**
+     * Node missing, disabled, retired or its credentials/storage unavailable. No fallback to another node.
+     */
+    503: Error;
+};
+
+export type ManagedGetTelemtZeroError = ManagedGetTelemtZeroErrors[keyof ManagedGetTelemtZeroErrors];
+
+export type ManagedGetTelemtZeroResponses = {
+    /**
+     * Deep counter dump
+     */
+    200: ZeroAllData;
+};
+
+export type ManagedGetTelemtZeroResponse = ManagedGetTelemtZeroResponses[keyof ManagedGetTelemtZeroResponses];
+
+export type ManagedGetTelemtTlsFingerprintsData = {
+    body?: never;
+    path: {
+        node_id: string;
+    };
+    query?: {
+        limit?: number;
+    };
+    url: '/api/nodes/{node_id}/manage/telemt/tls-fingerprints';
+};
+
+export type ManagedGetTelemtTlsFingerprintsErrors = {
+    /**
+     * Invalid input
+     */
+    400: Error;
+    /**
+     * Node missing, disabled, retired or its credentials/storage unavailable. No fallback to another node.
+     */
+    404: Error;
+    /**
+     * Node missing, disabled, retired or its credentials/storage unavailable. No fallback to another node.
+     */
+    409: Error;
+    /**
+     * capability_absent — this Telemt build predates the runtime edge routes
+     */
+    501: Error;
+    /**
+     * telemt_unreachable | telemt_auth_failed | telemt_response_too_large (upstream response exceeds 8 MiB)
+     */
+    502: Error;
+    /**
+     * Node missing, disabled, retired or its credentials/storage unavailable. No fallback to another node.
+     */
+    503: Error;
+};
+
+export type ManagedGetTelemtTlsFingerprintsError = ManagedGetTelemtTlsFingerprintsErrors[keyof ManagedGetTelemtTlsFingerprintsErrors];
+
+export type ManagedGetTelemtTlsFingerprintsResponses = {
+    /**
+     * Gated TLS fingerprint aggregates
+     */
+    200: GatedTlsFingerprints;
+};
+
+export type ManagedGetTelemtTlsFingerprintsResponse = ManagedGetTelemtTlsFingerprintsResponses[keyof ManagedGetTelemtTlsFingerprintsResponses];
+
+export type ManagedGetTelemtWebSessionsData = {
+    body?: never;
+    path: {
+        node_id: string;
+    };
+    query?: {
+        limit?: number;
+        cursor?: string;
+        session_ref?: string;
+        ip?: string;
+        host?: string;
+        user?: string;
+        user_agent_id?: string;
+        key_id?: string;
+        carrier?: 'https' | 'https-lanes' | 'websocket' | 'websocket-lanes';
+        state?: 'provisional' | 'replacing' | 'committed' | 'superseded' | 'healthy' | 'closing' | 'closed';
+    };
+    url: '/api/nodes/{node_id}/manage/telemt/web/sessions';
+};
+
+export type ManagedGetTelemtWebSessionsErrors = {
+    /**
+     * Invalid input
+     */
+    400: Error;
+    /**
+     * Node missing, disabled, retired or its credentials/storage unavailable. No fallback to another node.
+     */
+    404: Error;
+    /**
+     * Node missing, disabled, retired or its credentials/storage unavailable. No fallback to another node.
+     */
+    409: Error;
+    /**
+     * capability_absent — this Telemt build predates the WEB runtime routes
+     */
+    501: Error;
+    /**
+     * telemt_unreachable | telemt_auth_failed | telemt_response_too_large (upstream response exceeds 8 MiB)
+     */
+    502: Error;
+    /**
+     * Node missing, disabled, retired or its credentials/storage unavailable. No fallback to another node.
+     */
+    503: Error;
+};
+
+export type ManagedGetTelemtWebSessionsError = ManagedGetTelemtWebSessionsErrors[keyof ManagedGetTelemtWebSessionsErrors];
+
+export type ManagedGetTelemtWebSessionsResponses = {
+    /**
+     * One page of live WEB sessions
+     */
+    200: WebSessionPage;
+};
+
+export type ManagedGetTelemtWebSessionsResponse = ManagedGetTelemtWebSessionsResponses[keyof ManagedGetTelemtWebSessionsResponses];
+
+export type ManagedGetTelemtWebSessionData = {
+    body?: never;
+    path: {
+        node_id: string;
+        /**
+         * Canonical ws1.<instance>.<id> reference
+         */
+        ref: string;
+    };
+    query?: never;
+    url: '/api/nodes/{node_id}/manage/telemt/web/sessions/{ref}';
+};
+
+export type ManagedGetTelemtWebSessionErrors = {
+    /**
+     * Invalid input
+     */
+    400: Error;
+    /**
+     * Node missing, disabled, retired or its credentials/storage unavailable. No fallback to another node.
+     */
+    404: Error;
+    /**
+     * Node missing, disabled, retired or its credentials/storage unavailable. No fallback to another node.
+     */
+    409: Error;
+    /**
+     * capability_absent — this Telemt build predates the WEB runtime routes
+     */
+    501: Error;
+    /**
+     * telemt_unreachable | telemt_auth_failed | telemt_response_too_large (upstream response exceeds 8 MiB)
+     */
+    502: Error;
+    /**
+     * Node missing, disabled, retired or its credentials/storage unavailable. No fallback to another node.
+     */
+    503: Error;
+};
+
+export type ManagedGetTelemtWebSessionError = ManagedGetTelemtWebSessionErrors[keyof ManagedGetTelemtWebSessionErrors];
+
+export type ManagedGetTelemtWebSessionResponses = {
+    /**
+     * The live row or the closed-session tombstone
+     */
+    200: WebSessionLookup;
+};
+
+export type ManagedGetTelemtWebSessionResponse = ManagedGetTelemtWebSessionResponses[keyof ManagedGetTelemtWebSessionResponses];
+
+export type ManagedCloseTelemtWebSessionsData = {
+    body: WebCloseRequest;
+    path: {
+        node_id: string;
+    };
+    query?: never;
+    url: '/api/nodes/{node_id}/manage/telemt/web/sessions/close';
+};
+
+export type ManagedCloseTelemtWebSessionsErrors = {
+    /**
+     * Invalid input
+     */
+    400: Error;
+    /**
+     * read_only — the Telemt API runs in read-only mode
+     */
+    403: Error;
+    /**
+     * Node missing, disabled, retired or its credentials/storage unavailable. No fallback to another node.
+     */
+    404: Error;
+    /**
+     * Node missing, disabled, retired or its credentials/storage unavailable. No fallback to another node.
+     */
+    409: Error;
+    /**
+     * payload_too_large — the close body exceeds Telemt's own 64 KiB control-body cap
+     */
+    413: Error;
+    /**
+     * unsupported_media_type — Telemt's control routes require exactly one byte-exact `Content-Type: application/json`. Unreachable through the panel (the SDK sets the header itself) but declared because the code is Telemt's own.
+     */
+    415: Error;
+    /**
+     * capability_absent — this Telemt build predates the WEB runtime routes
+     */
+    501: Error;
+    /**
+     * telemt_unreachable | telemt_auth_failed | telemt_response_too_large (upstream response exceeds 8 MiB)
+     */
+    502: Error;
+    /**
+     * Node missing, disabled, retired or its credentials/storage unavailable. No fallback to another node.
+     */
+    503: Error;
+};
+
+export type ManagedCloseTelemtWebSessionsError = ManagedCloseTelemtWebSessionsErrors[keyof ManagedCloseTelemtWebSessionsErrors];
+
+export type ManagedCloseTelemtWebSessionsResponses = {
+    /**
+     * Close operation accepted
+     */
+    202: WebControlOperationStatus;
+};
+
+export type ManagedCloseTelemtWebSessionsResponse = ManagedCloseTelemtWebSessionsResponses[keyof ManagedCloseTelemtWebSessionsResponses];
+
+export type ManagedGetTelemtWebOperationData = {
+    body?: never;
+    path: {
+        node_id: string;
+        /**
+         * Canonical wo1.<instance>.<sequence> id
+         */
+        id: string;
+    };
+    query?: never;
+    url: '/api/nodes/{node_id}/manage/telemt/web/operations/{id}';
+};
+
+export type ManagedGetTelemtWebOperationErrors = {
+    /**
+     * Invalid input
+     */
+    400: Error;
+    /**
+     * Node missing, disabled, retired or its credentials/storage unavailable. No fallback to another node.
+     */
+    404: Error;
+    /**
+     * Node missing, disabled, retired or its credentials/storage unavailable. No fallback to another node.
+     */
+    409: Error;
+    /**
+     * capability_absent — this Telemt build predates the WEB runtime routes
+     */
+    501: Error;
+    /**
+     * telemt_unreachable | telemt_auth_failed | telemt_response_too_large (upstream response exceeds 8 MiB)
+     */
+    502: Error;
+    /**
+     * Node missing, disabled, retired or its credentials/storage unavailable. No fallback to another node.
+     */
+    503: Error;
+};
+
+export type ManagedGetTelemtWebOperationError = ManagedGetTelemtWebOperationErrors[keyof ManagedGetTelemtWebOperationErrors];
+
+export type ManagedGetTelemtWebOperationResponses = {
+    /**
+     * Operation status
+     */
+    200: WebControlOperationStatus;
+};
+
+export type ManagedGetTelemtWebOperationResponse = ManagedGetTelemtWebOperationResponses[keyof ManagedGetTelemtWebOperationResponses];
+
+export type ManagedGetAuditData = {
+    body?: never;
+    path: {
+        node_id: string;
+    };
+    query?: {
+        limit?: number;
+        /**
+         * Cursor for paging further back: an entry's own `ts` value from a previous response (RFC3339Nano — the exact format encoding/json produces for a Go time.Time). Returns entries strictly older than this timestamp. There is no separate opaque cursor token; `ts` doubles as one.
+         *
+         */
+        before?: string;
+    };
+    url: '/api/nodes/{node_id}/manage/audit';
+};
+
+export type ManagedGetAuditErrors = {
+    /**
+     * Invalid input
+     */
+    400: Error;
+    /**
+     * Node missing, disabled, retired or its credentials/storage unavailable. No fallback to another node.
+     */
+    404: Error;
+    /**
+     * Node missing, disabled, retired or its credentials/storage unavailable. No fallback to another node.
+     */
+    409: Error;
+    /**
+     * Node missing, disabled, retired or its credentials/storage unavailable. No fallback to another node.
+     */
+    503: Error;
+};
+
+export type ManagedGetAuditError = ManagedGetAuditErrors[keyof ManagedGetAuditErrors];
+
+export type ManagedGetAuditResponses = {
+    /**
+     * Entries newest-first (possibly empty)
+     */
+    200: Array<AuditEntry>;
+};
+
+export type ManagedGetAuditResponse = ManagedGetAuditResponses[keyof ManagedGetAuditResponses];
+
+export type ManagedGetHistoryData = {
+    body?: never;
+    path: {
+        node_id: string;
+    };
+    query: {
+        /**
+         * Global series name or a typed entity series such as `dc.-2.rtt_ms`, `dc.2.coverage_pct`, `upstream.7.healthy`.
+         *
+         */
+        metric: string;
+        range: '15m' | '30m' | '1h' | '24h' | '7d' | '30d' | '90d';
+    };
+    url: '/api/nodes/{node_id}/manage/history';
+};
+
+export type ManagedGetHistoryErrors = {
+    /**
+     * Invalid input
+     */
+    400: Error;
+    /**
+     * Node missing, disabled, retired or its credentials/storage unavailable. No fallback to another node.
+     */
+    404: Error;
+    /**
+     * Node missing, disabled, retired or its credentials/storage unavailable. No fallback to another node.
+     */
+    409: Error;
+    /**
+     * Node missing, disabled, retired or its credentials/storage unavailable. No fallback to another node.
+     */
+    503: Error;
+    /**
+     * history_timeout — history operation exceeded its deadline or was cancelled. A timed out mutation has no confirmed successful result.
+     */
+    504: Error;
+};
+
+export type ManagedGetHistoryError = ManagedGetHistoryErrors[keyof ManagedGetHistoryErrors];
+
+export type ManagedGetHistoryResponses = {
+    /**
+     * Series (possibly empty)
+     */
+    200: HistorySeries;
+};
+
+export type ManagedGetHistoryResponse = ManagedGetHistoryResponses[keyof ManagedGetHistoryResponses];
+
+export type ManagedGetHistoryEventsData = {
+    body?: never;
+    path: {
+        node_id: string;
+    };
+    query: {
+        range: '15m' | '30m' | '1h' | '24h' | '7d' | '30d' | '90d';
+        limit?: number;
+        kind?: string;
+        entity?: string;
+    };
+    url: '/api/nodes/{node_id}/manage/history/events';
+};
+
+export type ManagedGetHistoryEventsErrors = {
+    /**
+     * Invalid input
+     */
+    400: Error;
+    /**
+     * Node missing, disabled, retired or its credentials/storage unavailable. No fallback to another node.
+     */
+    404: Error;
+    /**
+     * Node missing, disabled, retired or its credentials/storage unavailable. No fallback to another node.
+     */
+    409: Error;
+    /**
+     * Node missing, disabled, retired or its credentials/storage unavailable. No fallback to another node.
+     */
+    503: Error;
+    /**
+     * history_timeout — history operation exceeded its deadline or was cancelled. A timed out mutation has no confirmed successful result.
+     */
+    504: Error;
+};
+
+export type ManagedGetHistoryEventsError = ManagedGetHistoryEventsErrors[keyof ManagedGetHistoryEventsErrors];
+
+export type ManagedGetHistoryEventsResponses = {
+    /**
+     * Structured events (possibly empty)
+     */
+    200: HistoryEvents;
+};
+
+export type ManagedGetHistoryEventsResponse = ManagedGetHistoryEventsResponses[keyof ManagedGetHistoryEventsResponses];
+
+export type ManagedGetUserTrafficHistoryData = {
+    body?: never;
+    path: {
+        node_id: string;
+        username: string;
+    };
+    query: {
+        range: '24h' | '7d' | '30d' | '1y';
+    };
+    url: '/api/nodes/{node_id}/manage/users/{username}/traffic-history';
+};
+
+export type ManagedGetUserTrafficHistoryErrors = {
+    /**
+     * Invalid input
+     */
+    400: Error;
+    /**
+     * Node missing, disabled, retired or its credentials/storage unavailable. No fallback to another node.
+     */
+    404: Error;
+    /**
+     * Node missing, disabled, retired or its credentials/storage unavailable. No fallback to another node.
+     */
+    409: Error;
+    /**
+     * Node missing, disabled, retired or its credentials/storage unavailable. No fallback to another node.
+     */
+    503: Error;
+    /**
+     * history_timeout — history operation exceeded its deadline or was cancelled. A timed out mutation has no confirmed successful result.
+     */
+    504: Error;
+};
+
+export type ManagedGetUserTrafficHistoryError = ManagedGetUserTrafficHistoryErrors[keyof ManagedGetUserTrafficHistoryErrors];
+
+export type ManagedGetUserTrafficHistoryResponses = {
+    /**
+     * User traffic series and collection state
+     */
+    200: UserTrafficHistorySeries;
+};
+
+export type ManagedGetUserTrafficHistoryResponse = ManagedGetUserTrafficHistoryResponses[keyof ManagedGetUserTrafficHistoryResponses];
+
+export type ManagedGetUserIpHistoryData = {
+    body?: never;
+    path: {
+        node_id: string;
+        username: string;
+    };
+    query?: {
+        range?: '24h' | '7d' | '30d' | 'all';
+        family?: 'all' | '4' | '6';
+        /**
+         * Literal IP substring; full addresses are canonicalized.
+         */
+        q?: string;
+        limit?: number;
+        /**
+         * Opaque cursor bound to user and filters.
+         */
+        cursor?: string;
+    };
+    url: '/api/nodes/{node_id}/manage/users/{username}/ip-history';
+};
+
+export type ManagedGetUserIpHistoryErrors = {
+    /**
+     * Invalid input
+     */
+    400: Error;
+    /**
+     * Node missing, disabled, retired or its credentials/storage unavailable. No fallback to another node.
+     */
+    404: Error;
+    /**
+     * Node missing, disabled, retired or its credentials/storage unavailable. No fallback to another node.
+     */
+    409: Error;
+    /**
+     * Internal panel error
+     */
+    500: Error;
+    /**
+     * Node missing, disabled, retired or its credentials/storage unavailable. No fallback to another node.
+     */
+    503: Error;
+    /**
+     * history_timeout — history operation exceeded its deadline or was cancelled. A timed out mutation has no confirmed successful result.
+     */
+    504: Error;
+};
+
+export type ManagedGetUserIpHistoryError = ManagedGetUserIpHistoryErrors[keyof ManagedGetUserIpHistoryErrors];
+
+export type ManagedGetUserIpHistoryResponses = {
+    /**
+     * Observed addresses and collection limitations
+     */
+    200: UserIpHistory;
+};
+
+export type ManagedGetUserIpHistoryResponse = ManagedGetUserIpHistoryResponses[keyof ManagedGetUserIpHistoryResponses];
+
+export type ManagedResetUserIpHistoryData = {
+    body: {
+        confirm: true;
+    };
+    path: {
+        node_id: string;
+        username: string;
+    };
+    query?: never;
+    url: '/api/nodes/{node_id}/manage/users/{username}/ip-history/reset';
+};
+
+export type ManagedResetUserIpHistoryErrors = {
+    /**
+     * Invalid input
+     */
+    400: Error;
+    /**
+     * Node missing, disabled, retired or its credentials/storage unavailable. No fallback to another node.
+     */
+    404: Error;
+    /**
+     * Node missing, disabled, retired or its credentials/storage unavailable. No fallback to another node.
+     */
+    409: Error;
+    /**
+     * Internal panel error
+     */
+    500: Error;
+    /**
+     * Node missing, disabled, retired or its credentials/storage unavailable. No fallback to another node.
+     */
+    503: Error;
+    /**
+     * history_timeout — history operation exceeded its deadline or was cancelled. A timed out mutation has no confirmed successful result.
+     */
+    504: Error;
+};
+
+export type ManagedResetUserIpHistoryError = ManagedResetUserIpHistoryErrors[keyof ManagedResetUserIpHistoryErrors];
+
+export type ManagedResetUserIpHistoryResponses = {
+    /**
+     * IP history cleared
+     */
+    204: void;
+};
+
+export type ManagedResetUserIpHistoryResponse = ManagedResetUserIpHistoryResponses[keyof ManagedResetUserIpHistoryResponses];
+
+export type ManagedResetUserTrafficData = {
+    body: DestructiveConfirmationRequest;
+    path: {
+        node_id: string;
+        username: string;
+    };
+    query?: never;
+    url: '/api/nodes/{node_id}/manage/users/{username}/traffic/reset';
+};
+
+export type ManagedResetUserTrafficErrors = {
+    /**
+     * Invalid input
+     */
+    400: Error;
+    /**
+     * Node missing, disabled, retired or its credentials/storage unavailable. No fallback to another node.
+     */
+    404: Error;
+    /**
+     * Node missing, disabled, retired or its credentials/storage unavailable. No fallback to another node.
+     */
+    409: Error;
+    /**
+     * Node missing, disabled, retired or its credentials/storage unavailable. No fallback to another node.
+     */
+    503: Error;
+    /**
+     * history_timeout — history operation exceeded its deadline or was cancelled. A timed out mutation has no confirmed successful result.
+     */
+    504: Error;
+};
+
+export type ManagedResetUserTrafficError = ManagedResetUserTrafficErrors[keyof ManagedResetUserTrafficErrors];
+
+export type ManagedResetUserTrafficResponses = {
+    /**
+     * User traffic reset
+     */
+    204: void;
+};
+
+export type ManagedResetUserTrafficResponse = ManagedResetUserTrafficResponses[keyof ManagedResetUserTrafficResponses];
+
+export type ManagedGetTrafficSummaryData = {
+    body?: never;
+    path: {
+        node_id: string;
+    };
+    query: {
+        range: TrafficRange;
+    };
+    url: '/api/nodes/{node_id}/manage/traffic/summary';
+};
+
+export type ManagedGetTrafficSummaryErrors = {
+    /**
+     * Invalid input
+     */
+    400: Error;
+    /**
+     * Node missing, disabled, retired or its credentials/storage unavailable. No fallback to another node.
+     */
+    404: Error;
+    /**
+     * Node missing, disabled, retired or its credentials/storage unavailable. No fallback to another node.
+     */
+    409: Error;
+    /**
+     * Node missing, disabled, retired or its credentials/storage unavailable. No fallback to another node.
+     */
+    503: Error;
+    /**
+     * history_timeout — history operation exceeded its deadline or was cancelled. A timed out mutation has no confirmed successful result.
+     */
+    504: Error;
+};
+
+export type ManagedGetTrafficSummaryError = ManagedGetTrafficSummaryErrors[keyof ManagedGetTrafficSummaryErrors];
+
+export type ManagedGetTrafficSummaryResponses = {
+    /**
+     * Aggregate user traffic report
+     */
+    200: TrafficSummary;
+};
+
+export type ManagedGetTrafficSummaryResponse = ManagedGetTrafficSummaryResponses[keyof ManagedGetTrafficSummaryResponses];
+
+export type ManagedGetTrafficUsersData = {
+    body?: never;
+    path: {
+        node_id: string;
+    };
+    query: {
+        range: TrafficRange;
+        include_deleted?: boolean;
+        limit?: number;
+        cursor?: string;
+    };
+    url: '/api/nodes/{node_id}/manage/traffic/users';
+};
+
+export type ManagedGetTrafficUsersErrors = {
+    /**
+     * Invalid input
+     */
+    400: Error;
+    /**
+     * Node missing, disabled, retired or its credentials/storage unavailable. No fallback to another node.
+     */
+    404: Error;
+    /**
+     * Node missing, disabled, retired or its credentials/storage unavailable. No fallback to another node.
+     */
+    409: Error;
+    /**
+     * Node missing, disabled, retired or its credentials/storage unavailable. No fallback to another node.
+     */
+    503: Error;
+    /**
+     * history_timeout — history operation exceeded its deadline or was cancelled. A timed out mutation has no confirmed successful result.
+     */
+    504: Error;
+};
+
+export type ManagedGetTrafficUsersError = ManagedGetTrafficUsersErrors[keyof ManagedGetTrafficUsersErrors];
+
+export type ManagedGetTrafficUsersResponses = {
+    /**
+     * Ranked user traffic page
+     */
+    200: TrafficUsersPage;
+};
+
+export type ManagedGetTrafficUsersResponse = ManagedGetTrafficUsersResponses[keyof ManagedGetTrafficUsersResponses];
+
+export type ManagedResetAllUserTrafficData = {
+    body: DestructiveConfirmationRequest;
+    path: {
+        node_id: string;
+    };
+    query?: never;
+    url: '/api/nodes/{node_id}/manage/traffic/reset';
+};
+
+export type ManagedResetAllUserTrafficErrors = {
+    /**
+     * Invalid input
+     */
+    400: Error;
+    /**
+     * Node missing, disabled, retired or its credentials/storage unavailable. No fallback to another node.
+     */
+    404: Error;
+    /**
+     * Node missing, disabled, retired or its credentials/storage unavailable. No fallback to another node.
+     */
+    409: Error;
+    /**
+     * Node missing, disabled, retired or its credentials/storage unavailable. No fallback to another node.
+     */
+    503: Error;
+    /**
+     * history_timeout — history operation exceeded its deadline or was cancelled. A timed out mutation has no confirmed successful result.
+     */
+    504: Error;
+};
+
+export type ManagedResetAllUserTrafficError = ManagedResetAllUserTrafficErrors[keyof ManagedResetAllUserTrafficErrors];
+
+export type ManagedResetAllUserTrafficResponses = {
+    /**
+     * All user traffic reset
+     */
+    204: void;
+};
+
+export type ManagedResetAllUserTrafficResponse = ManagedResetAllUserTrafficResponses[keyof ManagedResetAllUserTrafficResponses];
+
+export type ManagedGetLinkSettingsData = {
+    body?: never;
+    path: {
+        node_id: string;
+    };
+    query?: never;
+    url: '/api/nodes/{node_id}/manage/settings/links';
+};
+
+export type ManagedGetLinkSettingsErrors = {
+    /**
+     * No valid session
+     */
+    401: Error;
+    /**
+     * Node missing, disabled, retired or its credentials/storage unavailable. No fallback to another node.
+     */
+    404: Error;
+    /**
+     * Node missing, disabled, retired or its credentials/storage unavailable. No fallback to another node.
+     */
+    409: Error;
+    /**
+     * Internal panel error
+     */
+    500: Error;
+    /**
+     * Node missing, disabled, retired or its credentials/storage unavailable. No fallback to another node.
+     */
+    503: Error;
+};
+
+export type ManagedGetLinkSettingsError = ManagedGetLinkSettingsErrors[keyof ManagedGetLinkSettingsErrors];
+
+export type ManagedGetLinkSettingsResponses = {
+    /**
+     * Panel-wide link presentation settings; disabled by default.
+     */
+    200: LinkSettings;
+};
+
+export type ManagedGetLinkSettingsResponse = ManagedGetLinkSettingsResponses[keyof ManagedGetLinkSettingsResponses];
+
+export type ManagedPutLinkSettingsData = {
+    body: LinkSettings;
+    path: {
+        node_id: string;
+    };
+    query?: never;
+    url: '/api/nodes/{node_id}/manage/settings/links';
+};
+
+export type ManagedPutLinkSettingsErrors = {
+    /**
+     * Invalid input
+     */
+    400: Error;
+    /**
+     * No valid session
+     */
+    401: Error;
+    /**
+     * CSRF rejected
+     */
+    403: Error;
+    /**
+     * Node missing, disabled, retired or its credentials/storage unavailable. No fallback to another node.
+     */
+    404: Error;
+    /**
+     * Node missing, disabled, retired or its credentials/storage unavailable. No fallback to another node.
+     */
+    409: Error;
+    /**
+     * Internal panel error
+     */
+    500: Error;
+    /**
+     * Node missing, disabled, retired or its credentials/storage unavailable. No fallback to another node.
+     */
+    503: Error;
+};
+
+export type ManagedPutLinkSettingsError = ManagedPutLinkSettingsErrors[keyof ManagedPutLinkSettingsErrors];
+
+export type ManagedPutLinkSettingsResponses = {
+    /**
+     * Saved link presentation settings
+     */
+    200: LinkSettings;
+};
+
+export type ManagedPutLinkSettingsResponse = ManagedPutLinkSettingsResponses[keyof ManagedPutLinkSettingsResponses];
+
+export type ManagedGetStorageSettingsData = {
+    body?: never;
+    path: {
+        node_id: string;
+    };
+    query?: never;
+    url: '/api/nodes/{node_id}/manage/settings/storage';
+};
+
+export type ManagedGetStorageSettingsErrors = {
+    /**
+     * Node missing, disabled, retired or its credentials/storage unavailable. No fallback to another node.
+     */
+    404: Error;
+    /**
+     * Node missing, disabled, retired or its credentials/storage unavailable. No fallback to another node.
+     */
+    409: Error;
+    /**
+     * Node missing, disabled, retired or its credentials/storage unavailable. No fallback to another node.
+     */
+    503: Error;
+    /**
+     * history_timeout — history operation exceeded its deadline or was cancelled. A timed out mutation has no confirmed successful result.
+     */
+    504: Error;
+};
+
+export type ManagedGetStorageSettingsError = ManagedGetStorageSettingsErrors[keyof ManagedGetStorageSettingsErrors];
+
+export type ManagedGetStorageSettingsResponses = {
+    /**
+     * Storage settings
+     */
+    200: StorageSettings;
+};
+
+export type ManagedGetStorageSettingsResponse = ManagedGetStorageSettingsResponses[keyof ManagedGetStorageSettingsResponses];
+
+export type ManagedPutStorageSettingsData = {
+    body: StorageSettingsUpdate;
+    path: {
+        node_id: string;
+    };
+    query?: never;
+    url: '/api/nodes/{node_id}/manage/settings/storage';
+};
+
+export type ManagedPutStorageSettingsErrors = {
+    /**
+     * Invalid input
+     */
+    400: Error;
+    /**
+     * Node missing, disabled, retired or its credentials/storage unavailable. No fallback to another node.
+     */
+    404: Error;
+    /**
+     * Node missing, disabled, retired or its credentials/storage unavailable. No fallback to another node.
+     */
+    409: Error;
+    /**
+     * Node missing, disabled, retired or its credentials/storage unavailable. No fallback to another node.
+     */
+    503: Error;
+    /**
+     * history_timeout — history operation exceeded its deadline or was cancelled. A timed out mutation has no confirmed successful result.
+     */
+    504: Error;
+};
+
+export type ManagedPutStorageSettingsError = ManagedPutStorageSettingsErrors[keyof ManagedPutStorageSettingsErrors];
+
+export type ManagedPutStorageSettingsResponses = {
+    /**
+     * Saved
+     */
+    204: void;
+};
+
+export type ManagedPutStorageSettingsResponse = ManagedPutStorageSettingsResponses[keyof ManagedPutStorageSettingsResponses];
+
+export type ManagedPurgeStorageHistoryData = {
+    body: StoragePurgeRequest;
+    path: {
+        node_id: string;
+    };
+    query?: never;
+    url: '/api/nodes/{node_id}/manage/settings/storage/purge';
+};
+
+export type ManagedPurgeStorageHistoryErrors = {
+    /**
+     * Invalid input
+     */
+    400: Error;
+    /**
+     * Node missing, disabled, retired or its credentials/storage unavailable. No fallback to another node.
+     */
+    404: Error;
+    /**
+     * Node missing, disabled, retired or its credentials/storage unavailable. No fallback to another node.
+     */
+    409: Error;
+    /**
+     * Node missing, disabled, retired or its credentials/storage unavailable. No fallback to another node.
+     */
+    503: Error;
+    /**
+     * history_timeout — history operation exceeded its deadline or was cancelled. A timed out mutation has no confirmed successful result.
+     */
+    504: Error;
+};
+
+export type ManagedPurgeStorageHistoryError = ManagedPurgeStorageHistoryErrors[keyof ManagedPurgeStorageHistoryErrors];
+
+export type ManagedPurgeStorageHistoryResponses = {
+    /**
+     * History deleted
+     */
+    204: void;
+};
+
+export type ManagedPurgeStorageHistoryResponse = ManagedPurgeStorageHistoryResponses[keyof ManagedPurgeStorageHistoryResponses];
+
+export type ManagedGetGeographyData = {
+    body?: never;
+    path: {
+        node_id: string;
+    };
+    query?: {
+        range?: 'now' | '24h' | '7d' | '30d';
+        family?: 'all' | '4' | '6';
+        country?: string;
+        location?: string;
+        snapshot_id?: string;
+    };
+    url: '/api/nodes/{node_id}/manage/geography';
+};
+
+export type ManagedGetGeographyErrors = {
+    /**
+     * Invalid input
+     */
+    400: Error;
+    /**
+     * unauthorized
+     */
+    401: Error;
+    /**
+     * forbidden
+     */
+    403: Error;
+    /**
+     * Node missing, disabled, retired or its credentials/storage unavailable. No fallback to another node.
+     */
+    404: Error;
+    /**
+     * Node missing, disabled, retired or its credentials/storage unavailable. No fallback to another node.
+     */
+    409: Error;
+    /**
+     * internal_error
+     */
+    500: GeographyError;
+    /**
+     * Node missing, disabled, retired or its credentials/storage unavailable. No fallback to another node.
+     */
+    503: Error;
+    /**
+     * geography_timeout; no automatic retry
+     */
+    504: GeographyError;
+};
+
+export type ManagedGetGeographyError = ManagedGetGeographyErrors[keyof ManagedGetGeographyErrors];
+
+export type ManagedGetGeographyResponses = {
+    /**
+     * Bounded, immutable snapshot view
+     */
+    200: GeographyOverview;
+};
+
+export type ManagedGetGeographyResponse = ManagedGetGeographyResponses[keyof ManagedGetGeographyResponses];
+
+export type ManagedGetGeographyLocationsData = {
+    body?: never;
+    path: {
+        node_id: string;
+    };
+    query: {
+        snapshot_id: string;
+        kind: 'country' | 'location';
+        country?: string;
+        limit?: number;
+        cursor?: string;
+    };
+    url: '/api/nodes/{node_id}/manage/geography/locations';
+};
+
+export type ManagedGetGeographyLocationsErrors = {
+    /**
+     * Invalid input
+     */
+    400: Error;
+    /**
+     * unauthorized
+     */
+    401: Error;
+    /**
+     * forbidden
+     */
+    403: Error;
+    /**
+     * Node missing, disabled, retired or its credentials/storage unavailable. No fallback to another node.
+     */
+    404: Error;
+    /**
+     * Node missing, disabled, retired or its credentials/storage unavailable. No fallback to another node.
+     */
+    409: Error;
+    /**
+     * internal_error
+     */
+    500: GeographyError;
+    /**
+     * Node missing, disabled, retired or its credentials/storage unavailable. No fallback to another node.
+     */
+    503: Error;
+    /**
+     * geography_timeout; no automatic retry
+     */
+    504: GeographyError;
+};
+
+export type ManagedGetGeographyLocationsError = ManagedGetGeographyLocationsErrors[keyof ManagedGetGeographyLocationsErrors];
+
+export type ManagedGetGeographyLocationsResponses = {
+    /**
+     * Bounded, immutable snapshot view
+     */
+    200: GeographyLocationPage;
+};
+
+export type ManagedGetGeographyLocationsResponse = ManagedGetGeographyLocationsResponses[keyof ManagedGetGeographyLocationsResponses];
+
+export type ManagedGetGeographyUsersData = {
+    body?: never;
+    path: {
+        node_id: string;
+    };
+    query: {
+        snapshot_id: string;
+        group_id: string;
+        limit?: number;
+        cursor?: string;
+    };
+    url: '/api/nodes/{node_id}/manage/geography/users';
+};
+
+export type ManagedGetGeographyUsersErrors = {
+    /**
+     * Invalid input
+     */
+    400: Error;
+    /**
+     * unauthorized
+     */
+    401: Error;
+    /**
+     * forbidden
+     */
+    403: Error;
+    /**
+     * Node missing, disabled, retired or its credentials/storage unavailable. No fallback to another node.
+     */
+    404: Error;
+    /**
+     * Node missing, disabled, retired or its credentials/storage unavailable. No fallback to another node.
+     */
+    409: Error;
+    /**
+     * internal_error
+     */
+    500: GeographyError;
+    /**
+     * Node missing, disabled, retired or its credentials/storage unavailable. No fallback to another node.
+     */
+    503: Error;
+    /**
+     * geography_timeout; no automatic retry
+     */
+    504: GeographyError;
+};
+
+export type ManagedGetGeographyUsersError = ManagedGetGeographyUsersErrors[keyof ManagedGetGeographyUsersErrors];
+
+export type ManagedGetGeographyUsersResponses = {
+    /**
+     * Bounded, immutable snapshot view
+     */
+    200: GeographyUserPage;
+};
+
+export type ManagedGetGeographyUsersResponse = ManagedGetGeographyUsersResponses[keyof ManagedGetGeographyUsersResponses];
+
+export type ManagedGetGeographySettingsData = {
+    body?: never;
+    path: {
+        node_id: string;
+    };
+    query?: never;
+    url: '/api/nodes/{node_id}/manage/settings/geography';
+};
+
+export type ManagedGetGeographySettingsErrors = {
+    /**
+     * Invalid input
+     */
+    400: Error;
+    /**
+     * unauthorized
+     */
+    401: Error;
+    /**
+     * forbidden
+     */
+    403: Error;
+    /**
+     * Node missing, disabled, retired or its credentials/storage unavailable. No fallback to another node.
+     */
+    404: Error;
+    /**
+     * Node missing, disabled, retired or its credentials/storage unavailable. No fallback to another node.
+     */
+    409: Error;
+    /**
+     * internal_error
+     */
+    500: GeographyError;
+    /**
+     * Node missing, disabled, retired or its credentials/storage unavailable. No fallback to another node.
+     */
+    503: Error;
+    /**
+     * geography_timeout; no automatic retry
+     */
+    504: GeographyError;
+};
+
+export type ManagedGetGeographySettingsError = ManagedGetGeographySettingsErrors[keyof ManagedGetGeographySettingsErrors];
+
+export type ManagedGetGeographySettingsResponses = {
+    /**
+     * Bounded, immutable snapshot view
+     */
+    200: GeographySettings;
+};
+
+export type ManagedGetGeographySettingsResponse = ManagedGetGeographySettingsResponses[keyof ManagedGetGeographySettingsResponses];
+
+export type ManagedPutGeographySettingsData = {
+    body: GeographySettings;
+    path: {
+        node_id: string;
+    };
+    query?: never;
+    url: '/api/nodes/{node_id}/manage/settings/geography';
+};
+
+export type ManagedPutGeographySettingsErrors = {
+    /**
+     * Invalid input
+     */
+    400: Error;
+    /**
+     * unauthorized
+     */
+    401: Error;
+    /**
+     * forbidden
+     */
+    403: Error;
+    /**
+     * Node missing, disabled, retired or its credentials/storage unavailable. No fallback to another node.
+     */
+    404: Error;
+    /**
+     * Node missing, disabled, retired or its credentials/storage unavailable. No fallback to another node.
+     */
+    409: Error;
+    /**
+     * internal_error
+     */
+    500: GeographyError;
+    /**
+     * Node missing, disabled, retired or its credentials/storage unavailable. No fallback to another node.
+     */
+    503: Error;
+    /**
+     * geography_timeout; no automatic retry
+     */
+    504: GeographyError;
+};
+
+export type ManagedPutGeographySettingsError = ManagedPutGeographySettingsErrors[keyof ManagedPutGeographySettingsErrors];
+
+export type ManagedPutGeographySettingsResponses = {
+    /**
+     * Bounded, immutable snapshot view
+     */
+    200: GeographySettings;
+};
+
+export type ManagedPutGeographySettingsResponse = ManagedPutGeographySettingsResponses[keyof ManagedPutGeographySettingsResponses];
+
+export type ManagedStreamEventsData = {
+    body?: never;
+    path: {
+        node_id: string;
+    };
+    query: {
+        topics: string;
+    };
+    url: '/api/nodes/{node_id}/manage/events';
+};
+
+export type ManagedStreamEventsErrors = {
+    /**
+     * Invalid input
+     */
+    400: Error;
+    /**
+     * Node missing, disabled, retired or its credentials/storage unavailable. No fallback to another node.
+     */
+    404: Error;
+    /**
+     * Node missing, disabled, retired or its credentials/storage unavailable. No fallback to another node.
+     */
+    409: Error;
+    /**
+     * Node missing, disabled, retired or its credentials/storage unavailable. No fallback to another node.
+     */
+    503: Error;
+};
+
+export type ManagedStreamEventsError = ManagedStreamEventsErrors[keyof ManagedStreamEventsErrors];
+
+export type ManagedStreamEventsResponses = {
+    /**
+     * Event stream
+     */
+    200: string;
+};
+
+export type ManagedStreamEventsResponse = ManagedStreamEventsResponses[keyof ManagedStreamEventsResponses];
+
+export type ManagedGetSnapshotData = {
+    body?: never;
+    path: {
+        node_id: string;
+    };
+    query: {
+        topics: string;
+    };
+    url: '/api/nodes/{node_id}/manage/snapshot';
+};
+
+export type ManagedGetSnapshotErrors = {
+    /**
+     * Invalid input
+     */
+    400: Error;
+    /**
+     * Node missing, disabled, retired or its credentials/storage unavailable. No fallback to another node.
+     */
+    404: Error;
+    /**
+     * Node missing, disabled, retired or its credentials/storage unavailable. No fallback to another node.
+     */
+    409: Error;
+    /**
+     * telemt_unreachable — every requested topic's fetch failed
+     */
+    502: Error;
+    /**
+     * Node missing, disabled, retired or its credentials/storage unavailable. No fallback to another node.
+     */
+    503: Error;
+};
+
+export type ManagedGetSnapshotError = ManagedGetSnapshotErrors[keyof ManagedGetSnapshotErrors];
+
+export type ManagedGetSnapshotResponses = {
+    /**
+     * Map topic → snapshot; a topic with no data yet is simply absent as a key
+     */
+    200: {
+        [key: string]: {
+            [key: string]: unknown;
+        };
+    };
+};
+
+export type ManagedGetSnapshotResponse = ManagedGetSnapshotResponses[keyof ManagedGetSnapshotResponses];
+
+export type ManagedListUsersData = {
+    body?: never;
+    path: {
+        node_id: string;
+    };
+    query?: never;
+    url: '/api/nodes/{node_id}/manage/users';
+};
+
+export type ManagedListUsersErrors = {
+    /**
+     * Node missing, disabled, retired or its credentials/storage unavailable. No fallback to another node.
+     */
+    404: Error;
+    /**
+     * Node missing, disabled, retired or its credentials/storage unavailable. No fallback to another node.
+     */
+    409: Error;
+    /**
+     * telemt_unreachable | telemt_auth_failed | telemt_response_too_large (upstream response exceeds 8 MiB)
+     */
+    502: Error;
+    /**
+     * Node missing, disabled, retired or its credentials/storage unavailable. No fallback to another node.
+     */
+    503: Error;
+};
+
+export type ManagedListUsersError = ManagedListUsersErrors[keyof ManagedListUsersErrors];
+
+export type ManagedListUsersResponses = {
+    /**
+     * All users
+     */
+    200: Array<User>;
+};
+
+export type ManagedListUsersResponse = ManagedListUsersResponses[keyof ManagedListUsersResponses];
+
+export type ManagedCreateUserData = {
+    body: UserCreate;
+    path: {
+        node_id: string;
+    };
+    query?: never;
+    url: '/api/nodes/{node_id}/manage/users';
+};
+
+export type ManagedCreateUserErrors = {
+    /**
+     * Invalid input
+     */
+    400: Error;
+    /**
+     * Telemt API is in read_only mode
+     */
+    403: Error;
+    /**
+     * Node missing, disabled, retired or its credentials/storage unavailable. No fallback to another node.
+     */
+    404: Error;
+    /**
+     * Node missing, disabled, retired or its credentials/storage unavailable. No fallback to another node.
+     */
+    409: Error;
+    /**
+     * telemt_unreachable | telemt_auth_failed | telemt_response_too_large (upstream response exceeds 8 MiB)
+     */
+    502: Error;
+    /**
+     * Node missing, disabled, retired or its credentials/storage unavailable. No fallback to another node.
+     */
+    503: Error;
+};
+
+export type ManagedCreateUserError = ManagedCreateUserErrors[keyof ManagedCreateUserErrors];
+
+export type ManagedCreateUserResponses = {
+    /**
+     * Created; secret returned exactly once
+     */
+    201: {
+        user: User;
+        secret: string;
+    };
+};
+
+export type ManagedCreateUserResponse = ManagedCreateUserResponses[keyof ManagedCreateUserResponses];
+
+export type ManagedDeleteUserData = {
+    body?: never;
+    path: {
+        node_id: string;
+    };
+    query?: never;
+    url: '/api/nodes/{node_id}/manage/users/{username}';
+};
+
+export type ManagedDeleteUserErrors = {
+    /**
+     * Node missing, disabled, retired or its credentials/storage unavailable. No fallback to another node.
+     */
+    404: Error;
+    /**
+     * Node missing, disabled, retired or its credentials/storage unavailable. No fallback to another node.
+     */
+    409: Error;
+    /**
+     * telemt_unreachable | telemt_auth_failed | telemt_response_too_large (upstream response exceeds 8 MiB)
+     */
+    502: Error;
+    /**
+     * Node missing, disabled, retired or its credentials/storage unavailable. No fallback to another node.
+     */
+    503: Error;
+};
+
+export type ManagedDeleteUserError = ManagedDeleteUserErrors[keyof ManagedDeleteUserErrors];
+
+export type ManagedDeleteUserResponses = {
+    /**
+     * Deleted
+     */
+    204: void;
+};
+
+export type ManagedDeleteUserResponse = ManagedDeleteUserResponses[keyof ManagedDeleteUserResponses];
+
+export type ManagedGetUserData = {
+    body?: never;
+    path: {
+        node_id: string;
+    };
+    query?: never;
+    url: '/api/nodes/{node_id}/manage/users/{username}';
+};
+
+export type ManagedGetUserErrors = {
+    /**
+     * Node missing, disabled, retired or its credentials/storage unavailable. No fallback to another node.
+     */
+    404: Error;
+    /**
+     * Node missing, disabled, retired or its credentials/storage unavailable. No fallback to another node.
+     */
+    409: Error;
+    /**
+     * telemt_unreachable | telemt_auth_failed | telemt_response_too_large (upstream response exceeds 8 MiB)
+     */
+    502: Error;
+    /**
+     * Node missing, disabled, retired or its credentials/storage unavailable. No fallback to another node.
+     */
+    503: Error;
+};
+
+export type ManagedGetUserError = ManagedGetUserErrors[keyof ManagedGetUserErrors];
+
+export type ManagedGetUserResponses = {
+    /**
+     * User
+     */
+    200: User;
+};
+
+export type ManagedGetUserResponse = ManagedGetUserResponses[keyof ManagedGetUserResponses];
+
+export type ManagedPatchUserData = {
+    body: UserPatch;
+    path: {
+        node_id: string;
+    };
+    query?: never;
+    url: '/api/nodes/{node_id}/manage/users/{username}';
+};
+
+export type ManagedPatchUserErrors = {
+    /**
+     * Invalid input
+     */
+    400: Error;
+    /**
+     * Telemt API is in read_only mode
+     */
+    403: Error;
+    /**
+     * Node missing, disabled, retired or its credentials/storage unavailable. No fallback to another node.
+     */
+    404: Error;
+    /**
+     * Node missing, disabled, retired or its credentials/storage unavailable. No fallback to another node.
+     */
+    409: Error;
+    /**
+     * telemt_unreachable | telemt_auth_failed | telemt_response_too_large (upstream response exceeds 8 MiB)
+     */
+    502: Error;
+    /**
+     * Node missing, disabled, retired or its credentials/storage unavailable. No fallback to another node.
+     */
+    503: Error;
+};
+
+export type ManagedPatchUserError = ManagedPatchUserErrors[keyof ManagedPatchUserErrors];
+
+export type ManagedPatchUserResponses = {
+    /**
+     * Updated user
+     */
+    200: User;
+};
+
+export type ManagedPatchUserResponse = ManagedPatchUserResponses[keyof ManagedPatchUserResponses];
+
+export type ManagedResetUserQuotaData = {
+    body?: never;
+    path: {
+        node_id: string;
+        username: string;
+    };
+    query?: never;
+    url: '/api/nodes/{node_id}/manage/users/{username}/reset-quota';
+};
+
+export type ManagedResetUserQuotaErrors = {
+    /**
+     * Telemt API is in read_only mode
+     */
+    403: Error;
+    /**
+     * Node missing, disabled, retired or its credentials/storage unavailable. No fallback to another node.
+     */
+    404: Error;
+    /**
+     * Node missing, disabled, retired or its credentials/storage unavailable. No fallback to another node.
+     */
+    409: Error;
+    /**
+     * telemt_unreachable | telemt_auth_failed | telemt_response_too_large (upstream response exceeds 8 MiB)
+     */
+    502: Error;
+    /**
+     * Node missing, disabled, retired or its credentials/storage unavailable. No fallback to another node.
+     */
+    503: Error;
+};
+
+export type ManagedResetUserQuotaError = ManagedResetUserQuotaErrors[keyof ManagedResetUserQuotaErrors];
+
+export type ManagedResetUserQuotaResponses = {
+    /**
+     * Usage zeroed
+     */
+    200: {
+        username: string;
+        used_bytes: 0;
+        last_reset_epoch_secs: number;
+    };
+};
+
+export type ManagedResetUserQuotaResponse = ManagedResetUserQuotaResponses[keyof ManagedResetUserQuotaResponses];
+
+export type ManagedRotateUserSecretData = {
+    body?: never;
+    path: {
+        node_id: string;
+        username: string;
+    };
+    query?: never;
+    url: '/api/nodes/{node_id}/manage/users/{username}/rotate-secret';
+};
+
+export type ManagedRotateUserSecretErrors = {
+    /**
+     * Telemt API is in read_only mode
+     */
+    403: Error;
+    /**
+     * Node missing, disabled, retired or its credentials/storage unavailable. No fallback to another node.
+     */
+    404: Error;
+    /**
+     * Node missing, disabled, retired or its credentials/storage unavailable. No fallback to another node.
+     */
+    409: Error;
+    /**
+     * capability_absent — not supported on this Telemt build
+     */
+    501: Error;
+    /**
+     * telemt_unreachable | telemt_auth_failed | telemt_response_too_large (upstream response exceeds 8 MiB)
+     */
+    502: Error;
+    /**
+     * Node missing, disabled, retired or its credentials/storage unavailable. No fallback to another node.
+     */
+    503: Error;
+};
+
+export type ManagedRotateUserSecretError = ManagedRotateUserSecretErrors[keyof ManagedRotateUserSecretErrors];
+
+export type ManagedRotateUserSecretResponses = {
+    /**
+     * New secret returned exactly once
+     */
+    200: {
+        user: User;
+        secret: string;
+    };
+};
+
+export type ManagedRotateUserSecretResponse = ManagedRotateUserSecretResponses[keyof ManagedRotateUserSecretResponses];
+
+export type ManagedSetUserEnabledData = {
+    body: {
+        enabled: boolean;
+    };
+    path: {
+        node_id: string;
+        username: string;
+    };
+    query?: never;
+    url: '/api/nodes/{node_id}/manage/users/{username}/enabled';
+};
+
+export type ManagedSetUserEnabledErrors = {
+    /**
+     * Invalid input
+     */
+    400: Error;
+    /**
+     * Telemt API is in read_only mode
+     */
+    403: Error;
+    /**
+     * Node missing, disabled, retired or its credentials/storage unavailable. No fallback to another node.
+     */
+    404: Error;
+    /**
+     * Node missing, disabled, retired or its credentials/storage unavailable. No fallback to another node.
+     */
+    409: Error;
+    /**
+     * capability_absent — not supported on this Telemt build
+     */
+    501: Error;
+    /**
+     * telemt_unreachable | telemt_auth_failed | telemt_response_too_large (upstream response exceeds 8 MiB)
+     */
+    502: Error;
+    /**
+     * Node missing, disabled, retired or its credentials/storage unavailable. No fallback to another node.
+     */
+    503: Error;
+};
+
+export type ManagedSetUserEnabledError = ManagedSetUserEnabledErrors[keyof ManagedSetUserEnabledErrors];
+
+export type ManagedSetUserEnabledResponses = {
+    /**
+     * Updated user
+     */
+    200: User;
+};
+
+export type ManagedSetUserEnabledResponse = ManagedSetUserEnabledResponses[keyof ManagedSetUserEnabledResponses];
+
+export type ManagedGetUserSublinkData = {
+    body?: never;
+    path: {
+        node_id: string;
+        username: string;
+    };
+    query?: never;
+    url: '/api/nodes/{node_id}/manage/users/{username}/sublink';
+};
+
+export type ManagedGetUserSublinkErrors = {
+    /**
+     * Node missing, disabled, retired or its credentials/storage unavailable. No fallback to another node.
+     */
+    404: Error;
+    /**
+     * Node missing, disabled, retired or its credentials/storage unavailable. No fallback to another node.
+     */
+    409: Error;
+    /**
+     * node_operation_unavailable
+     */
+    501: Error;
+    /**
+     * Node missing, disabled, retired or its credentials/storage unavailable. No fallback to another node.
+     */
+    503: Error;
+};
+
+export type ManagedGetUserSublinkError = ManagedGetUserSublinkErrors[keyof ManagedGetUserSublinkErrors];
+
+export type ManagedRegenerateUserSublinkData = {
+    body?: never;
+    path: {
+        node_id: string;
+        username: string;
+    };
+    query?: never;
+    url: '/api/nodes/{node_id}/manage/users/{username}/sublink';
+};
+
+export type ManagedRegenerateUserSublinkErrors = {
+    /**
+     * Node missing, disabled, retired or its credentials/storage unavailable. No fallback to another node.
+     */
+    404: Error;
+    /**
+     * Node missing, disabled, retired or its credentials/storage unavailable. No fallback to another node.
+     */
+    409: Error;
+    /**
+     * node_operation_unavailable
+     */
+    501: Error;
+    /**
+     * Node missing, disabled, retired or its credentials/storage unavailable. No fallback to another node.
+     */
+    503: Error;
+};
+
+export type ManagedRegenerateUserSublinkError = ManagedRegenerateUserSublinkErrors[keyof ManagedRegenerateUserSublinkErrors];
+
+export type ManagedGetHostData = {
+    body?: never;
+    path: {
+        node_id: string;
+    };
+    query?: never;
+    url: '/api/nodes/{node_id}/manage/host';
+};
+
+export type ManagedGetHostErrors = {
+    /**
+     * Node missing, disabled, retired or its credentials/storage unavailable. No fallback to another node.
+     */
+    404: Error;
+    /**
+     * Node missing, disabled, retired or its credentials/storage unavailable. No fallback to another node.
+     */
+    409: Error;
+    /**
+     * Node missing, disabled, retired or its credentials/storage unavailable. No fallback to another node.
+     */
+    503: Error;
+};
+
+export type ManagedGetHostError = ManagedGetHostErrors[keyof ManagedGetHostErrors];
+
+export type ManagedGetHostResponses = {
+    /**
+     * Detected platform and capabilities (01-host-matrix.md)
+     */
+    200: HostInfo;
+};
+
+export type ManagedGetHostResponse = ManagedGetHostResponses[keyof ManagedGetHostResponses];
+
+export type ManagedTailLogsData = {
+    body?: never;
+    path: {
+        node_id: string;
+    };
+    query: {
+        service: 'telemt' | 'panel';
+        lines?: number;
+    };
+    url: '/api/nodes/{node_id}/manage/logs/tail';
+};
+
+export type ManagedTailLogsErrors = {
+    /**
+     * Invalid input
+     */
+    400: Error;
+    /**
+     * Node missing, disabled, retired or its credentials/storage unavailable. No fallback to another node.
+     */
+    404: Error;
+    /**
+     * Node missing, disabled, retired or its credentials/storage unavailable. No fallback to another node.
+     */
+    409: Error;
+    /**
+     * log_tail_unavailable — host cap log_tail=false
+     */
+    501: Error;
+    /**
+     * log_source_error — the log source failed
+     */
+    502: LogSourceDiagnostic;
+    /**
+     * Node missing, disabled, retired or its credentials/storage unavailable. No fallback to another node.
+     */
+    503: Error;
+};
+
+export type ManagedTailLogsError = ManagedTailLogsErrors[keyof ManagedTailLogsErrors];
+
+export type ManagedTailLogsResponses = {
+    /**
+     * Recent lines
+     */
+    200: Array<LogLine>;
+};
+
+export type ManagedTailLogsResponse = ManagedTailLogsResponses[keyof ManagedTailLogsResponses];
+
+export type ManagedStreamLogsData = {
+    body?: never;
+    path: {
+        node_id: string;
+    };
+    query: {
+        service: 'telemt' | 'panel';
+    };
+    url: '/api/nodes/{node_id}/manage/events/logs';
+};
+
+export type ManagedStreamLogsErrors = {
+    /**
+     * Invalid input
+     */
+    400: Error;
+    /**
+     * Node missing, disabled, retired or its credentials/storage unavailable. No fallback to another node.
+     */
+    404: Error;
+    /**
+     * Node missing, disabled, retired or its credentials/storage unavailable. No fallback to another node.
+     */
+    409: Error;
+    /**
+     * logs_stream_limit — capacity exhausted before streaming starts
+     */
+    429: Error;
+    /**
+     * log_stream_unavailable — host cap log_stream=false
+     */
+    501: Error;
+    /**
+     * Node missing, disabled, retired or its credentials/storage unavailable. No fallback to another node.
+     */
+    503: Error;
+};
+
+export type ManagedStreamLogsError = ManagedStreamLogsErrors[keyof ManagedStreamLogsErrors];
+
+export type ManagedStreamLogsResponses = {
+    /**
+     * SSE of log_reset, log, heartbeat, log_source_error and log_end events
+     */
+    200: string;
+};
+
+export type ManagedStreamLogsResponse = ManagedStreamLogsResponses[keyof ManagedStreamLogsResponses];
+
+export type ManagedProbeLogStreamData = {
+    body?: never;
+    path: {
+        node_id: string;
+    };
+    query: {
+        service: 'telemt' | 'panel';
+    };
+    url: '/api/nodes/{node_id}/manage/events/logs';
+};
+
+export type ManagedProbeLogStreamErrors = {
+    /**
+     * Invalid input
+     */
+    400: Error;
+    /**
+     * Session expired
+     */
+    401: Error;
+    /**
+     * Host or request rejected
+     */
+    403: Error;
+    /**
+     * Node missing, disabled, retired or its credentials/storage unavailable. No fallback to another node.
+     */
+    404: Error;
+    /**
+     * Node missing, disabled, retired or its credentials/storage unavailable. No fallback to another node.
+     */
+    409: Error;
+    /**
+     * logs_stream_limit — at most 4 process streams and 2 per session; anonymous shares one key
+     */
+    429: Error;
+    /**
+     * log_stream_unavailable
+     */
+    501: Error;
+    /**
+     * Node missing, disabled, retired or its credentials/storage unavailable. No fallback to another node.
+     */
+    503: Error;
+};
+
+export type ManagedProbeLogStreamError = ManagedProbeLogStreamErrors[keyof ManagedProbeLogStreamErrors];
+
+export type ManagedProbeLogStreamResponses = {
+    /**
+     * A log stream can currently be attempted
+     */
+    204: void;
+};
+
+export type ManagedProbeLogStreamResponse = ManagedProbeLogStreamResponses[keyof ManagedProbeLogStreamResponses];
+
+export type ManagedGetUpdatesData = {
+    body?: never;
+    path: {
+        node_id: string;
+    };
+    query?: never;
+    url: '/api/nodes/{node_id}/manage/updates';
+};
+
+export type ManagedGetUpdatesErrors = {
+    /**
+     * Node missing, disabled, retired or its credentials/storage unavailable. No fallback to another node.
+     */
+    404: Error;
+    /**
+     * Node missing, disabled, retired or its credentials/storage unavailable. No fallback to another node.
+     */
+    409: Error;
+    /**
+     * node_operation_unavailable
+     */
+    501: Error;
+    /**
+     * Node missing, disabled, retired or its credentials/storage unavailable. No fallback to another node.
+     */
+    503: Error;
+};
+
+export type ManagedGetUpdatesError = ManagedGetUpdatesErrors[keyof ManagedGetUpdatesErrors];
+
+export type ManagedApplyUpdateData = {
+    body: {
+        version: string;
+    };
+    path: {
+        node_id: string;
+        target: 'telemt' | 'panel';
+    };
+    query?: never;
+    url: '/api/nodes/{node_id}/manage/updates/{target}/apply';
+};
+
+export type ManagedApplyUpdateErrors = {
+    /**
+     * Node missing, disabled, retired or its credentials/storage unavailable. No fallback to another node.
+     */
+    404: Error;
+    /**
+     * Node missing, disabled, retired or its credentials/storage unavailable. No fallback to another node.
+     */
+    409: Error;
+    /**
+     * node_operation_unavailable
+     */
+    501: Error;
+    /**
+     * Node missing, disabled, retired or its credentials/storage unavailable. No fallback to another node.
+     */
+    503: Error;
+};
+
+export type ManagedApplyUpdateError = ManagedApplyUpdateErrors[keyof ManagedApplyUpdateErrors];
+
+export type ManagedGetAutoUpdateData = {
+    body?: never;
+    path: {
+        node_id: string;
+    };
+    query?: never;
+    url: '/api/nodes/{node_id}/manage/updates/auto';
+};
+
+export type ManagedGetAutoUpdateErrors = {
+    /**
+     * Node missing, disabled, retired or its credentials/storage unavailable. No fallback to another node.
+     */
+    404: Error;
+    /**
+     * Node missing, disabled, retired or its credentials/storage unavailable. No fallback to another node.
+     */
+    409: Error;
+    /**
+     * node_operation_unavailable
+     */
+    501: Error;
+    /**
+     * Node missing, disabled, retired or its credentials/storage unavailable. No fallback to another node.
+     */
+    503: Error;
+};
+
+export type ManagedGetAutoUpdateError = ManagedGetAutoUpdateErrors[keyof ManagedGetAutoUpdateErrors];
+
+export type ManagedPutAutoUpdateData = {
+    body: AutoUpdateSettings;
+    path: {
+        node_id: string;
+    };
+    query?: never;
+    url: '/api/nodes/{node_id}/manage/updates/auto';
+};
+
+export type ManagedPutAutoUpdateErrors = {
+    /**
+     * Node missing, disabled, retired or its credentials/storage unavailable. No fallback to another node.
+     */
+    404: Error;
+    /**
+     * Node missing, disabled, retired or its credentials/storage unavailable. No fallback to another node.
+     */
+    409: Error;
+    /**
+     * node_operation_unavailable
+     */
+    501: Error;
+    /**
+     * Node missing, disabled, retired or its credentials/storage unavailable. No fallback to another node.
+     */
+    503: Error;
+};
+
+export type ManagedPutAutoUpdateError = ManagedPutAutoUpdateErrors[keyof ManagedPutAutoUpdateErrors];
 
 export type GetPublicBrandingData = {
     body?: never;
@@ -4628,7 +11623,7 @@ export type StreamLogsError = StreamLogsErrors[keyof StreamLogsErrors];
 
 export type StreamLogsResponses = {
     /**
-     * SSE of log, heartbeat, log_source_error and log_end events
+     * SSE of log_reset, log, heartbeat, log_source_error and log_end events
      */
     200: string;
 };

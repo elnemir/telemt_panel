@@ -17,8 +17,6 @@ import (
 	"golang.org/x/sys/unix"
 )
 
-const maxPolicySize = 64 << 10
-
 // LoadPrivilegedPolicy loads only a root-owned policy through protected parents.
 func LoadPrivilegedPolicy(path string) (PrivilegedPolicy, error) {
 	return loadPrivilegedPolicy(path, 0)
@@ -139,13 +137,6 @@ func loadPrivilegedPolicy(path string, owner uint32) (PrivilegedPolicy, error) {
 		}
 	}
 	return policy, nil
-}
-
-func privilegedPath(path string) error {
-	if path == "/" || !filepath.IsAbs(path) || filepath.Clean(path) != path {
-		return fmt.Errorf("privileged path %q must be normalized and absolute", path)
-	}
-	return nil
 }
 
 func trustedDirectory(fd int, owner uint32, exactOwner bool) error {

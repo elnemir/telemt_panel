@@ -14,7 +14,7 @@ import {UserFormSheet} from "./UserFormSheet";
 import {PersonQuotaCard,ExpiryLine} from "./PersonSections";
 import {PersonTrafficHistory} from "./PersonTrafficHistory";
 import {PersonIPHistory,PersonIPHistoryEntry} from "./PersonIPHistory";
-import {ConnectionLinks,QuickConnectionLinks} from "./ConnectionLinks";
+import {ConnectionLinks,QuickConnectionLinks} from "./ConnectionLinksView";
 import {SublinkPanel} from "./SublinkPanel";
 import {WebAccessPanel} from "./WebAccessPanel";
 import {PeopleContext} from "./PeopleContext";
@@ -22,6 +22,7 @@ import {useBulkQuota} from "./bulkQuotaContext";
 import {getUserQuota,isOnline,computeUserStatus} from "./users.helpers";
 import {useUserFormBlocker} from "./useUserFormBlocker";
 import {QuotaScheduleEditor,UserScheduleSummary} from "./QuotaSchedule";
+import {UserCopy} from "./UserCopy";
 
 export type PersonTab="overview"|"access"|"ips"|"schedule"|"settings";
 
@@ -48,6 +49,7 @@ export function PersonDetail({username,tab="overview"}:{username:string;tab?:Per
           {tab==="schedule"&&<QuotaScheduleEditor username={username} onDirty={setDirty} onCancel={()=>select("overview")}/>}
           {tab==="overview"&&<div className="user-detail-grid"><div className="user-detail-main"><section className="user-section"><PersonTrafficHistory username={username} traffic={user.traffic}/></section><section className="user-section"><PersonIPHistoryEntry username={username}/><Button variant="secondary" onClick={()=>select("ips")}>{t.ips} →</Button></section></div><div className="user-detail-aside"><section className="user-section"><h2>{t.quota}</h2><p className="user-note">{t.usedQuota} · Telemt</p><PersonQuotaCard quota={quota}/><Button variant="secondary" disabled={!access.canResetQuota||bulkQuota.running||topic.stale||quota.usedBytes===null} onClick={()=>setIntent("reset-quota")}>{t.resetQuota}</Button><p className="user-note">{t.resetNote}</p></section><UserScheduleSummary username={username} onEdit={()=>select("schedule")}/><section className="user-section"><h2>{t.conditions}</h2><dl className="user-facts"><div><dt>{s.people.form.expiry}</dt><dd><ExpiryLine expirationRfc3339={user.expiration_rfc3339} now={now}/></dd></div><div><dt>{s.people.runtimeState}</dt><dd>{user.in_runtime?s.people.runtimeLoaded:s.people.status.not_in_runtime}</dd></div><div><dt>{s.people.webAccess.title}</dt><dd>{access.profiles.get(username)?.length??0}</dd></div></dl></section></div></div>}
           {tab==="access"&&<div className="user-detail-grid"><div className="user-detail-main"><ConnectionLinks user={user}/><section className="user-section"><h2>{t.subscription}</h2><SublinkPanel username={username}/></section></div><section className="user-section"><WebAccessPanel username={username} readOnly={access.readOnly||topic.stale}/></section></div>}
+          {tab==="access"&&<UserCopy key={username} username={username}/>}
           {tab==="ips"&&<section className="user-section"><PersonIPHistory username={username}/></section>}
           {tab==="settings"&&<><p className="user-note">{access.readOnly?t.readOnly:""}</p><UserFormSheet inline open mode="edit" user={user} disabled={access.readOnly||topic.stale} onDirtyChange={setDirty} onClose={()=>select("overview")}/></>}
           <UserActionSheet key={intent??"closed"} open={intent!==null} intent={intent??"menu"} user={user} readOnly={access.readOnly||topic.stale} onClose={()=>setIntent(null)} onEdit={()=>select("settings")} onOpenPerson={()=>select("overview")} onOpenAccess={()=>select("access")} onDeleted={()=>void navigate({to:"/people"})}/>

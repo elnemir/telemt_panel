@@ -1,0 +1,1074 @@
+openapi: 3.1.0
+info:
+  title: Telemt node agent private API
+  version: '1'
+  description: >-
+    Separate authenticated agent process. All routes require exact Authorization and expected identity
+    headers. Responses include X-Telemt-Agent-ID. No redirects, arbitrary commands, panel login, or SPA. See
+    docs/NODE_AGENT.md.
+security:
+  - agentAuthorization: []
+paths:
+  /v1/agent/health:
+    parameters:
+      - name: X-Telemt-Agent-ID
+        in: header
+        required: true
+        schema:
+          type: string
+          minLength: 16
+          maxLength: 128
+    get:
+      operationId: agentHealth
+      responses:
+        '200':
+          description: Authenticated installed identity
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - agent_id
+                  - version
+                properties:
+                  agent_id:
+                    type: string
+                  version:
+                    type: string
+        '400':
+          description: Rejected, unavailable, or unconfirmed; inspect code before retrying.
+          content:
+            application/json:
+              schema:
+                $ref: ./openapi.yaml#/components/schemas/Error
+        '401':
+          description: Rejected, unavailable, or unconfirmed; inspect code before retrying.
+          content:
+            application/json:
+              schema:
+                $ref: ./openapi.yaml#/components/schemas/Error
+        '409':
+          description: Rejected, unavailable, or unconfirmed; inspect code before retrying.
+          content:
+            application/json:
+              schema:
+                $ref: ./openapi.yaml#/components/schemas/Error
+        '503':
+          description: Rejected, unavailable, or unconfirmed; inspect code before retrying.
+          content:
+            application/json:
+              schema:
+                $ref: ./openapi.yaml#/components/schemas/Error
+      security:
+        - agentAuthorization: []
+      tags:
+        - agent
+      parameters: []
+  /v1/agent/host:
+    parameters:
+      - name: X-Telemt-Agent-ID
+        in: header
+        required: true
+        schema:
+          type: string
+          minLength: 16
+          maxLength: 128
+    get:
+      tags:
+        - agent
+      operationId: agentGetHost
+      responses:
+        '200':
+          description: Detected platform and capabilities (01-host-matrix.md)
+          content:
+            application/json:
+              schema:
+                $ref: ./openapi.yaml#/components/schemas/HostInfo
+        '400':
+          description: Rejected, unavailable, or unconfirmed; inspect code before retrying.
+          content:
+            application/json:
+              schema:
+                $ref: ./openapi.yaml#/components/schemas/Error
+        '401':
+          description: Rejected, unavailable, or unconfirmed; inspect code before retrying.
+          content:
+            application/json:
+              schema:
+                $ref: ./openapi.yaml#/components/schemas/Error
+        '409':
+          description: Rejected, unavailable, or unconfirmed; inspect code before retrying.
+          content:
+            application/json:
+              schema:
+                $ref: ./openapi.yaml#/components/schemas/Error
+        '503':
+          description: Rejected, unavailable, or unconfirmed; inspect code before retrying.
+          content:
+            application/json:
+              schema:
+                $ref: ./openapi.yaml#/components/schemas/Error
+      security:
+        - agentAuthorization: []
+      parameters: []
+  /v1/agent/service:
+    parameters:
+      - name: X-Telemt-Agent-ID
+        in: header
+        required: true
+        schema:
+          type: string
+          minLength: 16
+          maxLength: 128
+    get:
+      tags:
+        - agent
+      operationId: agentGetTelemtService
+      description: >-
+        State of the configured service/container on the panel host, observed independently of the Telemt API.
+        Unknown is not equivalent to stopped.
+      responses:
+        '200':
+          description: Service state and independently checked operation capabilities.
+          content:
+            application/json:
+              schema:
+                $ref: ./openapi.yaml#/components/schemas/TelemtServiceState
+        '400':
+          description: Rejected, unavailable, or unconfirmed; inspect code before retrying.
+          content:
+            application/json:
+              schema:
+                $ref: ./openapi.yaml#/components/schemas/Error
+        '401':
+          description: Rejected, unavailable, or unconfirmed; inspect code before retrying.
+          content:
+            application/json:
+              schema:
+                $ref: ./openapi.yaml#/components/schemas/Error
+        '409':
+          description: Rejected, unavailable, or unconfirmed; inspect code before retrying.
+          content:
+            application/json:
+              schema:
+                $ref: ./openapi.yaml#/components/schemas/Error
+        '503':
+          description: Rejected, unavailable, or unconfirmed; inspect code before retrying.
+          content:
+            application/json:
+              schema:
+                $ref: ./openapi.yaml#/components/schemas/Error
+      security:
+        - agentAuthorization: []
+      parameters: []
+  /v1/agent/service/start:
+    parameters:
+      - name: X-Telemt-Agent-ID
+        in: header
+        required: true
+        schema:
+          type: string
+          minLength: 16
+          maxLength: 128
+    post:
+      tags:
+        - agent
+      operationId: agentStartTelemtService
+      description: >-
+        Fixed locally configured Telemt service action. Intent is durable before execution. Reusing a key
+        returns the saved result; an unresolved intent is never rerun. 202 does not establish runtime
+        readiness.
+      responses:
+        '202':
+          description: Start command completed; re-read service state rather than assuming readiness.
+        '400':
+          description: Rejected, unavailable, or unconfirmed; inspect code before retrying.
+          content:
+            application/json:
+              schema:
+                $ref: ./openapi.yaml#/components/schemas/Error
+        '401':
+          description: Rejected, unavailable, or unconfirmed; inspect code before retrying.
+          content:
+            application/json:
+              schema:
+                $ref: ./openapi.yaml#/components/schemas/Error
+        '409':
+          $ref: ./openapi.yaml#/components/responses/ServiceControlError
+        '502':
+          $ref: ./openapi.yaml#/components/responses/ServiceControlError
+        '503':
+          $ref: ./openapi.yaml#/components/responses/ServiceControlError
+      parameters:
+        - name: Idempotency-Key
+          in: header
+          required: true
+          schema:
+            type: string
+            pattern: ^[0-9]{10,12}-[0-9a-f]{32}$
+          description: Unix seconds plus 128-bit random hex; valid 24 hours, at most 60 seconds future skew.
+      security:
+        - agentAuthorization: []
+  /v1/agent/service/stop:
+    parameters:
+      - name: X-Telemt-Agent-ID
+        in: header
+        required: true
+        schema:
+          type: string
+          minLength: 16
+          maxLength: 128
+    post:
+      tags:
+        - agent
+      operationId: agentStopTelemtService
+      description: >-
+        Fixed locally configured Telemt service action. Intent is durable before execution. Reusing a key
+        returns the saved result; an unresolved intent is never rerun. 202 does not establish runtime
+        readiness.
+      responses:
+        '202':
+          description: Stop command completed; re-read service state to observe the result.
+        '400':
+          description: Rejected, unavailable, or unconfirmed; inspect code before retrying.
+          content:
+            application/json:
+              schema:
+                $ref: ./openapi.yaml#/components/schemas/Error
+        '401':
+          description: Rejected, unavailable, or unconfirmed; inspect code before retrying.
+          content:
+            application/json:
+              schema:
+                $ref: ./openapi.yaml#/components/schemas/Error
+        '409':
+          $ref: ./openapi.yaml#/components/responses/ServiceControlError
+        '502':
+          $ref: ./openapi.yaml#/components/responses/ServiceControlError
+        '503':
+          $ref: ./openapi.yaml#/components/responses/ServiceControlError
+      parameters:
+        - name: Idempotency-Key
+          in: header
+          required: true
+          schema:
+            type: string
+            pattern: ^[0-9]{10,12}-[0-9a-f]{32}$
+          description: Unix seconds plus 128-bit random hex; valid 24 hours, at most 60 seconds future skew.
+      security:
+        - agentAuthorization: []
+  /v1/agent/service/restart:
+    parameters:
+      - name: X-Telemt-Agent-ID
+        in: header
+        required: true
+        schema:
+          type: string
+          minLength: 16
+          maxLength: 128
+    post:
+      tags:
+        - agent
+      operationId: agentRestartTelemtService
+      description: >-
+        Fixed locally configured Telemt service action. Intent is durable before execution. Reusing a key
+        returns the saved result; an unresolved intent is never rerun. 202 does not establish runtime
+        readiness.
+      responses:
+        '202':
+          description: Restart initiated
+        '400':
+          description: Rejected, unavailable, or unconfirmed; inspect code before retrying.
+          content:
+            application/json:
+              schema:
+                $ref: ./openapi.yaml#/components/schemas/Error
+        '401':
+          description: Rejected, unavailable, or unconfirmed; inspect code before retrying.
+          content:
+            application/json:
+              schema:
+                $ref: ./openapi.yaml#/components/schemas/Error
+        '409':
+          description: update_locked — another service or update operation is running
+          content:
+            application/json:
+              schema:
+                $ref: ./openapi.yaml#/components/schemas/Error
+        '502':
+          description: internal_error — the restart op itself failed
+          content:
+            application/json:
+              schema:
+                $ref: ./openapi.yaml#/components/schemas/Error
+        '503':
+          description: >-
+            manual_restart_required — automatic restart unavailable on this host; message carries the manual
+            command (same info as /api/host manual_commands)
+          content:
+            application/json:
+              schema:
+                $ref: ./openapi.yaml#/components/schemas/Error
+      parameters:
+        - name: Idempotency-Key
+          in: header
+          required: true
+          schema:
+            type: string
+            pattern: ^[0-9]{10,12}-[0-9a-f]{32}$
+          description: Unix seconds plus 128-bit random hex; valid 24 hours, at most 60 seconds future skew.
+      security:
+        - agentAuthorization: []
+  /v1/agent/commands/{key}:
+    parameters:
+      - name: X-Telemt-Agent-ID
+        in: header
+        required: true
+        schema:
+          type: string
+          minLength: 16
+          maxLength: 128
+    get:
+      operationId: agentManagedGetAgentCommand
+      parameters:
+        - name: key
+          in: path
+          required: true
+          schema:
+            type: string
+            pattern: ^[0-9]{10,12}-[0-9a-f]{32}$
+      responses:
+        '200':
+          description: Persisted command outcome; status 0 means unknown intent, not success.
+          content:
+            application/json:
+              schema:
+                $ref: ./openapi.yaml#/components/schemas/AgentCommand
+        '400':
+          description: Rejected, unavailable, or unconfirmed; inspect code before retrying.
+          content:
+            application/json:
+              schema:
+                $ref: ./openapi.yaml#/components/schemas/Error
+        '401':
+          description: Rejected, unavailable, or unconfirmed; inspect code before retrying.
+          content:
+            application/json:
+              schema:
+                $ref: ./openapi.yaml#/components/schemas/Error
+        '404':
+          description: >-
+            Node missing, disabled, retired or its credentials/storage unavailable. No fallback to another
+            node.
+          content:
+            application/json:
+              schema:
+                $ref: ./openapi.yaml#/components/schemas/Error
+        '409':
+          description: >-
+            Node missing, disabled, retired or its credentials/storage unavailable. No fallback to another
+            node.
+          content:
+            application/json:
+              schema:
+                $ref: ./openapi.yaml#/components/schemas/Error
+        '503':
+          description: >-
+            Node missing, disabled, retired or its credentials/storage unavailable. No fallback to another
+            node.
+          content:
+            application/json:
+              schema:
+                $ref: ./openapi.yaml#/components/schemas/Error
+      tags:
+        - agent
+      description: >-
+        Node-scoped management. Uses only the selected node client, history, jobs and SSE. Legacy default
+        history stays with default.
+      security:
+        - agentAuthorization: []
+  /v1/agent/logs/tail:
+    parameters:
+      - name: X-Telemt-Agent-ID
+        in: header
+        required: true
+        schema:
+          type: string
+          minLength: 16
+          maxLength: 128
+    get:
+      tags:
+        - agent
+      operationId: agentTailLogs
+      parameters:
+        - name: service
+          in: query
+          required: true
+          schema:
+            type: string
+            enum:
+              - telemt
+        - name: lines
+          in: query
+          schema:
+            type: integer
+            default: 200
+            maximum: 1000
+      responses:
+        '200':
+          description: Recent lines
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: ./openapi.yaml#/components/schemas/LogLine
+        '400':
+          $ref: ./openapi.yaml#/components/responses/BadRequest
+        '401':
+          description: Rejected, unavailable, or unconfirmed; inspect code before retrying.
+          content:
+            application/json:
+              schema:
+                $ref: ./openapi.yaml#/components/schemas/Error
+        '409':
+          description: Rejected, unavailable, or unconfirmed; inspect code before retrying.
+          content:
+            application/json:
+              schema:
+                $ref: ./openapi.yaml#/components/schemas/Error
+        '501':
+          description: log_tail_unavailable — host cap log_tail=false
+          content:
+            application/json:
+              schema:
+                $ref: ./openapi.yaml#/components/schemas/Error
+        '502':
+          description: log_source_error — the log source failed
+          content:
+            application/json:
+              schema:
+                $ref: ./openapi.yaml#/components/schemas/LogSourceDiagnostic
+        '503':
+          description: Rejected, unavailable, or unconfirmed; inspect code before retrying.
+          content:
+            application/json:
+              schema:
+                $ref: ./openapi.yaml#/components/schemas/Error
+      security:
+        - agentAuthorization: []
+  /v1/agent/events/logs:
+    parameters:
+      - name: X-Telemt-Agent-ID
+        in: header
+        required: true
+        schema:
+          type: string
+          minLength: 16
+          maxLength: 128
+    get:
+      tags:
+        - agent
+      operationId: agentStreamLogs
+      description: >
+        SSE stream of LogLine events (`event: log`) and quiet-period heartbeats. File sources first emit
+        `event: log_reset` with {"source":"file"}, replacing the viewer snapshot before up to 200 recent
+        complete lines from the last 256 KiB and subsequent live entries. Paused viewers apply the replacement
+        when resumed. Source startup/runtime failures are `event: log_source_error` with a LogSourceDiagnostic
+        payload after HTTP 200; normal source EOF is `event: log_end`. Authentication, validation and
+        capability errors remain HTTP errors before streaming begins.
+      parameters:
+        - name: service
+          in: query
+          required: true
+          schema:
+            type: string
+            enum:
+              - telemt
+      responses:
+        '200':
+          description: SSE of log_reset, log, heartbeat, log_source_error and log_end events
+          content:
+            text/event-stream:
+              schema:
+                type: string
+        '400':
+          $ref: ./openapi.yaml#/components/responses/BadRequest
+        '401':
+          description: Rejected, unavailable, or unconfirmed; inspect code before retrying.
+          content:
+            application/json:
+              schema:
+                $ref: ./openapi.yaml#/components/schemas/Error
+        '409':
+          description: Rejected, unavailable, or unconfirmed; inspect code before retrying.
+          content:
+            application/json:
+              schema:
+                $ref: ./openapi.yaml#/components/schemas/Error
+        '429':
+          description: logs_stream_limit — capacity exhausted before streaming starts
+          headers:
+            Retry-After:
+              schema:
+                type: integer
+                minimum: 5
+              description: Retry no earlier than this many seconds
+          content:
+            application/json:
+              schema:
+                $ref: ./openapi.yaml#/components/schemas/Error
+        '501':
+          description: log_stream_unavailable — host cap log_stream=false
+          content:
+            application/json:
+              schema:
+                $ref: ./openapi.yaml#/components/schemas/Error
+        '503':
+          description: Rejected, unavailable, or unconfirmed; inspect code before retrying.
+          content:
+            application/json:
+              schema:
+                $ref: ./openapi.yaml#/components/schemas/Error
+      security:
+        - agentAuthorization: []
+    head:
+      tags:
+        - agent
+      operationId: agentProbeLogStream
+      description: >-
+        Checks authentication, log capability and current capacity without opening a source or reserving a
+        slot. GET atomically checks capacity again.
+      parameters:
+        - name: service
+          in: query
+          required: true
+          schema:
+            type: string
+            enum:
+              - telemt
+      responses:
+        '204':
+          description: A log stream can currently be attempted
+        '400':
+          $ref: ./openapi.yaml#/components/responses/BadRequest
+        '401':
+          description: Session expired
+          content:
+            application/json:
+              schema:
+                $ref: ./openapi.yaml#/components/schemas/Error
+        '403':
+          description: Host or request rejected
+          content:
+            application/json:
+              schema:
+                $ref: ./openapi.yaml#/components/schemas/Error
+        '409':
+          description: Rejected, unavailable, or unconfirmed; inspect code before retrying.
+          content:
+            application/json:
+              schema:
+                $ref: ./openapi.yaml#/components/schemas/Error
+        '429':
+          description: logs_stream_limit — at most 4 process streams and 2 per session; anonymous shares one key
+          headers:
+            Retry-After:
+              schema:
+                type: integer
+                minimum: 5
+              description: Retry no earlier than this many seconds
+          content:
+            application/json:
+              schema:
+                $ref: ./openapi.yaml#/components/schemas/Error
+        '501':
+          description: log_stream_unavailable
+          content:
+            application/json:
+              schema:
+                $ref: ./openapi.yaml#/components/schemas/Error
+        '503':
+          description: Server is shutting down
+          content:
+            application/json:
+              schema:
+                $ref: ./openapi.yaml#/components/schemas/Error
+      security:
+        - agentAuthorization: []
+  /v1/agent/config:
+    parameters:
+      - name: X-Telemt-Agent-ID
+        in: header
+        required: true
+        schema:
+          type: string
+          minLength: 16
+          maxLength: 128
+    get:
+      operationId: agentManagedGetConfigFiles
+      description: >-
+        Node-scoped management. Uses only the selected node client, history, jobs and SSE. Legacy default
+        history stays with default. Reads the full include source manifest from the installed agent. Contains
+        secrets; do not persist in browser storage or telemetry.
+      responses:
+        '200':
+          description: Exact source graph
+          content:
+            application/json:
+              schema:
+                $ref: ./openapi.yaml#/components/schemas/ConfigFileSnapshot
+        '400':
+          description: Rejected, unavailable, or unconfirmed; inspect code before retrying.
+          content:
+            application/json:
+              schema:
+                $ref: ./openapi.yaml#/components/schemas/Error
+        '401':
+          description: Rejected, unavailable, or unconfirmed; inspect code before retrying.
+          content:
+            application/json:
+              schema:
+                $ref: ./openapi.yaml#/components/schemas/Error
+        '404':
+          description: >-
+            Node missing, disabled, retired or its credentials/storage unavailable. No fallback to another
+            node.
+          content:
+            application/json:
+              schema:
+                $ref: ./openapi.yaml#/components/schemas/Error
+        '409':
+          description: >-
+            Node missing, disabled, retired or its credentials/storage unavailable. No fallback to another
+            node.
+          content:
+            application/json:
+              schema:
+                $ref: ./openapi.yaml#/components/schemas/Error
+        '503':
+          description: >-
+            Node missing, disabled, retired or its credentials/storage unavailable. No fallback to another
+            node.
+          content:
+            application/json:
+              schema:
+                $ref: ./openapi.yaml#/components/schemas/Error
+      tags:
+        - agent
+      security:
+        - agentAuthorization: []
+      parameters: []
+  /v1/agent/config/render:
+    parameters:
+      - name: X-Telemt-Agent-ID
+        in: header
+        required: true
+        schema:
+          type: string
+          minLength: 16
+          maxLength: 128
+    post:
+      operationId: agentManagedRenderConfigFile
+      description: >-
+        Node-scoped management. Uses only the selected node client, history, jobs and SSE. Legacy default
+        history stays with default. Renders typed edits while preserving unrelated comments and include
+        directives. Does not write or validate runtime configuration.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: ./openapi.yaml#/components/schemas/ConfigFileInput
+      responses:
+        '200':
+          description: Rendered candidate
+          content:
+            application/json:
+              schema:
+                $ref: ./openapi.yaml#/components/schemas/ConfigFileRendered
+        '400':
+          description: Rejected, unavailable, or unconfirmed; inspect code before retrying.
+          content:
+            application/json:
+              schema:
+                $ref: ./openapi.yaml#/components/schemas/Error
+        '401':
+          description: Rejected, unavailable, or unconfirmed; inspect code before retrying.
+          content:
+            application/json:
+              schema:
+                $ref: ./openapi.yaml#/components/schemas/Error
+        '404':
+          description: >-
+            Node missing, disabled, retired or its credentials/storage unavailable. No fallback to another
+            node.
+          content:
+            application/json:
+              schema:
+                $ref: ./openapi.yaml#/components/schemas/Error
+        '409':
+          description: >-
+            Node missing, disabled, retired or its credentials/storage unavailable. No fallback to another
+            node.
+          content:
+            application/json:
+              schema:
+                $ref: ./openapi.yaml#/components/schemas/Error
+        '503':
+          description: >-
+            Node missing, disabled, retired or its credentials/storage unavailable. No fallback to another
+            node.
+          content:
+            application/json:
+              schema:
+                $ref: ./openapi.yaml#/components/schemas/Error
+      tags:
+        - agent
+      security:
+        - agentAuthorization: []
+      parameters: []
+  /v1/agent/config/validate:
+    parameters:
+      - name: X-Telemt-Agent-ID
+        in: header
+        required: true
+        schema:
+          type: string
+          minLength: 16
+          maxLength: 128
+    post:
+      operationId: agentManagedValidateConfigFile
+      description: >-
+        Node-scoped management. Uses only the selected node client, history, jobs and SSE. Legacy default
+        history stays with default. Runs the installed Telemt loader/preparation on one owner override without
+        writing.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: ./openapi.yaml#/components/schemas/ConfigFileInput
+      responses:
+        '200':
+          description: Validated candidate; no readiness guarantee
+          content:
+            application/json:
+              schema:
+                $ref: ./openapi.yaml#/components/schemas/ConfigFileResult
+        '400':
+          description: Rejected, unavailable, or unconfirmed; inspect code before retrying.
+          content:
+            application/json:
+              schema:
+                $ref: ./openapi.yaml#/components/schemas/Error
+        '401':
+          description: Rejected, unavailable, or unconfirmed; inspect code before retrying.
+          content:
+            application/json:
+              schema:
+                $ref: ./openapi.yaml#/components/schemas/Error
+        '404':
+          description: >-
+            Node missing, disabled, retired or its credentials/storage unavailable. No fallback to another
+            node.
+          content:
+            application/json:
+              schema:
+                $ref: ./openapi.yaml#/components/schemas/Error
+        '409':
+          description: >-
+            Node missing, disabled, retired or its credentials/storage unavailable. No fallback to another
+            node.
+          content:
+            application/json:
+              schema:
+                $ref: ./openapi.yaml#/components/schemas/Error
+        '503':
+          description: >-
+            Node missing, disabled, retired or its credentials/storage unavailable. No fallback to another
+            node.
+          content:
+            application/json:
+              schema:
+                $ref: ./openapi.yaml#/components/schemas/Error
+      tags:
+        - agent
+      security:
+        - agentAuthorization: []
+      parameters: []
+  /v1/agent/config/apply:
+    parameters:
+      - name: X-Telemt-Agent-ID
+        in: header
+        required: true
+        schema:
+          type: string
+          minLength: 16
+          maxLength: 128
+    post:
+      operationId: agentManagedApplyConfigFile
+      description: >-
+        Node-scoped management. Uses only the selected node client, history, jobs and SSE. Legacy default
+        history stays with default. Durable command intent, backup before write, then root-lock/source-graph
+        CAS. One source per transaction; persisted is not runtime convergence.
+      parameters:
+        - name: Idempotency-Key
+          in: header
+          schema:
+            type: string
+          description: Reuse for the same mutation after ambiguous transport failure. Never auto-retry with a new key.
+          required: true
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: ./openapi.yaml#/components/schemas/ConfigFileInput
+      responses:
+        '200':
+          description: Persisted source revision
+          content:
+            application/json:
+              schema:
+                $ref: ./openapi.yaml#/components/schemas/ConfigFileResult
+        '400':
+          description: Rejected, unavailable, or unconfirmed; inspect code before retrying.
+          content:
+            application/json:
+              schema:
+                $ref: ./openapi.yaml#/components/schemas/Error
+        '401':
+          description: Rejected, unavailable, or unconfirmed; inspect code before retrying.
+          content:
+            application/json:
+              schema:
+                $ref: ./openapi.yaml#/components/schemas/Error
+        '404':
+          description: >-
+            Node missing, disabled, retired or its credentials/storage unavailable. No fallback to another
+            node.
+          content:
+            application/json:
+              schema:
+                $ref: ./openapi.yaml#/components/schemas/Error
+        '409':
+          description: >-
+            Node missing, disabled, retired or its credentials/storage unavailable. No fallback to another
+            node.
+          content:
+            application/json:
+              schema:
+                $ref: ./openapi.yaml#/components/schemas/Error
+        '503':
+          description: >-
+            Node missing, disabled, retired or its credentials/storage unavailable. No fallback to another
+            node.
+          content:
+            application/json:
+              schema:
+                $ref: ./openapi.yaml#/components/schemas/Error
+      tags:
+        - agent
+      security:
+        - agentAuthorization: []
+  /v1/agent/config/backups:
+    parameters:
+      - name: X-Telemt-Agent-ID
+        in: header
+        required: true
+        schema:
+          type: string
+          minLength: 16
+          maxLength: 128
+    get:
+      operationId: agentManagedListConfigBackups
+      responses:
+        '200':
+          description: Backup metadata; content omitted
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: ./openapi.yaml#/components/schemas/ConfigFileBackup
+        '400':
+          description: Rejected, unavailable, or unconfirmed; inspect code before retrying.
+          content:
+            application/json:
+              schema:
+                $ref: ./openapi.yaml#/components/schemas/Error
+        '401':
+          description: Rejected, unavailable, or unconfirmed; inspect code before retrying.
+          content:
+            application/json:
+              schema:
+                $ref: ./openapi.yaml#/components/schemas/Error
+        '404':
+          description: >-
+            Node missing, disabled, retired or its credentials/storage unavailable. No fallback to another
+            node.
+          content:
+            application/json:
+              schema:
+                $ref: ./openapi.yaml#/components/schemas/Error
+        '409':
+          description: >-
+            Node missing, disabled, retired or its credentials/storage unavailable. No fallback to another
+            node.
+          content:
+            application/json:
+              schema:
+                $ref: ./openapi.yaml#/components/schemas/Error
+        '503':
+          description: >-
+            Node missing, disabled, retired or its credentials/storage unavailable. No fallback to another
+            node.
+          content:
+            application/json:
+              schema:
+                $ref: ./openapi.yaml#/components/schemas/Error
+      tags:
+        - agent
+      description: >-
+        Node-scoped management. Uses only the selected node client, history, jobs and SSE. Legacy default
+        history stays with default.
+      security:
+        - agentAuthorization: []
+      parameters: []
+  /v1/agent/config/backups/{key}:
+    parameters:
+      - name: X-Telemt-Agent-ID
+        in: header
+        required: true
+        schema:
+          type: string
+          minLength: 16
+          maxLength: 128
+    get:
+      operationId: agentManagedGetConfigBackup
+      parameters:
+        - name: key
+          in: path
+          required: true
+          schema:
+            type: string
+            pattern: ^[0-9]{10,12}-[0-9a-f]{32}$
+      responses:
+        '200':
+          description: Sensitive backup content for review; restore through a new revision-checked apply
+          content:
+            application/json:
+              schema:
+                $ref: ./openapi.yaml#/components/schemas/ConfigFileBackup
+        '400':
+          description: Rejected, unavailable, or unconfirmed; inspect code before retrying.
+          content:
+            application/json:
+              schema:
+                $ref: ./openapi.yaml#/components/schemas/Error
+        '401':
+          description: Rejected, unavailable, or unconfirmed; inspect code before retrying.
+          content:
+            application/json:
+              schema:
+                $ref: ./openapi.yaml#/components/schemas/Error
+        '404':
+          description: >-
+            Node missing, disabled, retired or its credentials/storage unavailable. No fallback to another
+            node.
+          content:
+            application/json:
+              schema:
+                $ref: ./openapi.yaml#/components/schemas/Error
+        '409':
+          description: >-
+            Node missing, disabled, retired or its credentials/storage unavailable. No fallback to another
+            node.
+          content:
+            application/json:
+              schema:
+                $ref: ./openapi.yaml#/components/schemas/Error
+        '503':
+          description: >-
+            Node missing, disabled, retired or its credentials/storage unavailable. No fallback to another
+            node.
+          content:
+            application/json:
+              schema:
+                $ref: ./openapi.yaml#/components/schemas/Error
+      tags:
+        - agent
+      description: >-
+        Node-scoped management. Uses only the selected node client, history, jobs and SSE. Legacy default
+        history stays with default.
+      security:
+        - agentAuthorization: []
+    delete:
+      operationId: agentManagedDeleteConfigBackup
+      parameters:
+        - name: key
+          in: path
+          required: true
+          schema:
+            type: string
+            pattern: ^[0-9]{10,12}-[0-9a-f]{32}$
+        - name: Idempotency-Key
+          in: header
+          schema:
+            type: string
+          description: Reuse for the same mutation after ambiguous transport failure. Never auto-retry with a new key.
+          required: true
+      responses:
+        '204':
+          description: Selected backup removed; live source unchanged
+        '400':
+          description: Rejected, unavailable, or unconfirmed; inspect code before retrying.
+          content:
+            application/json:
+              schema:
+                $ref: ./openapi.yaml#/components/schemas/Error
+        '401':
+          description: Rejected, unavailable, or unconfirmed; inspect code before retrying.
+          content:
+            application/json:
+              schema:
+                $ref: ./openapi.yaml#/components/schemas/Error
+        '404':
+          description: >-
+            Node missing, disabled, retired or its credentials/storage unavailable. No fallback to another
+            node.
+          content:
+            application/json:
+              schema:
+                $ref: ./openapi.yaml#/components/schemas/Error
+        '409':
+          description: >-
+            Node missing, disabled, retired or its credentials/storage unavailable. No fallback to another
+            node.
+          content:
+            application/json:
+              schema:
+                $ref: ./openapi.yaml#/components/schemas/Error
+        '503':
+          description: >-
+            Node missing, disabled, retired or its credentials/storage unavailable. No fallback to another
+            node.
+          content:
+            application/json:
+              schema:
+                $ref: ./openapi.yaml#/components/schemas/Error
+      tags:
+        - agent
+      description: >-
+        Node-scoped management. Uses only the selected node client, history, jobs and SSE. Legacy default
+        history stays with default.
+      security:
+        - agentAuthorization: []
+components:
+  securitySchemes:
+    agentAuthorization:
+      type: apiKey
+      in: header
+      name: Authorization
+      description: Exact value from agent.authorization_env, at least 32 characters.

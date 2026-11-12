@@ -3,8 +3,42 @@
 import { type DefaultError, type InfiniteData, infiniteQueryOptions, queryOptions, type UseMutationOptions } from '@tanstack/react-query';
 
 import { client } from '../client.gen';
-import { applyUpdate, closeTelemtWebSessions, createUser, deleteUser, getAudit, getAuthMethods, getAutoUpdate, getBrandingIcon, getBrandingLogo, getBrandingSettings, getBulkQuotaReset, getGeography, getGeographyLocations, getGeographySettings, getGeographyUsers, getGeoIpSettings, getHealth, getHistory, getHistoryEvents, getHost, getLinkSettings, getMe, getPanelTls, getPanelTlsConfig, getPublicBranding, getQuotaSchedule, getSnapshot, getStorageSettings, getSubscriptionPage, getTelemtConfig, getTelemtConfigCatalog, getTelemtConfigToml, getTelemtInfo, getTelemtReloadStatus, getTelemtService, getTelemtTlsFingerprints, getTelemtWebAccess, getTelemtWebOperation, getTelemtWebSession, getTelemtWebSessions, getTelemtZero, getTrafficSummary, getTrafficUsers, getUpdates, getUser, getUserIpHistory, getUserQuotaSchedule, getUserSublink, getUserTrafficHistory, listSessions, listUsers, login, logout, type Options, patchTelemtConfig, patchTelemtConfigToml, patchUser, prepareBulkQuotaReset, preparePanelTls, previewQuotaSchedule, previewTelemtConfigToml, purgeStorageHistory, putAutoUpdate, putBrandingSettings, putGeographySettings, putGeoIpSettings, putLinkSettings, putPanelTlsConfig, putStorageSettings, putTelemtUserWebAccess, regenerateUserSublink, reloadTelemt, resetAllUserTraffic, resetUserIpHistory, resetUserQuota, resetUserTraffic, restartPanelTls, restartTelemtService, revokeOtherSessions, revokeSession, rotateUserSecret, saveQuotaSchedule, saveUserQuotaSchedule, setUserEnabled, startBulkQuotaReset, startTelemtService, stopTelemtService, tailLogs, updateGeoIp, webauthnDeleteCredential, webauthnLoginBegin, webauthnLoginFinish, webauthnRegisterBegin, webauthnRegisterFinish } from '../sdk.gen';
-import type { ApplyUpdateData, ApplyUpdateError, CloseTelemtWebSessionsData, CloseTelemtWebSessionsError, CloseTelemtWebSessionsResponse, CreateUserData, CreateUserError, CreateUserResponse, DeleteUserData, DeleteUserError, DeleteUserResponse, GetAuditData, GetAuditError, GetAuditResponse, GetAuthMethodsData, GetAuthMethodsResponse, GetAutoUpdateData, GetAutoUpdateError, GetAutoUpdateResponse, GetBrandingIconData, GetBrandingIconResponse, GetBrandingLogoData, GetBrandingLogoResponse, GetBrandingSettingsData, GetBrandingSettingsError, GetBrandingSettingsResponse, GetBulkQuotaResetData, GetBulkQuotaResetError, GetBulkQuotaResetResponse, GetGeographyData, GetGeographyError, GetGeographyLocationsData, GetGeographyLocationsError, GetGeographyLocationsResponse, GetGeographyResponse, GetGeographySettingsData, GetGeographySettingsError, GetGeographySettingsResponse, GetGeographyUsersData, GetGeographyUsersError, GetGeographyUsersResponse, GetGeoIpSettingsData, GetGeoIpSettingsError, GetGeoIpSettingsResponse, GetHealthData, GetHealthResponse, GetHistoryData, GetHistoryError, GetHistoryEventsData, GetHistoryEventsError, GetHistoryEventsResponse, GetHistoryResponse, GetHostData, GetHostResponse, GetLinkSettingsData, GetLinkSettingsError, GetLinkSettingsResponse, GetMeData, GetMeError, GetMeResponse, GetPanelTlsConfigData, GetPanelTlsConfigError, GetPanelTlsConfigResponse, GetPanelTlsData, GetPanelTlsError, GetPanelTlsResponse, GetPublicBrandingData, GetPublicBrandingResponse, GetQuotaScheduleData, GetQuotaScheduleError, GetQuotaScheduleResponse, GetSnapshotData, GetSnapshotError, GetSnapshotResponse, GetStorageSettingsData, GetStorageSettingsError, GetStorageSettingsResponse, GetSubscriptionPageData, GetSubscriptionPageError, GetSubscriptionPageResponse, GetTelemtConfigCatalogData, GetTelemtConfigCatalogResponse, GetTelemtConfigData, GetTelemtConfigError, GetTelemtConfigResponse, GetTelemtConfigTomlData, GetTelemtConfigTomlError, GetTelemtConfigTomlResponse, GetTelemtInfoData, GetTelemtInfoError, GetTelemtInfoResponse, GetTelemtReloadStatusData, GetTelemtReloadStatusError, GetTelemtReloadStatusResponse, GetTelemtServiceData, GetTelemtServiceResponse, GetTelemtTlsFingerprintsData, GetTelemtTlsFingerprintsError, GetTelemtTlsFingerprintsResponse, GetTelemtWebAccessData, GetTelemtWebAccessError, GetTelemtWebAccessResponse, GetTelemtWebOperationData, GetTelemtWebOperationError, GetTelemtWebOperationResponse, GetTelemtWebSessionData, GetTelemtWebSessionError, GetTelemtWebSessionResponse, GetTelemtWebSessionsData, GetTelemtWebSessionsError, GetTelemtWebSessionsResponse, GetTelemtZeroData, GetTelemtZeroError, GetTelemtZeroResponse, GetTrafficSummaryData, GetTrafficSummaryError, GetTrafficSummaryResponse, GetTrafficUsersData, GetTrafficUsersError, GetTrafficUsersResponse, GetUpdatesData, GetUpdatesResponse, GetUserData, GetUserError, GetUserIpHistoryData, GetUserIpHistoryError, GetUserIpHistoryResponse, GetUserQuotaScheduleData, GetUserQuotaScheduleError, GetUserQuotaScheduleResponse, GetUserResponse, GetUserSublinkData, GetUserSublinkError, GetUserSublinkResponse, GetUserTrafficHistoryData, GetUserTrafficHistoryError, GetUserTrafficHistoryResponse, ListSessionsData, ListSessionsError, ListSessionsResponse, ListUsersData, ListUsersError, ListUsersResponse, LoginData, LoginError, LoginResponse, LogoutData, LogoutError, LogoutResponse, PatchTelemtConfigData, PatchTelemtConfigError, PatchTelemtConfigResponse, PatchTelemtConfigTomlData, PatchTelemtConfigTomlError, PatchTelemtConfigTomlResponse, PatchUserData, PatchUserError, PatchUserResponse, PrepareBulkQuotaResetData, PrepareBulkQuotaResetError, PrepareBulkQuotaResetResponse, PreparePanelTlsData, PreparePanelTlsError, PreparePanelTlsResponse, PreviewQuotaScheduleData, PreviewQuotaScheduleError, PreviewQuotaScheduleResponse, PreviewTelemtConfigTomlData, PreviewTelemtConfigTomlError, PreviewTelemtConfigTomlResponse, PurgeStorageHistoryData, PurgeStorageHistoryError, PurgeStorageHistoryResponse, PutAutoUpdateData, PutAutoUpdateError, PutAutoUpdateResponse, PutBrandingSettingsData, PutBrandingSettingsError, PutBrandingSettingsResponse, PutGeographySettingsData, PutGeographySettingsError, PutGeographySettingsResponse, PutGeoIpSettingsData, PutGeoIpSettingsError, PutGeoIpSettingsResponse, PutLinkSettingsData, PutLinkSettingsError, PutLinkSettingsResponse, PutPanelTlsConfigData, PutPanelTlsConfigError, PutPanelTlsConfigResponse, PutStorageSettingsData, PutStorageSettingsError, PutStorageSettingsResponse, PutTelemtUserWebAccessData, PutTelemtUserWebAccessError, PutTelemtUserWebAccessResponse, RegenerateUserSublinkData, RegenerateUserSublinkError, RegenerateUserSublinkResponse, ReloadTelemtData, ReloadTelemtError, ReloadTelemtResponse, ResetAllUserTrafficData, ResetAllUserTrafficError, ResetAllUserTrafficResponse, ResetUserIpHistoryData, ResetUserIpHistoryError, ResetUserIpHistoryResponse, ResetUserQuotaData, ResetUserQuotaError, ResetUserQuotaResponse, ResetUserTrafficData, ResetUserTrafficError, ResetUserTrafficResponse, RestartPanelTlsData, RestartPanelTlsError, RestartPanelTlsResponse, RestartTelemtServiceData, RestartTelemtServiceError, RevokeOtherSessionsData, RevokeOtherSessionsError, RevokeOtherSessionsResponse, RevokeSessionData, RevokeSessionError, RevokeSessionResponse, RotateUserSecretData, RotateUserSecretError, RotateUserSecretResponse, SaveQuotaScheduleData, SaveQuotaScheduleError, SaveQuotaScheduleResponse, SaveUserQuotaScheduleData, SaveUserQuotaScheduleError, SaveUserQuotaScheduleResponse, SetUserEnabledData, SetUserEnabledError, SetUserEnabledResponse, StartBulkQuotaResetData, StartBulkQuotaResetError, StartBulkQuotaResetResponse, StartTelemtServiceData, StartTelemtServiceError, StopTelemtServiceData, StopTelemtServiceError, TailLogsData, TailLogsError, TailLogsResponse, UpdateGeoIpData, UpdateGeoIpError, UpdateGeoIpResponse, WebauthnDeleteCredentialData, WebauthnDeleteCredentialError, WebauthnDeleteCredentialResponse, WebauthnLoginBeginData, WebauthnLoginBeginError, WebauthnLoginBeginResponse, WebauthnLoginFinishData, WebauthnLoginFinishError, WebauthnLoginFinishResponse, WebauthnRegisterBeginData, WebauthnRegisterBeginError, WebauthnRegisterBeginResponse, WebauthnRegisterFinishData, WebauthnRegisterFinishError, WebauthnRegisterFinishResponse } from '../types.gen';
+import { addClusterMember, applyUpdate, closeTelemtWebSessions, completeCustomerEmail, completeCustomerTelegram, createBillingPlan, createCluster, createClusterIdentity, createCustomerInvoice, createNode, createPaymentAccount, createUser, customerCheckout, customerLogin, customerLogout, customerRecover, customerRegister, deleteCluster, deleteNode, deleteUser, executeUserCopy, exportClusterRouting, getAudit, getAuthMethods, getAutoUpdate, getBillingPlan, getBrandingIcon, getBrandingLogo, getBrandingSettings, getBulkQuotaReset, getCluster, getClusterIdentity, getClusterRouting, getCustomerAuthMethods, getCustomerInvoice, getCustomerMe, getCustomerSubscription, getGeography, getGeographyLocations, getGeographySettings, getGeographyUsers, getGeoIpSettings, getHealth, getHistory, getHistoryEvents, getHost, getLinkSettings, getMe, getNode, getNodeConfig, getNodeHealth, getNodeUsers, getPanelTls, getPanelTlsConfig, getPaymentAccount, getPlatformStatus, getPublicBranding, getQuotaSchedule, getSnapshot, getStorageSettings, getSubscriptionPage, getTelemtConfig, getTelemtConfigCatalog, getTelemtConfigToml, getTelemtInfo, getTelemtReloadStatus, getTelemtService, getTelemtTlsFingerprints, getTelemtWebAccess, getTelemtWebOperation, getTelemtWebSession, getTelemtWebSessions, getTelemtZero, getTrafficSummary, getTrafficUsers, getUpdates, getUser, getUserCopy, getUserIpHistory, getUserQuotaSchedule, getUserSublink, getUserTrafficHistory, linkCustomerEmail, listBillingInvoices, listBillingPayments, listBillingPlans, listClusterIdentities, listClusters, listCustomerInvoices, listCustomerPaymentOptions, listCustomerPeriods, listCustomerPlans, listCustomerSubscriptions, listNodes, listPaymentAccounts, listSessions, listUsers, login, logout, managedApplyConfigFile, managedApplyUpdate, managedCloseTelemtWebSessions, managedCreateUser, managedDeleteConfigBackup, managedDeleteUser, managedGetAgentCommand, managedGetAudit, managedGetAutoUpdate, managedGetBulkQuotaReset, managedGetConfigBackup, managedGetConfigFiles, managedGetGeography, managedGetGeographyLocations, managedGetGeographySettings, managedGetGeographyUsers, managedGetHistory, managedGetHistoryEvents, managedGetHost, managedGetLinkSettings, managedGetQuotaSchedule, managedGetSnapshot, managedGetStorageSettings, managedGetTelemtConfig, managedGetTelemtConfigCatalog, managedGetTelemtConfigToml, managedGetTelemtInfo, managedGetTelemtReloadStatus, managedGetTelemtService, managedGetTelemtTlsFingerprints, managedGetTelemtWebAccess, managedGetTelemtWebOperation, managedGetTelemtWebSession, managedGetTelemtWebSessions, managedGetTelemtZero, managedGetTrafficSummary, managedGetTrafficUsers, managedGetUpdates, managedGetUser, managedGetUserIpHistory, managedGetUserQuotaSchedule, managedGetUserSublink, managedGetUserTrafficHistory, managedListConfigBackups, managedListUsers, managedPatchTelemtConfig, managedPatchTelemtConfigToml, managedPatchUser, managedPrepareBulkQuotaReset, managedPreviewQuotaSchedule, managedPreviewTelemtConfigToml, managedPurgeStorageHistory, managedPutAutoUpdate, managedPutGeographySettings, managedPutLinkSettings, managedPutStorageSettings, managedPutTelemtUserWebAccess, managedRegenerateUserSublink, managedReloadTelemt, managedRenderConfigFile, managedResetAllUserTraffic, managedResetUserIpHistory, managedResetUserQuota, managedResetUserTraffic, managedRestartTelemtService, managedRotateUserSecret, managedSaveQuotaSchedule, managedSaveUserQuotaSchedule, managedSetUserEnabled, managedStartBulkQuotaReset, managedStartTelemtService, managedStopTelemtService, managedTailLogs, managedValidateConfigFile, type Options, patchTelemtConfig, patchTelemtConfigToml, patchUser, prepareBulkQuotaReset, preparePanelTls, prepareUserCopy, previewQuotaSchedule, previewTelemtConfigToml, purgeStorageHistory, putAutoUpdate, putBrandingSettings, putClusterRouting, putGeographySettings, putGeoIpSettings, putLinkSettings, putPanelTlsConfig, putStorageSettings, putTelemtUserWebAccess, receivePaymentNotification, regenerateUserSublink, reloadTelemt, removeClusterMember, renameCluster, replaceNode, resetAllUserTraffic, resetUserIpHistory, resetUserQuota, resetUserTraffic, restartPanelTls, restartTelemtService, retryClusterIdentity, revokeOtherSessions, revokeSession, rotateUserSecret, saveQuotaSchedule, saveUserQuotaSchedule, setUserEnabled, startBulkQuotaReset, startCustomerTelegram, startTelemtService, stopTelemtService, tailLogs, updateBillingPlan, updateClusterIdentity, updateGeoIp, updatePaymentAccount, webauthnDeleteCredential, webauthnLoginBegin, webauthnLoginFinish, webauthnRegisterBegin, webauthnRegisterFinish } from '../sdk.gen';
+import type { AddClusterMemberData, AddClusterMemberError, AddClusterMemberResponse, ApplyUpdateData, ApplyUpdateError, CloseTelemtWebSessionsData, CloseTelemtWebSessionsError, CloseTelemtWebSessionsResponse, CompleteCustomerEmailData, CompleteCustomerEmailError, CompleteCustomerEmailResponse, CompleteCustomerTelegramData, CompleteCustomerTelegramError, CreateBillingPlanData, CreateBillingPlanError, CreateBillingPlanResponse, CreateClusterData, CreateClusterError, CreateClusterIdentityData, CreateClusterIdentityError, CreateClusterIdentityResponse, CreateClusterResponse, CreateCustomerInvoiceData, CreateCustomerInvoiceError, CreateCustomerInvoiceResponse, CreateNodeData, CreateNodeError, CreateNodeResponse, CreatePaymentAccountData, CreatePaymentAccountError, CreatePaymentAccountResponse, CreateUserData, CreateUserError, CreateUserResponse, CustomerCheckoutData, CustomerCheckoutError, CustomerCheckoutResponse, CustomerLoginData, CustomerLoginError, CustomerLoginResponse, CustomerLogoutData, CustomerLogoutError, CustomerLogoutResponse, CustomerRecoverData, CustomerRecoverError, CustomerRegisterData, CustomerRegisterError, DeleteClusterData, DeleteClusterError, DeleteClusterResponse, DeleteNodeData, DeleteNodeError, DeleteNodeResponse, DeleteUserData, DeleteUserError, DeleteUserResponse, ExecuteUserCopyData, ExecuteUserCopyError, ExecuteUserCopyResponse, ExportClusterRoutingData, ExportClusterRoutingError, ExportClusterRoutingResponse, GetAuditData, GetAuditError, GetAuditResponse, GetAuthMethodsData, GetAuthMethodsResponse, GetAutoUpdateData, GetAutoUpdateError, GetAutoUpdateResponse, GetBillingPlanData, GetBillingPlanError, GetBillingPlanResponse, GetBrandingIconData, GetBrandingIconResponse, GetBrandingLogoData, GetBrandingLogoResponse, GetBrandingSettingsData, GetBrandingSettingsError, GetBrandingSettingsResponse, GetBulkQuotaResetData, GetBulkQuotaResetError, GetBulkQuotaResetResponse, GetClusterData, GetClusterError, GetClusterIdentityData, GetClusterIdentityError, GetClusterIdentityResponse, GetClusterResponse, GetClusterRoutingData, GetClusterRoutingError, GetClusterRoutingResponse, GetCustomerAuthMethodsData, GetCustomerAuthMethodsError, GetCustomerAuthMethodsResponse, GetCustomerInvoiceData, GetCustomerInvoiceError, GetCustomerInvoiceResponse, GetCustomerMeData, GetCustomerMeError, GetCustomerMeResponse, GetCustomerSubscriptionData, GetCustomerSubscriptionError, GetCustomerSubscriptionResponse, GetGeographyData, GetGeographyError, GetGeographyLocationsData, GetGeographyLocationsError, GetGeographyLocationsResponse, GetGeographyResponse, GetGeographySettingsData, GetGeographySettingsError, GetGeographySettingsResponse, GetGeographyUsersData, GetGeographyUsersError, GetGeographyUsersResponse, GetGeoIpSettingsData, GetGeoIpSettingsError, GetGeoIpSettingsResponse, GetHealthData, GetHealthResponse, GetHistoryData, GetHistoryError, GetHistoryEventsData, GetHistoryEventsError, GetHistoryEventsResponse, GetHistoryResponse, GetHostData, GetHostResponse, GetLinkSettingsData, GetLinkSettingsError, GetLinkSettingsResponse, GetMeData, GetMeError, GetMeResponse, GetNodeConfigData, GetNodeConfigError, GetNodeConfigResponse, GetNodeData, GetNodeError, GetNodeHealthData, GetNodeHealthError, GetNodeHealthResponse, GetNodeResponse, GetNodeUsersData, GetNodeUsersError, GetNodeUsersResponse, GetPanelTlsConfigData, GetPanelTlsConfigError, GetPanelTlsConfigResponse, GetPanelTlsData, GetPanelTlsError, GetPanelTlsResponse, GetPaymentAccountData, GetPaymentAccountError, GetPaymentAccountResponse, GetPlatformStatusData, GetPlatformStatusError, GetPlatformStatusResponse, GetPublicBrandingData, GetPublicBrandingResponse, GetQuotaScheduleData, GetQuotaScheduleError, GetQuotaScheduleResponse, GetSnapshotData, GetSnapshotError, GetSnapshotResponse, GetStorageSettingsData, GetStorageSettingsError, GetStorageSettingsResponse, GetSubscriptionPageData, GetSubscriptionPageError, GetSubscriptionPageResponse, GetTelemtConfigCatalogData, GetTelemtConfigCatalogResponse, GetTelemtConfigData, GetTelemtConfigError, GetTelemtConfigResponse, GetTelemtConfigTomlData, GetTelemtConfigTomlError, GetTelemtConfigTomlResponse, GetTelemtInfoData, GetTelemtInfoError, GetTelemtInfoResponse, GetTelemtReloadStatusData, GetTelemtReloadStatusError, GetTelemtReloadStatusResponse, GetTelemtServiceData, GetTelemtServiceResponse, GetTelemtTlsFingerprintsData, GetTelemtTlsFingerprintsError, GetTelemtTlsFingerprintsResponse, GetTelemtWebAccessData, GetTelemtWebAccessError, GetTelemtWebAccessResponse, GetTelemtWebOperationData, GetTelemtWebOperationError, GetTelemtWebOperationResponse, GetTelemtWebSessionData, GetTelemtWebSessionError, GetTelemtWebSessionResponse, GetTelemtWebSessionsData, GetTelemtWebSessionsError, GetTelemtWebSessionsResponse, GetTelemtZeroData, GetTelemtZeroError, GetTelemtZeroResponse, GetTrafficSummaryData, GetTrafficSummaryError, GetTrafficSummaryResponse, GetTrafficUsersData, GetTrafficUsersError, GetTrafficUsersResponse, GetUpdatesData, GetUpdatesResponse, GetUserCopyData, GetUserCopyError, GetUserCopyResponse, GetUserData, GetUserError, GetUserIpHistoryData, GetUserIpHistoryError, GetUserIpHistoryResponse, GetUserQuotaScheduleData, GetUserQuotaScheduleError, GetUserQuotaScheduleResponse, GetUserResponse, GetUserSublinkData, GetUserSublinkError, GetUserSublinkResponse, GetUserTrafficHistoryData, GetUserTrafficHistoryError, GetUserTrafficHistoryResponse, LinkCustomerEmailData, LinkCustomerEmailError, ListBillingInvoicesData, ListBillingInvoicesError, ListBillingInvoicesResponse, ListBillingPaymentsData, ListBillingPaymentsError, ListBillingPaymentsResponse, ListBillingPlansData, ListBillingPlansError, ListBillingPlansResponse, ListClusterIdentitiesData, ListClusterIdentitiesError, ListClusterIdentitiesResponse, ListClustersData, ListClustersError, ListClustersResponse, ListCustomerInvoicesData, ListCustomerInvoicesError, ListCustomerInvoicesResponse, ListCustomerPaymentOptionsData, ListCustomerPaymentOptionsError, ListCustomerPaymentOptionsResponse, ListCustomerPeriodsData, ListCustomerPeriodsError, ListCustomerPeriodsResponse, ListCustomerPlansData, ListCustomerPlansError, ListCustomerPlansResponse, ListCustomerSubscriptionsData, ListCustomerSubscriptionsError, ListCustomerSubscriptionsResponse, ListNodesData, ListNodesError, ListNodesResponse, ListPaymentAccountsData, ListPaymentAccountsError, ListPaymentAccountsResponse, ListSessionsData, ListSessionsError, ListSessionsResponse, ListUsersData, ListUsersError, ListUsersResponse, LoginData, LoginError, LoginResponse, LogoutData, LogoutError, LogoutResponse, ManagedApplyConfigFileData, ManagedApplyConfigFileError, ManagedApplyConfigFileResponse, ManagedApplyUpdateData, ManagedApplyUpdateError, ManagedCloseTelemtWebSessionsData, ManagedCloseTelemtWebSessionsError, ManagedCloseTelemtWebSessionsResponse, ManagedCreateUserData, ManagedCreateUserError, ManagedCreateUserResponse, ManagedDeleteConfigBackupData, ManagedDeleteConfigBackupError, ManagedDeleteConfigBackupResponse, ManagedDeleteUserData, ManagedDeleteUserError, ManagedDeleteUserResponse, ManagedGetAgentCommandData, ManagedGetAgentCommandError, ManagedGetAgentCommandResponse, ManagedGetAuditData, ManagedGetAuditError, ManagedGetAuditResponse, ManagedGetAutoUpdateData, ManagedGetAutoUpdateError, ManagedGetBulkQuotaResetData, ManagedGetBulkQuotaResetError, ManagedGetBulkQuotaResetResponse, ManagedGetConfigBackupData, ManagedGetConfigBackupError, ManagedGetConfigBackupResponse, ManagedGetConfigFilesData, ManagedGetConfigFilesError, ManagedGetConfigFilesResponse, ManagedGetGeographyData, ManagedGetGeographyError, ManagedGetGeographyLocationsData, ManagedGetGeographyLocationsError, ManagedGetGeographyLocationsResponse, ManagedGetGeographyResponse, ManagedGetGeographySettingsData, ManagedGetGeographySettingsError, ManagedGetGeographySettingsResponse, ManagedGetGeographyUsersData, ManagedGetGeographyUsersError, ManagedGetGeographyUsersResponse, ManagedGetHistoryData, ManagedGetHistoryError, ManagedGetHistoryEventsData, ManagedGetHistoryEventsError, ManagedGetHistoryEventsResponse, ManagedGetHistoryResponse, ManagedGetHostData, ManagedGetHostError, ManagedGetHostResponse, ManagedGetLinkSettingsData, ManagedGetLinkSettingsError, ManagedGetLinkSettingsResponse, ManagedGetQuotaScheduleData, ManagedGetQuotaScheduleError, ManagedGetQuotaScheduleResponse, ManagedGetSnapshotData, ManagedGetSnapshotError, ManagedGetSnapshotResponse, ManagedGetStorageSettingsData, ManagedGetStorageSettingsError, ManagedGetStorageSettingsResponse, ManagedGetTelemtConfigCatalogData, ManagedGetTelemtConfigCatalogError, ManagedGetTelemtConfigCatalogResponse, ManagedGetTelemtConfigData, ManagedGetTelemtConfigError, ManagedGetTelemtConfigResponse, ManagedGetTelemtConfigTomlData, ManagedGetTelemtConfigTomlError, ManagedGetTelemtConfigTomlResponse, ManagedGetTelemtInfoData, ManagedGetTelemtInfoError, ManagedGetTelemtInfoResponse, ManagedGetTelemtReloadStatusData, ManagedGetTelemtReloadStatusError, ManagedGetTelemtReloadStatusResponse, ManagedGetTelemtServiceData, ManagedGetTelemtServiceError, ManagedGetTelemtServiceResponse, ManagedGetTelemtTlsFingerprintsData, ManagedGetTelemtTlsFingerprintsError, ManagedGetTelemtTlsFingerprintsResponse, ManagedGetTelemtWebAccessData, ManagedGetTelemtWebAccessError, ManagedGetTelemtWebAccessResponse, ManagedGetTelemtWebOperationData, ManagedGetTelemtWebOperationError, ManagedGetTelemtWebOperationResponse, ManagedGetTelemtWebSessionData, ManagedGetTelemtWebSessionError, ManagedGetTelemtWebSessionResponse, ManagedGetTelemtWebSessionsData, ManagedGetTelemtWebSessionsError, ManagedGetTelemtWebSessionsResponse, ManagedGetTelemtZeroData, ManagedGetTelemtZeroError, ManagedGetTelemtZeroResponse, ManagedGetTrafficSummaryData, ManagedGetTrafficSummaryError, ManagedGetTrafficSummaryResponse, ManagedGetTrafficUsersData, ManagedGetTrafficUsersError, ManagedGetTrafficUsersResponse, ManagedGetUpdatesData, ManagedGetUpdatesError, ManagedGetUserData, ManagedGetUserError, ManagedGetUserIpHistoryData, ManagedGetUserIpHistoryError, ManagedGetUserIpHistoryResponse, ManagedGetUserQuotaScheduleData, ManagedGetUserQuotaScheduleError, ManagedGetUserQuotaScheduleResponse, ManagedGetUserResponse, ManagedGetUserSublinkData, ManagedGetUserSublinkError, ManagedGetUserTrafficHistoryData, ManagedGetUserTrafficHistoryError, ManagedGetUserTrafficHistoryResponse, ManagedListConfigBackupsData, ManagedListConfigBackupsError, ManagedListConfigBackupsResponse, ManagedListUsersData, ManagedListUsersError, ManagedListUsersResponse, ManagedPatchTelemtConfigData, ManagedPatchTelemtConfigError, ManagedPatchTelemtConfigResponse, ManagedPatchTelemtConfigTomlData, ManagedPatchTelemtConfigTomlError, ManagedPatchTelemtConfigTomlResponse, ManagedPatchUserData, ManagedPatchUserError, ManagedPatchUserResponse, ManagedPrepareBulkQuotaResetData, ManagedPrepareBulkQuotaResetError, ManagedPrepareBulkQuotaResetResponse, ManagedPreviewQuotaScheduleData, ManagedPreviewQuotaScheduleError, ManagedPreviewQuotaScheduleResponse, ManagedPreviewTelemtConfigTomlData, ManagedPreviewTelemtConfigTomlError, ManagedPreviewTelemtConfigTomlResponse, ManagedPurgeStorageHistoryData, ManagedPurgeStorageHistoryError, ManagedPurgeStorageHistoryResponse, ManagedPutAutoUpdateData, ManagedPutAutoUpdateError, ManagedPutGeographySettingsData, ManagedPutGeographySettingsError, ManagedPutGeographySettingsResponse, ManagedPutLinkSettingsData, ManagedPutLinkSettingsError, ManagedPutLinkSettingsResponse, ManagedPutStorageSettingsData, ManagedPutStorageSettingsError, ManagedPutStorageSettingsResponse, ManagedPutTelemtUserWebAccessData, ManagedPutTelemtUserWebAccessError, ManagedPutTelemtUserWebAccessResponse, ManagedRegenerateUserSublinkData, ManagedRegenerateUserSublinkError, ManagedReloadTelemtData, ManagedReloadTelemtError, ManagedReloadTelemtResponse, ManagedRenderConfigFileData, ManagedRenderConfigFileError, ManagedRenderConfigFileResponse, ManagedResetAllUserTrafficData, ManagedResetAllUserTrafficError, ManagedResetAllUserTrafficResponse, ManagedResetUserIpHistoryData, ManagedResetUserIpHistoryError, ManagedResetUserIpHistoryResponse, ManagedResetUserQuotaData, ManagedResetUserQuotaError, ManagedResetUserQuotaResponse, ManagedResetUserTrafficData, ManagedResetUserTrafficError, ManagedResetUserTrafficResponse, ManagedRestartTelemtServiceData, ManagedRestartTelemtServiceError, ManagedRotateUserSecretData, ManagedRotateUserSecretError, ManagedRotateUserSecretResponse, ManagedSaveQuotaScheduleData, ManagedSaveQuotaScheduleError, ManagedSaveQuotaScheduleResponse, ManagedSaveUserQuotaScheduleData, ManagedSaveUserQuotaScheduleError, ManagedSaveUserQuotaScheduleResponse, ManagedSetUserEnabledData, ManagedSetUserEnabledError, ManagedSetUserEnabledResponse, ManagedStartBulkQuotaResetData, ManagedStartBulkQuotaResetError, ManagedStartBulkQuotaResetResponse, ManagedStartTelemtServiceData, ManagedStartTelemtServiceError, ManagedStopTelemtServiceData, ManagedStopTelemtServiceError, ManagedTailLogsData, ManagedTailLogsError, ManagedTailLogsResponse, ManagedValidateConfigFileData, ManagedValidateConfigFileError, ManagedValidateConfigFileResponse, PatchTelemtConfigData, PatchTelemtConfigError, PatchTelemtConfigResponse, PatchTelemtConfigTomlData, PatchTelemtConfigTomlError, PatchTelemtConfigTomlResponse, PatchUserData, PatchUserError, PatchUserResponse, PrepareBulkQuotaResetData, PrepareBulkQuotaResetError, PrepareBulkQuotaResetResponse, PreparePanelTlsData, PreparePanelTlsError, PreparePanelTlsResponse, PrepareUserCopyData, PrepareUserCopyError, PrepareUserCopyResponse, PreviewQuotaScheduleData, PreviewQuotaScheduleError, PreviewQuotaScheduleResponse, PreviewTelemtConfigTomlData, PreviewTelemtConfigTomlError, PreviewTelemtConfigTomlResponse, PurgeStorageHistoryData, PurgeStorageHistoryError, PurgeStorageHistoryResponse, PutAutoUpdateData, PutAutoUpdateError, PutAutoUpdateResponse, PutBrandingSettingsData, PutBrandingSettingsError, PutBrandingSettingsResponse, PutClusterRoutingData, PutClusterRoutingError, PutClusterRoutingResponse, PutGeographySettingsData, PutGeographySettingsError, PutGeographySettingsResponse, PutGeoIpSettingsData, PutGeoIpSettingsError, PutGeoIpSettingsResponse, PutLinkSettingsData, PutLinkSettingsError, PutLinkSettingsResponse, PutPanelTlsConfigData, PutPanelTlsConfigError, PutPanelTlsConfigResponse, PutStorageSettingsData, PutStorageSettingsError, PutStorageSettingsResponse, PutTelemtUserWebAccessData, PutTelemtUserWebAccessError, PutTelemtUserWebAccessResponse, ReceivePaymentNotificationData, ReceivePaymentNotificationError, ReceivePaymentNotificationResponse, RegenerateUserSublinkData, RegenerateUserSublinkError, RegenerateUserSublinkResponse, ReloadTelemtData, ReloadTelemtError, ReloadTelemtResponse, RemoveClusterMemberData, RemoveClusterMemberError, RenameClusterData, RenameClusterError, RenameClusterResponse, ReplaceNodeData, ReplaceNodeError, ReplaceNodeResponse, ResetAllUserTrafficData, ResetAllUserTrafficError, ResetAllUserTrafficResponse, ResetUserIpHistoryData, ResetUserIpHistoryError, ResetUserIpHistoryResponse, ResetUserQuotaData, ResetUserQuotaError, ResetUserQuotaResponse, ResetUserTrafficData, ResetUserTrafficError, ResetUserTrafficResponse, RestartPanelTlsData, RestartPanelTlsError, RestartPanelTlsResponse, RestartTelemtServiceData, RestartTelemtServiceError, RetryClusterIdentityData, RetryClusterIdentityError, RevokeOtherSessionsData, RevokeOtherSessionsError, RevokeOtherSessionsResponse, RevokeSessionData, RevokeSessionError, RevokeSessionResponse, RotateUserSecretData, RotateUserSecretError, RotateUserSecretResponse, SaveQuotaScheduleData, SaveQuotaScheduleError, SaveQuotaScheduleResponse, SaveUserQuotaScheduleData, SaveUserQuotaScheduleError, SaveUserQuotaScheduleResponse, SetUserEnabledData, SetUserEnabledError, SetUserEnabledResponse, StartBulkQuotaResetData, StartBulkQuotaResetError, StartBulkQuotaResetResponse, StartCustomerTelegramData, StartCustomerTelegramError, StartCustomerTelegramResponse, StartTelemtServiceData, StartTelemtServiceError, StopTelemtServiceData, StopTelemtServiceError, TailLogsData, TailLogsError, TailLogsResponse, UpdateBillingPlanData, UpdateBillingPlanError, UpdateBillingPlanResponse, UpdateClusterIdentityData, UpdateClusterIdentityError, UpdateGeoIpData, UpdateGeoIpError, UpdateGeoIpResponse, UpdatePaymentAccountData, UpdatePaymentAccountError, UpdatePaymentAccountResponse, WebauthnDeleteCredentialData, WebauthnDeleteCredentialError, WebauthnDeleteCredentialResponse, WebauthnLoginBeginData, WebauthnLoginBeginError, WebauthnLoginBeginResponse, WebauthnLoginFinishData, WebauthnLoginFinishError, WebauthnLoginFinishResponse, WebauthnRegisterBeginData, WebauthnRegisterBeginError, WebauthnRegisterBeginResponse, WebauthnRegisterFinishData, WebauthnRegisterFinishError, WebauthnRegisterFinishResponse } from '../types.gen';
+
+/**
+ * Read-only preview. Same username/secret, selected limits; never copies history, usage or WEB sessions. Preview expires after five minutes.
+ */
+export const prepareUserCopyMutation = (options?: Partial<Options<PrepareUserCopyData>>): UseMutationOptions<PrepareUserCopyResponse, PrepareUserCopyError, Options<PrepareUserCopyData>> => {
+    const mutationOptions: UseMutationOptions<PrepareUserCopyResponse, PrepareUserCopyError, Options<PrepareUserCopyData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await prepareUserCopy({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+/**
+ * One-shot copy with durable deduplication. 200 contains separate target outcomes; it does not mean all targets succeeded. Unfinished intent is never automatically resumed.
+ */
+export const executeUserCopyMutation = (options?: Partial<Options<ExecuteUserCopyData>>): UseMutationOptions<ExecuteUserCopyResponse, ExecuteUserCopyError, Options<ExecuteUserCopyData>> => {
+    const mutationOptions: UseMutationOptions<ExecuteUserCopyResponse, ExecuteUserCopyError, Options<ExecuteUserCopyData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await executeUserCopy({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
 
 export type QueryKey<TOptions extends Options> = [
     Pick<TOptions, 'baseUrl' | 'body' | 'headers' | 'path' | 'query'> & {
@@ -37,6 +71,2684 @@ const createQueryKey = <TOptions extends Options>(id: string, options?: TOptions
         params.query = options.query;
     }
     return [params];
+};
+
+export const getUserCopyQueryKey = (options: Options<GetUserCopyData>) => createQueryKey('getUserCopy', options);
+
+export const getUserCopyOptions = (options: Options<GetUserCopyData>) => queryOptions<GetUserCopyResponse, GetUserCopyError, GetUserCopyResponse, ReturnType<typeof getUserCopyQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await getUserCopy({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: getUserCopyQueryKey(options)
+});
+
+export const listBillingInvoicesQueryKey = (options?: Options<ListBillingInvoicesData>) => createQueryKey('listBillingInvoices', options);
+
+/**
+ * Administrator invoice history, up to 100 items, newest first.
+ */
+export const listBillingInvoicesOptions = (options?: Options<ListBillingInvoicesData>) => queryOptions<ListBillingInvoicesResponse, ListBillingInvoicesError, ListBillingInvoicesResponse, ReturnType<typeof listBillingInvoicesQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await listBillingInvoices({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: listBillingInvoicesQueryKey(options)
+});
+
+const createInfiniteParams = <K extends Pick<QueryKey<Options>[0], 'body' | 'headers' | 'path' | 'query'>>(queryKey: QueryKey<Options>, page: K) => {
+    const params = { ...queryKey[0] };
+    if (page.body) {
+        params.body = {
+            ...queryKey[0].body as any,
+            ...page.body as any
+        };
+    }
+    if (page.headers) {
+        params.headers = {
+            ...queryKey[0].headers,
+            ...page.headers
+        };
+    }
+    if (page.path) {
+        params.path = {
+            ...queryKey[0].path as any,
+            ...page.path as any
+        };
+    }
+    if (page.query) {
+        params.query = {
+            ...queryKey[0].query as any,
+            ...page.query as any
+        };
+    }
+    return params as unknown as typeof page;
+};
+
+export const listBillingInvoicesInfiniteQueryKey = (options?: Options<ListBillingInvoicesData>): QueryKey<Options<ListBillingInvoicesData>> => createQueryKey('listBillingInvoices', options, true);
+
+/**
+ * Administrator invoice history, up to 100 items, newest first.
+ */
+export const listBillingInvoicesInfiniteOptions = (options?: Options<ListBillingInvoicesData>) => {
+    const opts = infiniteQueryOptions<ListBillingInvoicesResponse, ListBillingInvoicesError, InfiniteData<ListBillingInvoicesResponse>, QueryKey<Options<ListBillingInvoicesData>>, number | Pick<QueryKey<Options<ListBillingInvoicesData>>[0], 'body' | 'headers' | 'path' | 'query'>>(
+    // @ts-ignore
+    {
+        queryFn: async ({ pageParam, queryKey, signal }) => {
+            // @ts-ignore
+            const page: Pick<QueryKey<Options<ListBillingInvoicesData>>[0], 'body' | 'headers' | 'path' | 'query'> = typeof pageParam === 'object' ? pageParam : {
+                query: {
+                    offset: pageParam
+                }
+            };
+            const params = createInfiniteParams(queryKey, page);
+            const { data } = await listBillingInvoices({
+                ...options,
+                ...params,
+                signal,
+                throwOnError: true
+            });
+            return data;
+        },
+        queryKey: listBillingInvoicesInfiniteQueryKey(options)
+    });
+    return opts as Omit<typeof opts, 'initialData'>;
+};
+
+export const listBillingPaymentsQueryKey = (options?: Options<ListBillingPaymentsData>) => createQueryKey('listBillingPayments', options);
+
+/**
+ * Verified payments, including unallocated transfers and separate test events; up to 100 newest items. No signatures or credential values.
+ */
+export const listBillingPaymentsOptions = (options?: Options<ListBillingPaymentsData>) => queryOptions<ListBillingPaymentsResponse, ListBillingPaymentsError, ListBillingPaymentsResponse, ReturnType<typeof listBillingPaymentsQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await listBillingPayments({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: listBillingPaymentsQueryKey(options)
+});
+
+export const listBillingPaymentsInfiniteQueryKey = (options?: Options<ListBillingPaymentsData>): QueryKey<Options<ListBillingPaymentsData>> => createQueryKey('listBillingPayments', options, true);
+
+/**
+ * Verified payments, including unallocated transfers and separate test events; up to 100 newest items. No signatures or credential values.
+ */
+export const listBillingPaymentsInfiniteOptions = (options?: Options<ListBillingPaymentsData>) => {
+    const opts = infiniteQueryOptions<ListBillingPaymentsResponse, ListBillingPaymentsError, InfiniteData<ListBillingPaymentsResponse>, QueryKey<Options<ListBillingPaymentsData>>, number | Pick<QueryKey<Options<ListBillingPaymentsData>>[0], 'body' | 'headers' | 'path' | 'query'>>(
+    // @ts-ignore
+    {
+        queryFn: async ({ pageParam, queryKey, signal }) => {
+            // @ts-ignore
+            const page: Pick<QueryKey<Options<ListBillingPaymentsData>>[0], 'body' | 'headers' | 'path' | 'query'> = typeof pageParam === 'object' ? pageParam : {
+                query: {
+                    offset: pageParam
+                }
+            };
+            const params = createInfiniteParams(queryKey, page);
+            const { data } = await listBillingPayments({
+                ...options,
+                ...params,
+                signal,
+                throwOnError: true
+            });
+            return data;
+        },
+        queryKey: listBillingPaymentsInfiniteQueryKey(options)
+    });
+    return opts as Omit<typeof opts, 'initialData'>;
+};
+
+export const listBillingPlansQueryKey = (options?: Options<ListBillingPlansData>) => createQueryKey('listBillingPlans', options);
+
+/**
+ * Admin tariff catalogue, including disabled plans; max 1000.
+ */
+export const listBillingPlansOptions = (options?: Options<ListBillingPlansData>) => queryOptions<ListBillingPlansResponse, ListBillingPlansError, ListBillingPlansResponse, ReturnType<typeof listBillingPlansQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await listBillingPlans({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: listBillingPlansQueryKey(options)
+});
+
+/**
+ * Create explicit cluster-bound tariff. Does not activate proxy access.
+ */
+export const createBillingPlanMutation = (options?: Partial<Options<CreateBillingPlanData>>): UseMutationOptions<CreateBillingPlanResponse, CreateBillingPlanError, Options<CreateBillingPlanData>> => {
+    const mutationOptions: UseMutationOptions<CreateBillingPlanResponse, CreateBillingPlanError, Options<CreateBillingPlanData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await createBillingPlan({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+export const getBillingPlanQueryKey = (options: Options<GetBillingPlanData>) => createQueryKey('getBillingPlan', options);
+
+/**
+ * Current terms and revision.
+ */
+export const getBillingPlanOptions = (options: Options<GetBillingPlanData>) => queryOptions<GetBillingPlanResponse, GetBillingPlanError, GetBillingPlanResponse, ReturnType<typeof getBillingPlanQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await getBillingPlan({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: getBillingPlanQueryKey(options)
+});
+
+/**
+ * New immutable version. Existing invoices and periods retain original terms.
+ */
+export const updateBillingPlanMutation = (options?: Partial<Options<UpdateBillingPlanData>>): UseMutationOptions<UpdateBillingPlanResponse, UpdateBillingPlanError, Options<UpdateBillingPlanData>> => {
+    const mutationOptions: UseMutationOptions<UpdateBillingPlanResponse, UpdateBillingPlanError, Options<UpdateBillingPlanData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await updateBillingPlan({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+export const listPaymentAccountsQueryKey = (options?: Options<ListPaymentAccountsData>) => createQueryKey('listPaymentAccounts', options);
+
+/**
+ * Admin payment connections, env names only; max 64.
+ */
+export const listPaymentAccountsOptions = (options?: Options<ListPaymentAccountsData>) => queryOptions<ListPaymentAccountsResponse, ListPaymentAccountsError, ListPaymentAccountsResponse, ReturnType<typeof listPaymentAccountsQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await listPaymentAccounts({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: listPaymentAccountsQueryKey(options)
+});
+
+/**
+ * Immutable provider, merchant and environment. TELEMT_PAYMENT_* credential references. Creation does not verify provider access.
+ */
+export const createPaymentAccountMutation = (options?: Partial<Options<CreatePaymentAccountData>>): UseMutationOptions<CreatePaymentAccountResponse, CreatePaymentAccountError, Options<CreatePaymentAccountData>> => {
+    const mutationOptions: UseMutationOptions<CreatePaymentAccountResponse, CreatePaymentAccountError, Options<CreatePaymentAccountData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await createPaymentAccount({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+export const getPaymentAccountQueryKey = (options: Options<GetPaymentAccountData>) => createQueryKey('getPaymentAccount', options);
+
+/**
+ * Connection without resolved secrets.
+ */
+export const getPaymentAccountOptions = (options: Options<GetPaymentAccountData>) => queryOptions<GetPaymentAccountResponse, GetPaymentAccountError, GetPaymentAccountResponse, ReturnType<typeof getPaymentAccountQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await getPaymentAccount({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: getPaymentAccountQueryKey(options)
+});
+
+/**
+ * Change name and new-checkout availability. In-flight callbacks still accepted when disabled.
+ */
+export const updatePaymentAccountMutation = (options?: Partial<Options<UpdatePaymentAccountData>>): UseMutationOptions<UpdatePaymentAccountResponse, UpdatePaymentAccountError, Options<UpdatePaymentAccountData>> => {
+    const mutationOptions: UseMutationOptions<UpdatePaymentAccountResponse, UpdatePaymentAccountError, Options<UpdatePaymentAccountData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await updatePaymentAccount({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+/**
+ * Public signed provider callback. Raw form body, no query parameters or duplicates. Configure provider POST. Acknowledges only durable commit. Test payments never create real paid periods; redirects cannot settle payments.
+ */
+export const receivePaymentNotificationMutation = (options?: Partial<Options<ReceivePaymentNotificationData>>): UseMutationOptions<ReceivePaymentNotificationResponse, ReceivePaymentNotificationError, Options<ReceivePaymentNotificationData>> => {
+    const mutationOptions: UseMutationOptions<ReceivePaymentNotificationResponse, ReceivePaymentNotificationError, Options<ReceivePaymentNotificationData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await receivePaymentNotification({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+export const getCustomerAuthMethodsQueryKey = (options?: Options<GetCustomerAuthMethodsData>) => createQueryKey('getCustomerAuthMethods', options);
+
+/**
+ * Enabled portal methods. Email delivery readiness is separate from existing password login.
+ */
+export const getCustomerAuthMethodsOptions = (options?: Options<GetCustomerAuthMethodsData>) => queryOptions<GetCustomerAuthMethodsResponse, GetCustomerAuthMethodsError, GetCustomerAuthMethodsResponse, ReturnType<typeof getCustomerAuthMethodsQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await getCustomerAuthMethods({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: getCustomerAuthMethodsQueryKey(options)
+});
+
+/**
+ * Password login; issues separate HttpOnly customer cookie. Admin sessions never authorize this API. Same-origin CSRF required.
+ */
+export const customerLoginMutation = (options?: Partial<Options<CustomerLoginData>>): UseMutationOptions<CustomerLoginResponse, CustomerLoginError, Options<CustomerLoginData>> => {
+    const mutationOptions: UseMutationOptions<CustomerLoginResponse, CustomerLoginError, Options<CustomerLoginData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await customerLogin({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+/**
+ * Request mailbox verification. Generic response for existing accounts; delivery failure is not reported as success. Customer is created only after proof.
+ */
+export const customerRegisterMutation = (options?: Partial<Options<CustomerRegisterData>>): UseMutationOptions<unknown, CustomerRegisterError, Options<CustomerRegisterData>> => {
+    const mutationOptions: UseMutationOptions<unknown, CustomerRegisterError, Options<CustomerRegisterData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await customerRegister({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+/**
+ * Generic recovery request. SMTP must be configured; unknown or disabled accounts are not disclosed.
+ */
+export const customerRecoverMutation = (options?: Partial<Options<CustomerRecoverData>>): UseMutationOptions<unknown, CustomerRecoverError, Options<CustomerRecoverData>> => {
+    const mutationOptions: UseMutationOptions<unknown, CustomerRecoverError, Options<CustomerRecoverData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await customerRecover({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+/**
+ * Consume one-time proof. Password is required for reset, omitted for register/link. Reset revokes previous customer sessions.
+ */
+export const completeCustomerEmailMutation = (options?: Partial<Options<CompleteCustomerEmailData>>): UseMutationOptions<CompleteCustomerEmailResponse, CompleteCustomerEmailError, Options<CompleteCustomerEmailData>> => {
+    const mutationOptions: UseMutationOptions<CompleteCustomerEmailResponse, CompleteCustomerEmailError, Options<CompleteCustomerEmailData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await completeCustomerEmail({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+/**
+ * Add email/password to a Telegram-only customer. Requires fresh customer authentication within five minutes; no merging of existing accounts.
+ */
+export const linkCustomerEmailMutation = (options?: Partial<Options<LinkCustomerEmailData>>): UseMutationOptions<unknown, LinkCustomerEmailError, Options<LinkCustomerEmailData>> => {
+    const mutationOptions: UseMutationOptions<unknown, LinkCustomerEmailError, Options<LinkCustomerEmailData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await linkCustomerEmail({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+/**
+ * Durably revoke current customer cookie; administrator sessions are unchanged.
+ */
+export const customerLogoutMutation = (options?: Partial<Options<CustomerLogoutData>>): UseMutationOptions<CustomerLogoutResponse, CustomerLogoutError, Options<CustomerLogoutData>> => {
+    const mutationOptions: UseMutationOptions<CustomerLogoutResponse, CustomerLogoutError, Options<CustomerLogoutData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await customerLogout({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+export const getCustomerMeQueryKey = (options?: Options<GetCustomerMeData>) => createQueryKey('getCustomerMe', options);
+
+/**
+ * Current customer; no password hash, Telegram subject or session token.
+ */
+export const getCustomerMeOptions = (options?: Options<GetCustomerMeData>) => queryOptions<GetCustomerMeResponse, GetCustomerMeError, GetCustomerMeResponse, ReturnType<typeof getCustomerMeQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await getCustomerMe({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: getCustomerMeQueryKey(options)
+});
+
+/**
+ * Start Telegram code + PKCE + nonce flow; sets HttpOnly Lax browser-binding cookie. link=true requires fresh customer session.
+ */
+export const startCustomerTelegramMutation = (options?: Partial<Options<StartCustomerTelegramData>>): UseMutationOptions<StartCustomerTelegramResponse, StartCustomerTelegramError, Options<StartCustomerTelegramData>> => {
+    const mutationOptions: UseMutationOptions<StartCustomerTelegramResponse, StartCustomerTelegramError, Options<StartCustomerTelegramData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await startCustomerTelegram({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+export const completeCustomerTelegramQueryKey = (options?: Options<CompleteCustomerTelegramData>) => createQueryKey('completeCustomerTelegram', options);
+
+/**
+ * Provider redirect; consumes browser-bound state and verifies fixed Telegram issuer, RS256, audience, expiry and nonce. Redirects to configured portal only.
+ */
+export const completeCustomerTelegramOptions = (options?: Options<CompleteCustomerTelegramData>) => queryOptions<unknown, CompleteCustomerTelegramError, unknown, ReturnType<typeof completeCustomerTelegramQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await completeCustomerTelegram({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: completeCustomerTelegramQueryKey(options)
+});
+
+export const listCustomerPlansQueryKey = (options?: Options<ListCustomerPlansData>) => createQueryKey('listCustomerPlans', options);
+
+/**
+ * Enabled tariffs only. Price/currency compatibility is checked when creating an invoice.
+ */
+export const listCustomerPlansOptions = (options?: Options<ListCustomerPlansData>) => queryOptions<ListCustomerPlansResponse, ListCustomerPlansError, ListCustomerPlansResponse, ReturnType<typeof listCustomerPlansQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await listCustomerPlans({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: listCustomerPlansQueryKey(options)
+});
+
+export const listCustomerPaymentOptionsQueryKey = (options?: Options<ListCustomerPaymentOptionsData>) => createQueryKey('listCustomerPaymentOptions', options);
+
+/**
+ * Enabled live payment choices without merchant configuration or credential references.
+ */
+export const listCustomerPaymentOptionsOptions = (options?: Options<ListCustomerPaymentOptionsData>) => queryOptions<ListCustomerPaymentOptionsResponse, ListCustomerPaymentOptionsError, ListCustomerPaymentOptionsResponse, ReturnType<typeof listCustomerPaymentOptionsQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await listCustomerPaymentOptions({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: listCustomerPaymentOptionsQueryKey(options)
+});
+
+export const listCustomerSubscriptionsQueryKey = (options?: Options<ListCustomerSubscriptionsData>) => createQueryKey('listCustomerSubscriptions', options);
+
+/**
+ * Own subscriptions only, up to 100 per page.
+ */
+export const listCustomerSubscriptionsOptions = (options?: Options<ListCustomerSubscriptionsData>) => queryOptions<ListCustomerSubscriptionsResponse, ListCustomerSubscriptionsError, ListCustomerSubscriptionsResponse, ReturnType<typeof listCustomerSubscriptionsQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await listCustomerSubscriptions({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: listCustomerSubscriptionsQueryKey(options)
+});
+
+export const listCustomerSubscriptionsInfiniteQueryKey = (options?: Options<ListCustomerSubscriptionsData>): QueryKey<Options<ListCustomerSubscriptionsData>> => createQueryKey('listCustomerSubscriptions', options, true);
+
+/**
+ * Own subscriptions only, up to 100 per page.
+ */
+export const listCustomerSubscriptionsInfiniteOptions = (options?: Options<ListCustomerSubscriptionsData>) => {
+    const opts = infiniteQueryOptions<ListCustomerSubscriptionsResponse, ListCustomerSubscriptionsError, InfiniteData<ListCustomerSubscriptionsResponse>, QueryKey<Options<ListCustomerSubscriptionsData>>, number | Pick<QueryKey<Options<ListCustomerSubscriptionsData>>[0], 'body' | 'headers' | 'path' | 'query'>>(
+    // @ts-ignore
+    {
+        queryFn: async ({ pageParam, queryKey, signal }) => {
+            // @ts-ignore
+            const page: Pick<QueryKey<Options<ListCustomerSubscriptionsData>>[0], 'body' | 'headers' | 'path' | 'query'> = typeof pageParam === 'object' ? pageParam : {
+                query: {
+                    offset: pageParam
+                }
+            };
+            const params = createInfiniteParams(queryKey, page);
+            const { data } = await listCustomerSubscriptions({
+                ...options,
+                ...params,
+                signal,
+                throwOnError: true
+            });
+            return data;
+        },
+        queryKey: listCustomerSubscriptionsInfiniteQueryKey(options)
+    });
+    return opts as Omit<typeof opts, 'initialData'>;
+};
+
+export const getCustomerSubscriptionQueryKey = (options: Options<GetCustomerSubscriptionData>) => createQueryKey('getCustomerSubscription', options);
+
+/**
+ * Own subscription, paid-through status, managed node delivery and current-period usage. Links require confirmed matching identity/grant with an unexpired lease. Configured is not an external availability probe. Unknown usage includes reserved or unreported bytes, never treated as zero.
+ */
+export const getCustomerSubscriptionOptions = (options: Options<GetCustomerSubscriptionData>) => queryOptions<GetCustomerSubscriptionResponse, GetCustomerSubscriptionError, GetCustomerSubscriptionResponse, ReturnType<typeof getCustomerSubscriptionQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await getCustomerSubscription({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: getCustomerSubscriptionQueryKey(options)
+});
+
+export const listCustomerPeriodsQueryKey = (options: Options<ListCustomerPeriodsData>) => createQueryKey('listCustomerPeriods', options);
+
+/**
+ * Own immutable paid periods; up to 100, newest first. Another customer subscription returns 404.
+ */
+export const listCustomerPeriodsOptions = (options: Options<ListCustomerPeriodsData>) => queryOptions<ListCustomerPeriodsResponse, ListCustomerPeriodsError, ListCustomerPeriodsResponse, ReturnType<typeof listCustomerPeriodsQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await listCustomerPeriods({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: listCustomerPeriodsQueryKey(options)
+});
+
+export const listCustomerPeriodsInfiniteQueryKey = (options: Options<ListCustomerPeriodsData>): QueryKey<Options<ListCustomerPeriodsData>> => createQueryKey('listCustomerPeriods', options, true);
+
+/**
+ * Own immutable paid periods; up to 100, newest first. Another customer subscription returns 404.
+ */
+export const listCustomerPeriodsInfiniteOptions = (options: Options<ListCustomerPeriodsData>) => {
+    const opts = infiniteQueryOptions<ListCustomerPeriodsResponse, ListCustomerPeriodsError, InfiniteData<ListCustomerPeriodsResponse>, QueryKey<Options<ListCustomerPeriodsData>>, number | Pick<QueryKey<Options<ListCustomerPeriodsData>>[0], 'body' | 'headers' | 'path' | 'query'>>(
+    // @ts-ignore
+    {
+        queryFn: async ({ pageParam, queryKey, signal }) => {
+            // @ts-ignore
+            const page: Pick<QueryKey<Options<ListCustomerPeriodsData>>[0], 'body' | 'headers' | 'path' | 'query'> = typeof pageParam === 'object' ? pageParam : {
+                query: {
+                    offset: pageParam
+                }
+            };
+            const params = createInfiniteParams(queryKey, page);
+            const { data } = await listCustomerPeriods({
+                ...options,
+                ...params,
+                signal,
+                throwOnError: true
+            });
+            return data;
+        },
+        queryKey: listCustomerPeriodsInfiniteQueryKey(options)
+    });
+    return opts as Omit<typeof opts, 'initialData'>;
+};
+
+export const listCustomerInvoicesQueryKey = (options?: Options<ListCustomerInvoicesData>) => createQueryKey('listCustomerInvoices', options);
+
+/**
+ * Own invoices only, up to 100 newest first.
+ */
+export const listCustomerInvoicesOptions = (options?: Options<ListCustomerInvoicesData>) => queryOptions<ListCustomerInvoicesResponse, ListCustomerInvoicesError, ListCustomerInvoicesResponse, ReturnType<typeof listCustomerInvoicesQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await listCustomerInvoices({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: listCustomerInvoicesQueryKey(options)
+});
+
+export const listCustomerInvoicesInfiniteQueryKey = (options?: Options<ListCustomerInvoicesData>): QueryKey<Options<ListCustomerInvoicesData>> => createQueryKey('listCustomerInvoices', options, true);
+
+/**
+ * Own invoices only, up to 100 newest first.
+ */
+export const listCustomerInvoicesInfiniteOptions = (options?: Options<ListCustomerInvoicesData>) => {
+    const opts = infiniteQueryOptions<ListCustomerInvoicesResponse, ListCustomerInvoicesError, InfiniteData<ListCustomerInvoicesResponse>, QueryKey<Options<ListCustomerInvoicesData>>, number | Pick<QueryKey<Options<ListCustomerInvoicesData>>[0], 'body' | 'headers' | 'path' | 'query'>>(
+    // @ts-ignore
+    {
+        queryFn: async ({ pageParam, queryKey, signal }) => {
+            // @ts-ignore
+            const page: Pick<QueryKey<Options<ListCustomerInvoicesData>>[0], 'body' | 'headers' | 'path' | 'query'> = typeof pageParam === 'object' ? pageParam : {
+                query: {
+                    offset: pageParam
+                }
+            };
+            const params = createInfiniteParams(queryKey, page);
+            const { data } = await listCustomerInvoices({
+                ...options,
+                ...params,
+                signal,
+                throwOnError: true
+            });
+            return data;
+        },
+        queryKey: listCustomerInvoicesInfiniteQueryKey(options)
+    });
+    return opts as Omit<typeof opts, 'initialData'>;
+};
+
+/**
+ * Fix current tariff version and amount. customer_id comes exclusively from session. Durable request_key replay returns the same invoice; changed payload conflicts.
+ */
+export const createCustomerInvoiceMutation = (options?: Partial<Options<CreateCustomerInvoiceData>>): UseMutationOptions<CreateCustomerInvoiceResponse, CreateCustomerInvoiceError, Options<CreateCustomerInvoiceData>> => {
+    const mutationOptions: UseMutationOptions<CreateCustomerInvoiceResponse, CreateCustomerInvoiceError, Options<CreateCustomerInvoiceData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await createCustomerInvoice({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+export const getCustomerInvoiceQueryKey = (options: Options<GetCustomerInvoiceData>) => createQueryKey('getCustomerInvoice', options);
+
+/**
+ * Own invoice; another customer invoice returns 404. Success redirects cannot modify this status.
+ */
+export const getCustomerInvoiceOptions = (options: Options<GetCustomerInvoiceData>) => queryOptions<GetCustomerInvoiceResponse, GetCustomerInvoiceError, GetCustomerInvoiceResponse, ReturnType<typeof getCustomerInvoiceQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await getCustomerInvoice({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: getCustomerInvoiceQueryKey(options)
+});
+
+/**
+ * Signed form for own pending invoice. Browser submits only on explicit payment action. Return URL is configuration-owned. No payment or entitlement is created by this request.
+ */
+export const customerCheckoutMutation = (options?: Partial<Options<CustomerCheckoutData>>): UseMutationOptions<CustomerCheckoutResponse, CustomerCheckoutError, Options<CustomerCheckoutData>> => {
+    const mutationOptions: UseMutationOptions<CustomerCheckoutResponse, CustomerCheckoutError, Options<CustomerCheckoutData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await customerCheckout({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+export const getPlatformStatusQueryKey = (options?: Options<GetPlatformStatusData>) => createQueryKey('getPlatformStatus', options);
+
+/**
+ * Full-build capability and explicit platform activation.
+ */
+export const getPlatformStatusOptions = (options?: Options<GetPlatformStatusData>) => queryOptions<GetPlatformStatusResponse, GetPlatformStatusError, GetPlatformStatusResponse, ReturnType<typeof getPlatformStatusQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await getPlatformStatus({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: getPlatformStatusQueryKey(options)
+});
+
+export const listClustersQueryKey = (options?: Options<ListClustersData>) => createQueryKey('listClusters', options);
+
+/**
+ * Global clusters; not affected by selected node.
+ */
+export const listClustersOptions = (options?: Options<ListClustersData>) => queryOptions<ListClustersResponse, ListClustersError, ListClustersResponse, ReturnType<typeof listClustersQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await listClusters({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: listClustersQueryKey(options)
+});
+
+/**
+ * Create a cluster with immutable ID.
+ */
+export const createClusterMutation = (options?: Partial<Options<CreateClusterData>>): UseMutationOptions<CreateClusterResponse, CreateClusterError, Options<CreateClusterData>> => {
+    const mutationOptions: UseMutationOptions<CreateClusterResponse, CreateClusterError, Options<CreateClusterData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await createCluster({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+/**
+ * Delete only an empty cluster with no identities or members.
+ */
+export const deleteClusterMutation = (options?: Partial<Options<DeleteClusterData>>): UseMutationOptions<DeleteClusterResponse, DeleteClusterError, Options<DeleteClusterData>> => {
+    const mutationOptions: UseMutationOptions<DeleteClusterResponse, DeleteClusterError, Options<DeleteClusterData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await deleteCluster({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+export const getClusterQueryKey = (options: Options<GetClusterData>) => createQueryKey('getCluster', options);
+
+/**
+ * Cluster membership and revision.
+ */
+export const getClusterOptions = (options: Options<GetClusterData>) => queryOptions<GetClusterResponse, GetClusterError, GetClusterResponse, ReturnType<typeof getClusterQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await getCluster({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: getClusterQueryKey(options)
+});
+
+/**
+ * Rename using the cluster revision.
+ */
+export const renameClusterMutation = (options?: Partial<Options<RenameClusterData>>): UseMutationOptions<RenameClusterResponse, RenameClusterError, Options<RenameClusterData>> => {
+    const mutationOptions: UseMutationOptions<RenameClusterResponse, RenameClusterError, Options<RenameClusterData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await renameCluster({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+export const getClusterRoutingQueryKey = (options: Options<GetClusterRoutingData>) => createQueryKey('getClusterRouting', options);
+
+/**
+ * Saved desired ingress policy; not an applied status.
+ */
+export const getClusterRoutingOptions = (options: Options<GetClusterRoutingData>) => queryOptions<GetClusterRoutingResponse, GetClusterRoutingError, GetClusterRoutingResponse, ReturnType<typeof getClusterRoutingQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await getClusterRouting({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: getClusterRoutingQueryKey(options)
+});
+
+/**
+ * Replace complete active-member routing inventory using cluster CAS. Does not deploy ingress.
+ */
+export const putClusterRoutingMutation = (options?: Partial<Options<PutClusterRoutingData>>): UseMutationOptions<PutClusterRoutingResponse, PutClusterRoutingError, Options<PutClusterRoutingData>> => {
+    const mutationOptions: UseMutationOptions<PutClusterRoutingResponse, PutClusterRoutingError, Options<PutClusterRoutingData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await putClusterRouting({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+export const exportClusterRoutingQueryKey = (options: Options<ExportClusterRoutingData>) => createQueryKey('exportClusterRouting', options);
+
+/**
+ * Export deterministic HAProxy configuration. Reject stale membership; validate and apply separately.
+ */
+export const exportClusterRoutingOptions = (options: Options<ExportClusterRoutingData>) => queryOptions<ExportClusterRoutingResponse, ExportClusterRoutingError, ExportClusterRoutingResponse, ReturnType<typeof exportClusterRoutingQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await exportClusterRouting({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: exportClusterRoutingQueryKey(options)
+});
+
+/**
+ * Join one enabled registered node to this cluster; enqueue non-revoked identities transactionally.
+ */
+export const addClusterMemberMutation = (options?: Partial<Options<AddClusterMemberData>>): UseMutationOptions<AddClusterMemberResponse, AddClusterMemberError, Options<AddClusterMemberData>> => {
+    const mutationOptions: UseMutationOptions<AddClusterMemberResponse, AddClusterMemberError, Options<AddClusterMemberData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await addClusterMember({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+/**
+ * Request removal. Disable managed accounts with per-node retirement credentials and verify before releasing membership. Failure keeps ownership reserved.
+ */
+export const removeClusterMemberMutation = (options?: Partial<Options<RemoveClusterMemberData>>): UseMutationOptions<unknown, RemoveClusterMemberError, Options<RemoveClusterMemberData>> => {
+    const mutationOptions: UseMutationOptions<unknown, RemoveClusterMemberError, Options<RemoveClusterMemberData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await removeClusterMember({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+export const listClusterIdentitiesQueryKey = (options: Options<ListClusterIdentitiesData>) => createQueryKey('listClusterIdentities', options);
+
+/**
+ * Up to 100 identities ordered by username; use offset for the next page.
+ */
+export const listClusterIdentitiesOptions = (options: Options<ListClusterIdentitiesData>) => queryOptions<ListClusterIdentitiesResponse, ListClusterIdentitiesError, ListClusterIdentitiesResponse, ReturnType<typeof listClusterIdentitiesQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await listClusterIdentities({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: listClusterIdentitiesQueryKey(options)
+});
+
+export const listClusterIdentitiesInfiniteQueryKey = (options: Options<ListClusterIdentitiesData>): QueryKey<Options<ListClusterIdentitiesData>> => createQueryKey('listClusterIdentities', options, true);
+
+/**
+ * Up to 100 identities ordered by username; use offset for the next page.
+ */
+export const listClusterIdentitiesInfiniteOptions = (options: Options<ListClusterIdentitiesData>) => {
+    const opts = infiniteQueryOptions<ListClusterIdentitiesResponse, ListClusterIdentitiesError, InfiniteData<ListClusterIdentitiesResponse>, QueryKey<Options<ListClusterIdentitiesData>>, number | Pick<QueryKey<Options<ListClusterIdentitiesData>>[0], 'body' | 'headers' | 'path' | 'query'>>(
+    // @ts-ignore
+    {
+        queryFn: async ({ pageParam, queryKey, signal }) => {
+            // @ts-ignore
+            const page: Pick<QueryKey<Options<ListClusterIdentitiesData>>[0], 'body' | 'headers' | 'path' | 'query'> = typeof pageParam === 'object' ? pageParam : {
+                query: {
+                    offset: pageParam
+                }
+            };
+            const params = createInfiniteParams(queryKey, page);
+            const { data } = await listClusterIdentities({
+                ...options,
+                ...params,
+                signal,
+                throwOnError: true
+            });
+            return data;
+        },
+        queryKey: listClusterIdentitiesInfiniteQueryKey(options)
+    });
+    return opts as Omit<typeof opts, 'initialData'>;
+};
+
+/**
+ * Persist desired identity and delivery jobs. Does not assert successful delivery. If-Match is the cluster revision.
+ */
+export const createClusterIdentityMutation = (options?: Partial<Options<CreateClusterIdentityData>>): UseMutationOptions<CreateClusterIdentityResponse, CreateClusterIdentityError, Options<CreateClusterIdentityData>> => {
+    const mutationOptions: UseMutationOptions<CreateClusterIdentityResponse, CreateClusterIdentityError, Options<CreateClusterIdentityData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await createClusterIdentity({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+export const getClusterIdentityQueryKey = (options: Options<GetClusterIdentityData>) => createQueryKey('getClusterIdentity', options);
+
+/**
+ * Per-node desired/applied revisions and readback outcomes, without secrets.
+ */
+export const getClusterIdentityOptions = (options: Options<GetClusterIdentityData>) => queryOptions<GetClusterIdentityResponse, GetClusterIdentityError, GetClusterIdentityResponse, ReturnType<typeof getClusterIdentityQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await getClusterIdentity({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: getClusterIdentityQueryKey(options)
+});
+
+/**
+ * Update desired policy, rotate secret or irreversibly revoke identity. Revoke also rotates the credential. Does not terminate all existing transport sessions.
+ */
+export const updateClusterIdentityMutation = (options?: Partial<Options<UpdateClusterIdentityData>>): UseMutationOptions<unknown, UpdateClusterIdentityError, Options<UpdateClusterIdentityData>> => {
+    const mutationOptions: UseMutationOptions<unknown, UpdateClusterIdentityError, Options<UpdateClusterIdentityData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await updateClusterIdentity({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+/**
+ * Schedule re-observation without stealing a live worker lease.
+ */
+export const retryClusterIdentityMutation = (options?: Partial<Options<RetryClusterIdentityData>>): UseMutationOptions<unknown, RetryClusterIdentityError, Options<RetryClusterIdentityData>> => {
+    const mutationOptions: UseMutationOptions<unknown, RetryClusterIdentityError, Options<RetryClusterIdentityData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await retryClusterIdentity({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+export const listNodesQueryKey = (options?: Options<ListNodesData>) => createQueryKey('listNodes', options);
+
+/**
+ * Independent registry plus the configuration-owned default node. No network requests. Bounded to 256 registry nodes.
+ */
+export const listNodesOptions = (options?: Options<ListNodesData>) => queryOptions<ListNodesResponse, ListNodesError, ListNodesResponse, ReturnType<typeof listNodesQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await listNodes({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: listNodesQueryKey(options)
+});
+
+/**
+ * Register an independent API node without changing Telemt. Credentials are environment references only. An unreachable endpoint may be registered; scoped reads report availability.
+ */
+export const createNodeMutation = (options?: Partial<Options<CreateNodeData>>): UseMutationOptions<CreateNodeResponse, CreateNodeError, Options<CreateNodeData>> => {
+    const mutationOptions: UseMutationOptions<CreateNodeResponse, CreateNodeError, Options<CreateNodeData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await createNode({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+/**
+ * Remove registry metadata only. Does not remove Telemt users, stop services or erase legacy history. Default is protected. Already running reads discard their result if the node revision changes.
+ */
+export const deleteNodeMutation = (options?: Partial<Options<DeleteNodeData>>): UseMutationOptions<DeleteNodeResponse, DeleteNodeError, Options<DeleteNodeData>> => {
+    const mutationOptions: UseMutationOptions<DeleteNodeResponse, DeleteNodeError, Options<DeleteNodeData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await deleteNode({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+export const getNodeQueryKey = (options: Options<GetNodeData>) => createQueryKey('getNode', options);
+
+/**
+ * Node metadata; ETag is the node revision.
+ */
+export const getNodeOptions = (options: Options<GetNodeData>) => queryOptions<GetNodeResponse, GetNodeError, GetNodeResponse, ReturnType<typeof getNodeQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await getNode({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: getNodeQueryKey(options)
+});
+
+/**
+ * Replace editable metadata. api_url is immutable; use a new node identity for another endpoint. The default node is configuration-managed and cannot be changed here.
+ */
+export const replaceNodeMutation = (options?: Partial<Options<ReplaceNodeData>>): UseMutationOptions<ReplaceNodeResponse, ReplaceNodeError, Options<ReplaceNodeData>> => {
+    const mutationOptions: UseMutationOptions<ReplaceNodeResponse, ReplaceNodeError, Options<ReplaceNodeData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await replaceNode({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+export const getNodeHealthQueryKey = (options: Options<GetNodeHealthData>) => createQueryKey('getNodeHealth', options);
+
+/**
+ * Read only the exact enabled node. No fallback to default, shared history, subpage enrichment or host operations. Redirects are not followed. Result contains the selected node revision; concurrent replacement/deletion yields 409.
+ */
+export const getNodeHealthOptions = (options: Options<GetNodeHealthData>) => queryOptions<GetNodeHealthResponse, GetNodeHealthError, GetNodeHealthResponse, ReturnType<typeof getNodeHealthQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await getNodeHealth({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: getNodeHealthQueryKey(options)
+});
+
+export const getNodeUsersQueryKey = (options: Options<GetNodeUsersData>) => createQueryKey('getNodeUsers', options);
+
+/**
+ * Read only the exact enabled node. No fallback to default, shared history, subpage enrichment or host operations. Redirects are not followed. Result contains the selected node revision; concurrent replacement/deletion yields 409.
+ */
+export const getNodeUsersOptions = (options: Options<GetNodeUsersData>) => queryOptions<GetNodeUsersResponse, GetNodeUsersError, GetNodeUsersResponse, ReturnType<typeof getNodeUsersQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await getNodeUsers({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: getNodeUsersQueryKey(options)
+});
+
+export const getNodeConfigQueryKey = (options: Options<GetNodeConfigData>) => createQueryKey('getNodeConfig', options);
+
+/**
+ * Read only the exact enabled node. No fallback to default, shared history, subpage enrichment or host operations. Redirects are not followed. Result contains the selected node revision; concurrent replacement/deletion yields 409.
+ */
+export const getNodeConfigOptions = (options: Options<GetNodeConfigData>) => queryOptions<GetNodeConfigResponse, GetNodeConfigError, GetNodeConfigResponse, ReturnType<typeof getNodeConfigQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await getNodeConfig({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: getNodeConfigQueryKey(options)
+});
+
+export const managedGetConfigFilesQueryKey = (options: Options<ManagedGetConfigFilesData>) => createQueryKey('managedGetConfigFiles', options);
+
+/**
+ * Node-scoped management. Uses only the selected node client, history, jobs and SSE. Legacy default history stays with default. Reads the full include source manifest from the installed agent. Contains secrets; do not persist in browser storage or telemetry.
+ */
+export const managedGetConfigFilesOptions = (options: Options<ManagedGetConfigFilesData>) => queryOptions<ManagedGetConfigFilesResponse, ManagedGetConfigFilesError, ManagedGetConfigFilesResponse, ReturnType<typeof managedGetConfigFilesQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await managedGetConfigFiles({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: managedGetConfigFilesQueryKey(options)
+});
+
+/**
+ * Node-scoped management. Uses only the selected node client, history, jobs and SSE. Legacy default history stays with default. Renders typed edits while preserving unrelated comments and include directives. Does not write or validate runtime configuration.
+ */
+export const managedRenderConfigFileMutation = (options?: Partial<Options<ManagedRenderConfigFileData>>): UseMutationOptions<ManagedRenderConfigFileResponse, ManagedRenderConfigFileError, Options<ManagedRenderConfigFileData>> => {
+    const mutationOptions: UseMutationOptions<ManagedRenderConfigFileResponse, ManagedRenderConfigFileError, Options<ManagedRenderConfigFileData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await managedRenderConfigFile({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+/**
+ * Node-scoped management. Uses only the selected node client, history, jobs and SSE. Legacy default history stays with default. Runs the installed Telemt loader/preparation on one owner override without writing.
+ */
+export const managedValidateConfigFileMutation = (options?: Partial<Options<ManagedValidateConfigFileData>>): UseMutationOptions<ManagedValidateConfigFileResponse, ManagedValidateConfigFileError, Options<ManagedValidateConfigFileData>> => {
+    const mutationOptions: UseMutationOptions<ManagedValidateConfigFileResponse, ManagedValidateConfigFileError, Options<ManagedValidateConfigFileData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await managedValidateConfigFile({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+/**
+ * Node-scoped management. Uses only the selected node client, history, jobs and SSE. Legacy default history stays with default. Durable command intent, backup before write, then root-lock/source-graph CAS. One source per transaction; persisted is not runtime convergence.
+ */
+export const managedApplyConfigFileMutation = (options?: Partial<Options<ManagedApplyConfigFileData>>): UseMutationOptions<ManagedApplyConfigFileResponse, ManagedApplyConfigFileError, Options<ManagedApplyConfigFileData>> => {
+    const mutationOptions: UseMutationOptions<ManagedApplyConfigFileResponse, ManagedApplyConfigFileError, Options<ManagedApplyConfigFileData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await managedApplyConfigFile({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+export const managedListConfigBackupsQueryKey = (options: Options<ManagedListConfigBackupsData>) => createQueryKey('managedListConfigBackups', options);
+
+/**
+ * Node-scoped management. Uses only the selected node client, history, jobs and SSE. Legacy default history stays with default.
+ */
+export const managedListConfigBackupsOptions = (options: Options<ManagedListConfigBackupsData>) => queryOptions<ManagedListConfigBackupsResponse, ManagedListConfigBackupsError, ManagedListConfigBackupsResponse, ReturnType<typeof managedListConfigBackupsQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await managedListConfigBackups({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: managedListConfigBackupsQueryKey(options)
+});
+
+/**
+ * Node-scoped management. Uses only the selected node client, history, jobs and SSE. Legacy default history stays with default.
+ */
+export const managedDeleteConfigBackupMutation = (options?: Partial<Options<ManagedDeleteConfigBackupData>>): UseMutationOptions<ManagedDeleteConfigBackupResponse, ManagedDeleteConfigBackupError, Options<ManagedDeleteConfigBackupData>> => {
+    const mutationOptions: UseMutationOptions<ManagedDeleteConfigBackupResponse, ManagedDeleteConfigBackupError, Options<ManagedDeleteConfigBackupData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await managedDeleteConfigBackup({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+export const managedGetConfigBackupQueryKey = (options: Options<ManagedGetConfigBackupData>) => createQueryKey('managedGetConfigBackup', options);
+
+/**
+ * Node-scoped management. Uses only the selected node client, history, jobs and SSE. Legacy default history stays with default.
+ */
+export const managedGetConfigBackupOptions = (options: Options<ManagedGetConfigBackupData>) => queryOptions<ManagedGetConfigBackupResponse, ManagedGetConfigBackupError, ManagedGetConfigBackupResponse, ReturnType<typeof managedGetConfigBackupQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await managedGetConfigBackup({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: managedGetConfigBackupQueryKey(options)
+});
+
+export const managedGetAgentCommandQueryKey = (options: Options<ManagedGetAgentCommandData>) => createQueryKey('managedGetAgentCommand', options);
+
+/**
+ * Node-scoped management. Uses only the selected node client, history, jobs and SSE. Legacy default history stays with default.
+ */
+export const managedGetAgentCommandOptions = (options: Options<ManagedGetAgentCommandData>) => queryOptions<ManagedGetAgentCommandResponse, ManagedGetAgentCommandError, ManagedGetAgentCommandResponse, ReturnType<typeof managedGetAgentCommandQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await managedGetAgentCommand({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: managedGetAgentCommandQueryKey(options)
+});
+
+export const managedGetTelemtInfoQueryKey = (options: Options<ManagedGetTelemtInfoData>) => createQueryKey('managedGetTelemtInfo', options);
+
+/**
+ * Node-scoped management. Uses only the selected node client, history, jobs and SSE. Legacy default history stays with default.
+ */
+export const managedGetTelemtInfoOptions = (options: Options<ManagedGetTelemtInfoData>) => queryOptions<ManagedGetTelemtInfoResponse, ManagedGetTelemtInfoError, ManagedGetTelemtInfoResponse, ReturnType<typeof managedGetTelemtInfoQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await managedGetTelemtInfo({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: managedGetTelemtInfoQueryKey(options)
+});
+
+/**
+ * Node-scoped management. Uses only the selected node client, history, jobs and SSE. Legacy default history stays with default. Prepare all configured users with a fresh revision. No quota is changed. Confirmation expires in two minutes.
+ */
+export const managedPrepareBulkQuotaResetMutation = (options?: Partial<Options<ManagedPrepareBulkQuotaResetData>>): UseMutationOptions<ManagedPrepareBulkQuotaResetResponse, ManagedPrepareBulkQuotaResetError, Options<ManagedPrepareBulkQuotaResetData>> => {
+    const mutationOptions: UseMutationOptions<ManagedPrepareBulkQuotaResetResponse, ManagedPrepareBulkQuotaResetError, Options<ManagedPrepareBulkQuotaResetData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await managedPrepareBulkQuotaReset({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+export const managedGetBulkQuotaResetQueryKey = (options: Options<ManagedGetBulkQuotaResetData>) => createQueryKey('managedGetBulkQuotaReset', options);
+
+/**
+ * Node-scoped management. Uses only the selected node client, history, jobs and SSE. Legacy default history stays with default. Current/last in-memory operation; null before any start. A requested id that was lost/replaced returns 404, never fabricated success.
+ */
+export const managedGetBulkQuotaResetOptions = (options: Options<ManagedGetBulkQuotaResetData>) => queryOptions<ManagedGetBulkQuotaResetResponse, ManagedGetBulkQuotaResetError, ManagedGetBulkQuotaResetResponse, ReturnType<typeof managedGetBulkQuotaResetQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await managedGetBulkQuotaReset({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: managedGetBulkQuotaResetQueryKey(options)
+});
+
+export const managedGetBulkQuotaResetInfiniteQueryKey = (options: Options<ManagedGetBulkQuotaResetData>): QueryKey<Options<ManagedGetBulkQuotaResetData>> => createQueryKey('managedGetBulkQuotaReset', options, true);
+
+/**
+ * Node-scoped management. Uses only the selected node client, history, jobs and SSE. Legacy default history stays with default. Current/last in-memory operation; null before any start. A requested id that was lost/replaced returns 404, never fabricated success.
+ */
+export const managedGetBulkQuotaResetInfiniteOptions = (options: Options<ManagedGetBulkQuotaResetData>) => {
+    const opts = infiniteQueryOptions<ManagedGetBulkQuotaResetResponse, ManagedGetBulkQuotaResetError, InfiniteData<ManagedGetBulkQuotaResetResponse>, QueryKey<Options<ManagedGetBulkQuotaResetData>>, number | Pick<QueryKey<Options<ManagedGetBulkQuotaResetData>>[0], 'body' | 'headers' | 'path' | 'query'>>(
+    // @ts-ignore
+    {
+        queryFn: async ({ pageParam, queryKey, signal }) => {
+            // @ts-ignore
+            const page: Pick<QueryKey<Options<ManagedGetBulkQuotaResetData>>[0], 'body' | 'headers' | 'path' | 'query'> = typeof pageParam === 'object' ? pageParam : {
+                query: {
+                    offset: pageParam
+                }
+            };
+            const params = createInfiniteParams(queryKey, page);
+            const { data } = await managedGetBulkQuotaReset({
+                ...options,
+                ...params,
+                signal,
+                throwOnError: true
+            });
+            return data;
+        },
+        queryKey: managedGetBulkQuotaResetInfiniteQueryKey(options)
+    });
+    return opts as Omit<typeof opts, 'initialData'>;
+};
+
+/**
+ * Node-scoped management. Uses only the selected node client, history, jobs and SSE. Legacy default history stays with default. Start one sequential operation for the confirmed revision. An accepted token returns the same operation when repeated, never a second reset. No automatic retry or restart recovery; limits and panel traffic/IP history stay unchanged.
+ */
+export const managedStartBulkQuotaResetMutation = (options?: Partial<Options<ManagedStartBulkQuotaResetData>>): UseMutationOptions<ManagedStartBulkQuotaResetResponse, ManagedStartBulkQuotaResetError, Options<ManagedStartBulkQuotaResetData>> => {
+    const mutationOptions: UseMutationOptions<ManagedStartBulkQuotaResetResponse, ManagedStartBulkQuotaResetError, Options<ManagedStartBulkQuotaResetData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await managedStartBulkQuotaReset({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+export const managedGetQuotaScheduleQueryKey = (options: Options<ManagedGetQuotaScheduleData>) => createQueryKey('managedGetQuotaSchedule', options);
+
+/**
+ * Node-scoped management. Uses only the selected node client, history, jobs and SSE. Legacy default history stays with default.
+ */
+export const managedGetQuotaScheduleOptions = (options: Options<ManagedGetQuotaScheduleData>) => queryOptions<ManagedGetQuotaScheduleResponse, ManagedGetQuotaScheduleError, ManagedGetQuotaScheduleResponse, ReturnType<typeof managedGetQuotaScheduleQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await managedGetQuotaSchedule({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: managedGetQuotaScheduleQueryKey(options)
+});
+
+/**
+ * Node-scoped management. Uses only the selected node client, history, jobs and SSE. Legacy default history stays with default.
+ */
+export const managedSaveQuotaScheduleMutation = (options?: Partial<Options<ManagedSaveQuotaScheduleData>>): UseMutationOptions<ManagedSaveQuotaScheduleResponse, ManagedSaveQuotaScheduleError, Options<ManagedSaveQuotaScheduleData>> => {
+    const mutationOptions: UseMutationOptions<ManagedSaveQuotaScheduleResponse, ManagedSaveQuotaScheduleError, Options<ManagedSaveQuotaScheduleData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await managedSaveQuotaSchedule({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+/**
+ * Node-scoped management. Uses only the selected node client, history, jobs and SSE. Legacy default history stays with default.
+ */
+export const managedPreviewQuotaScheduleMutation = (options?: Partial<Options<ManagedPreviewQuotaScheduleData>>): UseMutationOptions<ManagedPreviewQuotaScheduleResponse, ManagedPreviewQuotaScheduleError, Options<ManagedPreviewQuotaScheduleData>> => {
+    const mutationOptions: UseMutationOptions<ManagedPreviewQuotaScheduleResponse, ManagedPreviewQuotaScheduleError, Options<ManagedPreviewQuotaScheduleData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await managedPreviewQuotaSchedule({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+export const managedGetUserQuotaScheduleQueryKey = (options: Options<ManagedGetUserQuotaScheduleData>) => createQueryKey('managedGetUserQuotaSchedule', options);
+
+/**
+ * Node-scoped management. Uses only the selected node client, history, jobs and SSE. Legacy default history stays with default.
+ */
+export const managedGetUserQuotaScheduleOptions = (options: Options<ManagedGetUserQuotaScheduleData>) => queryOptions<ManagedGetUserQuotaScheduleResponse, ManagedGetUserQuotaScheduleError, ManagedGetUserQuotaScheduleResponse, ReturnType<typeof managedGetUserQuotaScheduleQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await managedGetUserQuotaSchedule({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: managedGetUserQuotaScheduleQueryKey(options)
+});
+
+/**
+ * Node-scoped management. Uses only the selected node client, history, jobs and SSE. Legacy default history stays with default.
+ */
+export const managedSaveUserQuotaScheduleMutation = (options?: Partial<Options<ManagedSaveUserQuotaScheduleData>>): UseMutationOptions<ManagedSaveUserQuotaScheduleResponse, ManagedSaveUserQuotaScheduleError, Options<ManagedSaveUserQuotaScheduleData>> => {
+    const mutationOptions: UseMutationOptions<ManagedSaveUserQuotaScheduleResponse, ManagedSaveUserQuotaScheduleError, Options<ManagedSaveUserQuotaScheduleData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await managedSaveUserQuotaSchedule({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+export const managedGetTelemtConfigQueryKey = (options: Options<ManagedGetTelemtConfigData>) => createQueryKey('managedGetTelemtConfig', options);
+
+/**
+ * Node-scoped management. Uses only the selected node client, history, jobs and SSE. Legacy default history stays with default. Passthrough of Telemt's GET /v1/config: editable sections plus the revision to chain into a later PATCH's If-Match. Editing requires the Telemt Config API; the legacy telemt.config_edit_mode value does not select a file writer.
+ */
+export const managedGetTelemtConfigOptions = (options: Options<ManagedGetTelemtConfigData>) => queryOptions<ManagedGetTelemtConfigResponse, ManagedGetTelemtConfigError, ManagedGetTelemtConfigResponse, ReturnType<typeof managedGetTelemtConfigQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await managedGetTelemtConfig({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: managedGetTelemtConfigQueryKey(options)
+});
+
+/**
+ * Node-scoped management. Uses only the selected node client, history, jobs and SSE. Legacy default history stays with default. Passthrough of Telemt's PATCH /v1/config. The revision travels as an `If-Match` header (required — from a prior GET's `revision`), not a body field. An inline reload can be requested via query parameters, forwarded to Telemt's own `reload`/`timeout_secs`/`failure_policy` query (07-telemt-sdk.md §Config); omitting `reload` patches without reloading. Configuration writes have a bounded 60-second wait for DNS preparation and reload. An unconfirmed transport outcome must be checked with GET before an explicit retry; the panel never automatically repeats the write.
+ */
+export const managedPatchTelemtConfigMutation = (options?: Partial<Options<ManagedPatchTelemtConfigData>>): UseMutationOptions<ManagedPatchTelemtConfigResponse, ManagedPatchTelemtConfigError, Options<ManagedPatchTelemtConfigData>> => {
+    const mutationOptions: UseMutationOptions<ManagedPatchTelemtConfigResponse, ManagedPatchTelemtConfigError, Options<ManagedPatchTelemtConfigData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await managedPatchTelemtConfig({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+export const managedGetTelemtWebAccessQueryKey = (options: Options<ManagedGetTelemtWebAccessData>) => createQueryKey('managedGetTelemtWebAccess', options);
+
+/**
+ * Node-scoped management. Uses only the selected node client, history, jobs and SSE. Legacy default history stays with default. User-oriented projection of WEB vhosts and access profiles, backed directly by Telemt Config API data.
+ */
+export const managedGetTelemtWebAccessOptions = (options: Options<ManagedGetTelemtWebAccessData>) => queryOptions<ManagedGetTelemtWebAccessResponse, ManagedGetTelemtWebAccessError, ManagedGetTelemtWebAccessResponse, ReturnType<typeof managedGetTelemtWebAccessQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await managedGetTelemtWebAccess({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: managedGetTelemtWebAccessQueryKey(options)
+});
+
+/**
+ * Node-scoped management. Uses only the selected node client, history, jobs and SSE. Legacy default history stays with default. Replaces one user's WEB profile relationships while preserving every unrelated vhost and profile. Applied with an instant runtime reload.
+ */
+export const managedPutTelemtUserWebAccessMutation = (options?: Partial<Options<ManagedPutTelemtUserWebAccessData>>): UseMutationOptions<ManagedPutTelemtUserWebAccessResponse, ManagedPutTelemtUserWebAccessError, Options<ManagedPutTelemtUserWebAccessData>> => {
+    const mutationOptions: UseMutationOptions<ManagedPutTelemtUserWebAccessResponse, ManagedPutTelemtUserWebAccessError, Options<ManagedPutTelemtUserWebAccessData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await managedPutTelemtUserWebAccess({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+export const managedGetTelemtConfigCatalogQueryKey = (options: Options<ManagedGetTelemtConfigCatalogData>) => createQueryKey('managedGetTelemtConfigCatalog', options);
+
+/**
+ * Node-scoped management. Uses only the selected node client, history, jobs and SSE. Legacy default history stays with default. Versioned metadata for every Telemt 3.5.5 Config API field used by validation and structured settings forms.
+ */
+export const managedGetTelemtConfigCatalogOptions = (options: Options<ManagedGetTelemtConfigCatalogData>) => queryOptions<ManagedGetTelemtConfigCatalogResponse, ManagedGetTelemtConfigCatalogError, ManagedGetTelemtConfigCatalogResponse, ReturnType<typeof managedGetTelemtConfigCatalogQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await managedGetTelemtConfigCatalog({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: managedGetTelemtConfigCatalogQueryKey(options)
+});
+
+export const managedGetTelemtConfigTomlQueryKey = (options: Options<ManagedGetTelemtConfigTomlData>) => createQueryKey('managedGetTelemtConfigToml', options);
+
+/**
+ * Node-scoped management. Uses only the selected node client, history, jobs and SSE. Legacy default history stays with default. Returns a normalized TOML projection of the managed Config API sections. It is not the source telemt.toml: comments, includes, source ownership and the explicit/default distinction are not available through Telemt's Config API.
+ */
+export const managedGetTelemtConfigTomlOptions = (options: Options<ManagedGetTelemtConfigTomlData>) => queryOptions<ManagedGetTelemtConfigTomlResponse, ManagedGetTelemtConfigTomlError, ManagedGetTelemtConfigTomlResponse, ReturnType<typeof managedGetTelemtConfigTomlQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await managedGetTelemtConfigToml({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: managedGetTelemtConfigTomlQueryKey(options)
+});
+
+/**
+ * Node-scoped management. Uses only the selected node client, history, jobs and SSE. Legacy default history stays with default. Parses the normalized TOML on the panel backend, validates managed paths, builds a sparse patch against the current revision and forwards it to Telemt. Removing map keys is rejected because the current Config API cannot unset them. The write uses the same bounded 60-second wait and unconfirmed-outcome handling as the structured configuration PATCH.
+ */
+export const managedPatchTelemtConfigTomlMutation = (options?: Partial<Options<ManagedPatchTelemtConfigTomlData>>): UseMutationOptions<ManagedPatchTelemtConfigTomlResponse, ManagedPatchTelemtConfigTomlError, Options<ManagedPatchTelemtConfigTomlData>> => {
+    const mutationOptions: UseMutationOptions<ManagedPatchTelemtConfigTomlResponse, ManagedPatchTelemtConfigTomlError, Options<ManagedPatchTelemtConfigTomlData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await managedPatchTelemtConfigToml({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+/**
+ * Node-scoped management. Uses only the selected node client, history, jobs and SSE. Legacy default history stays with default. Parses and validates a TOML projection without applying it. Returns the exact sparse JSON patch plus materialized sections and wholesale array replacements.
+ */
+export const managedPreviewTelemtConfigTomlMutation = (options?: Partial<Options<ManagedPreviewTelemtConfigTomlData>>): UseMutationOptions<ManagedPreviewTelemtConfigTomlResponse, ManagedPreviewTelemtConfigTomlError, Options<ManagedPreviewTelemtConfigTomlData>> => {
+    const mutationOptions: UseMutationOptions<ManagedPreviewTelemtConfigTomlResponse, ManagedPreviewTelemtConfigTomlError, Options<ManagedPreviewTelemtConfigTomlData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await managedPreviewTelemtConfigToml({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+/**
+ * Node-scoped management. Uses only the selected node client, history, jobs and SSE. Legacy default history stays with default. Passthrough of Telemt's POST /v1/system/reload — config re-read via the reload API (capability `reload_api`), not a service restart. `If-Match`, when sent, is forwarded as the mutation's revision.
+ */
+export const managedReloadTelemtMutation = (options?: Partial<Options<ManagedReloadTelemtData>>): UseMutationOptions<ManagedReloadTelemtResponse, ManagedReloadTelemtError, Options<ManagedReloadTelemtData>> => {
+    const mutationOptions: UseMutationOptions<ManagedReloadTelemtResponse, ManagedReloadTelemtError, Options<ManagedReloadTelemtData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await managedReloadTelemt({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+export const managedGetTelemtReloadStatusQueryKey = (options: Options<ManagedGetTelemtReloadStatusData>) => createQueryKey('managedGetTelemtReloadStatus', options);
+
+/**
+ * Node-scoped management. Uses only the selected node client, history, jobs and SSE. Legacy default history stays with default. Passthrough of Telemt's GET /v1/system/reload/{id} — poll until State reaches a terminal phase.
+ */
+export const managedGetTelemtReloadStatusOptions = (options: Options<ManagedGetTelemtReloadStatusData>) => queryOptions<ManagedGetTelemtReloadStatusResponse, ManagedGetTelemtReloadStatusError, ManagedGetTelemtReloadStatusResponse, ReturnType<typeof managedGetTelemtReloadStatusQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await managedGetTelemtReloadStatus({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: managedGetTelemtReloadStatusQueryKey(options)
+});
+
+/**
+ * Node-scoped management. Uses only the selected node client, history, jobs and SSE. Legacy default history stays with default. Service-level restart through the host layer (01-host-matrix.md), independent of the reload endpoints above — restarts the whole process rather than re-reading config. Disabled when host cap restart_telemt=false. Requires configured agent. Optional Idempotency-Key is epoch-seconds plus hyphen plus 32 lowercase hex digits, expires after 24 hours. Reuse the same key to inspect/replay a request; an unconfirmed intent never executes again.
+ */
+export const managedRestartTelemtServiceMutation = (options?: Partial<Options<ManagedRestartTelemtServiceData>>): UseMutationOptions<unknown, ManagedRestartTelemtServiceError, Options<ManagedRestartTelemtServiceData>> => {
+    const mutationOptions: UseMutationOptions<unknown, ManagedRestartTelemtServiceError, Options<ManagedRestartTelemtServiceData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await managedRestartTelemtService({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+export const managedGetTelemtServiceQueryKey = (options: Options<ManagedGetTelemtServiceData>) => createQueryKey('managedGetTelemtService', options);
+
+/**
+ * Node-scoped management. Uses only the selected node client, history, jobs and SSE. Legacy default history stays with default. State of the configured service/container on the panel host, observed independently of the Telemt API. Unknown is not equivalent to stopped.
+ */
+export const managedGetTelemtServiceOptions = (options: Options<ManagedGetTelemtServiceData>) => queryOptions<ManagedGetTelemtServiceResponse, ManagedGetTelemtServiceError, ManagedGetTelemtServiceResponse, ReturnType<typeof managedGetTelemtServiceQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await managedGetTelemtService({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: managedGetTelemtServiceQueryKey(options)
+});
+
+/**
+ * Node-scoped management. Uses only the selected node client, history, jobs and SSE. Legacy default history stays with default. Starts the configured Telemt service, not the panel. Requires explicit host rights; serialized with updates and manual service operations. Does not enable boot startup. Requires configured agent. Optional Idempotency-Key is epoch-seconds plus hyphen plus 32 lowercase hex digits, expires after 24 hours. Reuse the same key to inspect/replay a request; an unconfirmed intent never executes again.
+ */
+export const managedStartTelemtServiceMutation = (options?: Partial<Options<ManagedStartTelemtServiceData>>): UseMutationOptions<unknown, ManagedStartTelemtServiceError, Options<ManagedStartTelemtServiceData>> => {
+    const mutationOptions: UseMutationOptions<unknown, ManagedStartTelemtServiceError, Options<ManagedStartTelemtServiceData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await managedStartTelemtService({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+/**
+ * Node-scoped management. Uses only the selected node client, history, jobs and SSE. Legacy default history stays with default. Stops only the configured Telemt service/container. Does not disable boot startup, remove containers or delete data. No automatic retry after an unconfirmed result. Requires configured agent. Optional Idempotency-Key is epoch-seconds plus hyphen plus 32 lowercase hex digits, expires after 24 hours. Reuse the same key to inspect/replay a request; an unconfirmed intent never executes again.
+ */
+export const managedStopTelemtServiceMutation = (options?: Partial<Options<ManagedStopTelemtServiceData>>): UseMutationOptions<unknown, ManagedStopTelemtServiceError, Options<ManagedStopTelemtServiceData>> => {
+    const mutationOptions: UseMutationOptions<unknown, ManagedStopTelemtServiceError, Options<ManagedStopTelemtServiceData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await managedStopTelemtService({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+export const managedGetTelemtZeroQueryKey = (options: Options<ManagedGetTelemtZeroData>) => createQueryKey('managedGetTelemtZero', options);
+
+/**
+ * Node-scoped management. Uses only the selected node client, history, jobs and SSE. Legacy default history stays with default. Passthrough of Telemt's GET /v1/stats/zero/all — the deep counter dump (core/upstream/middle_proxy/pool/desync). Display-only: the panel never branches on these values, only shows them (web's Диагностика → Счётчики page). Fetched on visit, not a hub topic.
+ */
+export const managedGetTelemtZeroOptions = (options: Options<ManagedGetTelemtZeroData>) => queryOptions<ManagedGetTelemtZeroResponse, ManagedGetTelemtZeroError, ManagedGetTelemtZeroResponse, ReturnType<typeof managedGetTelemtZeroQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await managedGetTelemtZero({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: managedGetTelemtZeroQueryKey(options)
+});
+
+export const managedGetTelemtTlsFingerprintsQueryKey = (options: Options<ManagedGetTelemtTlsFingerprintsData>) => createQueryKey('managedGetTelemtTlsFingerprints', options);
+
+/**
+ * Node-scoped management. Uses only the selected node client, history, jobs and SSE. Legacy default history stays with default. Passthrough of Telemt's GET /v1/runtime/tls-fingerprints — JA3/JA4 aggregates grouped by fingerprint, IP, CIDR and user. Deliberately NOT part of the `security` SSE topic: the live payload is ~120 KB per call (four lists of 50), so it is fetched on visit at the page's own cadence instead of polled for every client. Gated behind Telemt's runtime_edge_enabled — a build/config with it off answers 503 capability_unavailable, which the UI renders as its Gated hint, not an error.
+ */
+export const managedGetTelemtTlsFingerprintsOptions = (options: Options<ManagedGetTelemtTlsFingerprintsData>) => queryOptions<ManagedGetTelemtTlsFingerprintsResponse, ManagedGetTelemtTlsFingerprintsError, ManagedGetTelemtTlsFingerprintsResponse, ReturnType<typeof managedGetTelemtTlsFingerprintsQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await managedGetTelemtTlsFingerprints({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: managedGetTelemtTlsFingerprintsQueryKey(options)
+});
+
+export const managedGetTelemtWebSessionsQueryKey = (options: Options<ManagedGetTelemtWebSessionsData>) => createQueryKey('managedGetTelemtWebSessions', options);
+
+/**
+ * Node-scoped management. Uses only the selected node client, history, jobs and SSE. Legacy default history stays with default. Passthrough of Telemt's GET /v1/runtime/web/sessions (Telemt >= 3.5.3): the live WEB sessions, filtered and cursor-paged. Fetch-on-visit, not part of the `web` SSE topic — the topic carries only the status snapshot. The query parameters below are the EXACT whitelist Telemt accepts; any other or repeated name is 400 bad_request. A WEB runtime that is not running answers 503 capability_unavailable (a gate the UI renders, not an error); a build predating the routes answers 501 capability_absent.
+ */
+export const managedGetTelemtWebSessionsOptions = (options: Options<ManagedGetTelemtWebSessionsData>) => queryOptions<ManagedGetTelemtWebSessionsResponse, ManagedGetTelemtWebSessionsError, ManagedGetTelemtWebSessionsResponse, ReturnType<typeof managedGetTelemtWebSessionsQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await managedGetTelemtWebSessions({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: managedGetTelemtWebSessionsQueryKey(options)
+});
+
+export const managedGetTelemtWebSessionsInfiniteQueryKey = (options: Options<ManagedGetTelemtWebSessionsData>): QueryKey<Options<ManagedGetTelemtWebSessionsData>> => createQueryKey('managedGetTelemtWebSessions', options, true);
+
+/**
+ * Node-scoped management. Uses only the selected node client, history, jobs and SSE. Legacy default history stays with default. Passthrough of Telemt's GET /v1/runtime/web/sessions (Telemt >= 3.5.3): the live WEB sessions, filtered and cursor-paged. Fetch-on-visit, not part of the `web` SSE topic — the topic carries only the status snapshot. The query parameters below are the EXACT whitelist Telemt accepts; any other or repeated name is 400 bad_request. A WEB runtime that is not running answers 503 capability_unavailable (a gate the UI renders, not an error); a build predating the routes answers 501 capability_absent.
+ */
+export const managedGetTelemtWebSessionsInfiniteOptions = (options: Options<ManagedGetTelemtWebSessionsData>) => {
+    const opts = infiniteQueryOptions<ManagedGetTelemtWebSessionsResponse, ManagedGetTelemtWebSessionsError, InfiniteData<ManagedGetTelemtWebSessionsResponse>, QueryKey<Options<ManagedGetTelemtWebSessionsData>>, string | Pick<QueryKey<Options<ManagedGetTelemtWebSessionsData>>[0], 'body' | 'headers' | 'path' | 'query'>>(
+    // @ts-ignore
+    {
+        queryFn: async ({ pageParam, queryKey, signal }) => {
+            // @ts-ignore
+            const page: Pick<QueryKey<Options<ManagedGetTelemtWebSessionsData>>[0], 'body' | 'headers' | 'path' | 'query'> = typeof pageParam === 'object' ? pageParam : {
+                query: {
+                    cursor: pageParam
+                }
+            };
+            const params = createInfiniteParams(queryKey, page);
+            const { data } = await managedGetTelemtWebSessions({
+                ...options,
+                ...params,
+                signal,
+                throwOnError: true
+            });
+            return data;
+        },
+        queryKey: managedGetTelemtWebSessionsInfiniteQueryKey(options)
+    });
+    return opts as Omit<typeof opts, 'initialData'>;
+};
+
+export const managedGetTelemtWebSessionQueryKey = (options: Options<ManagedGetTelemtWebSessionData>) => createQueryKey('managedGetTelemtWebSession', options);
+
+/**
+ * Node-scoped management. Uses only the selected node client, history, jobs and SSE. Legacy default history stays with default. Passthrough of Telemt's GET /v1/runtime/web/sessions/{session_ref}. Both outcomes are 200: `row` for a live session, `closed` for a retained tombstone (Telemt answers that with HTTP 410 wrapping an ordinary success envelope, which is a result, not a failure). A ref with neither answers 404 web_session_not_found.
+ */
+export const managedGetTelemtWebSessionOptions = (options: Options<ManagedGetTelemtWebSessionData>) => queryOptions<ManagedGetTelemtWebSessionResponse, ManagedGetTelemtWebSessionError, ManagedGetTelemtWebSessionResponse, ReturnType<typeof managedGetTelemtWebSessionQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await managedGetTelemtWebSession({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: managedGetTelemtWebSessionQueryKey(options)
+});
+
+/**
+ * Node-scoped management. Uses only the selected node client, history, jobs and SSE. Legacy default history stays with default. Passthrough of Telemt's POST /v1/runtime/web/sessions/close — the panel's ONE WEB mutation. Asynchronous: the 202 carries an `operation_id` to poll through /api/telemt/web/operations/{id}. `runtime_instance` is the process fence and comes from the `web` topic's status snapshot; a Telemt that has restarted since answers 409 web_runtime_mismatch. The `all` selector additionally requires WEB issuance to be off (409 web_issuance_enabled). Recorded in the audit journal as `web.sessions.close`. Telemt's debug/clear and carrier-learning/reset mutations are deliberately NOT exposed by the panel.
+ */
+export const managedCloseTelemtWebSessionsMutation = (options?: Partial<Options<ManagedCloseTelemtWebSessionsData>>): UseMutationOptions<ManagedCloseTelemtWebSessionsResponse, ManagedCloseTelemtWebSessionsError, Options<ManagedCloseTelemtWebSessionsData>> => {
+    const mutationOptions: UseMutationOptions<ManagedCloseTelemtWebSessionsResponse, ManagedCloseTelemtWebSessionsError, Options<ManagedCloseTelemtWebSessionsData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await managedCloseTelemtWebSessions({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+export const managedGetTelemtWebOperationQueryKey = (options: Options<ManagedGetTelemtWebOperationData>) => createQueryKey('managedGetTelemtWebOperation', options);
+
+/**
+ * Node-scoped management. Uses only the selected node client, history, jobs and SSE. Legacy default history stays with default. Passthrough of Telemt's GET /v1/runtime/web/operations/{operation_id}: the status of one close operation. Telemt retains the last 32; an older id answers 404 web_operation_not_found.
+ */
+export const managedGetTelemtWebOperationOptions = (options: Options<ManagedGetTelemtWebOperationData>) => queryOptions<ManagedGetTelemtWebOperationResponse, ManagedGetTelemtWebOperationError, ManagedGetTelemtWebOperationResponse, ReturnType<typeof managedGetTelemtWebOperationQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await managedGetTelemtWebOperation({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: managedGetTelemtWebOperationQueryKey(options)
+});
+
+export const managedGetAuditQueryKey = (options: Options<ManagedGetAuditData>) => createQueryKey('managedGetAudit', options);
+
+/**
+ * Node-scoped management. Uses only the selected node client, history, jobs and SSE. Legacy default history stays with default. Panel operation journal (logins, user changes, config patches, updates), newest first, read from the store's audit ring (at most 500 entries retained).
+ */
+export const managedGetAuditOptions = (options: Options<ManagedGetAuditData>) => queryOptions<ManagedGetAuditResponse, ManagedGetAuditError, ManagedGetAuditResponse, ReturnType<typeof managedGetAuditQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await managedGetAudit({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: managedGetAuditQueryKey(options)
+});
+
+export const managedGetAuditInfiniteQueryKey = (options: Options<ManagedGetAuditData>): QueryKey<Options<ManagedGetAuditData>> => createQueryKey('managedGetAudit', options, true);
+
+/**
+ * Node-scoped management. Uses only the selected node client, history, jobs and SSE. Legacy default history stays with default. Panel operation journal (logins, user changes, config patches, updates), newest first, read from the store's audit ring (at most 500 entries retained).
+ */
+export const managedGetAuditInfiniteOptions = (options: Options<ManagedGetAuditData>) => {
+    const opts = infiniteQueryOptions<ManagedGetAuditResponse, ManagedGetAuditError, InfiniteData<ManagedGetAuditResponse>, QueryKey<Options<ManagedGetAuditData>>, string | Pick<QueryKey<Options<ManagedGetAuditData>>[0], 'body' | 'headers' | 'path' | 'query'>>(
+    // @ts-ignore
+    {
+        queryFn: async ({ pageParam, queryKey, signal }) => {
+            // @ts-ignore
+            const page: Pick<QueryKey<Options<ManagedGetAuditData>>[0], 'body' | 'headers' | 'path' | 'query'> = typeof pageParam === 'object' ? pageParam : {
+                query: {
+                    before: pageParam
+                }
+            };
+            const params = createInfiniteParams(queryKey, page);
+            const { data } = await managedGetAudit({
+                ...options,
+                ...params,
+                signal,
+                throwOnError: true
+            });
+            return data;
+        },
+        queryKey: managedGetAuditInfiniteQueryKey(options)
+    });
+    return opts as Omit<typeof opts, 'initialData'>;
+};
+
+export const managedGetHistoryQueryKey = (options: Options<ManagedGetHistoryData>) => createQueryKey('managedGetHistory', options);
+
+/**
+ * Node-scoped management. Uses only the selected node client, history, jobs and SSE. Legacy default history stays with default. Metric history from the active store. Live samples use a bounded two-hour RAM buffer even when disk persistence is disabled. Durable stores also return non-overlapping 5-minute aggregates for seven days and hourly aggregates for older history. Existing 1-minute / 15-minute rows remain readable during migration. Responses exceeding 4096 points are combined into hourly aggregates, preserving extrema and sample weights rather than discarding points. Aggregate points expose the average or last counter value (`v`), minimum and maximum, observation bounds, sample counts and detected gaps. Never errors on empty/partial history — a metric with nothing recorded yet (or a `range` longer than what's retained) is 200 with however many points actually exist, even zero.
+ */
+export const managedGetHistoryOptions = (options: Options<ManagedGetHistoryData>) => queryOptions<ManagedGetHistoryResponse, ManagedGetHistoryError, ManagedGetHistoryResponse, ReturnType<typeof managedGetHistoryQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await managedGetHistory({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: managedGetHistoryQueryKey(options)
+});
+
+export const managedGetHistoryEventsQueryKey = (options: Options<ManagedGetHistoryEventsData>) => createQueryKey('managedGetHistoryEvents', options);
+
+/**
+ * Node-scoped management. Uses only the selected node client, history, jobs and SSE. Legacy default history stays with default. Safe structured state transitions recorded by the panel, newest first. The stream deliberately excludes raw logs, IP history, endpoint addresses, secrets and complete configuration snapshots. Empty or disabled event history returns 200 with an empty array and retention_secs=0 when disabled.
+ */
+export const managedGetHistoryEventsOptions = (options: Options<ManagedGetHistoryEventsData>) => queryOptions<ManagedGetHistoryEventsResponse, ManagedGetHistoryEventsError, ManagedGetHistoryEventsResponse, ReturnType<typeof managedGetHistoryEventsQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await managedGetHistoryEvents({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: managedGetHistoryEventsQueryKey(options)
+});
+
+export const managedGetUserTrafficHistoryQueryKey = (options: Options<ManagedGetUserTrafficHistoryData>) => createQueryKey('managedGetUserTrafficHistory', options);
+
+/**
+ * Node-scoped management. Uses only the selected node client, history, jobs and SSE. Legacy default history stays with default. Optional sparse per-user traffic history. Values are bytes transferred inside each bucket, not cumulative Telemt counters. The recent day uses 15-minute buckets and older history uses hourly buckets; zero intervals are omitted.
+ */
+export const managedGetUserTrafficHistoryOptions = (options: Options<ManagedGetUserTrafficHistoryData>) => queryOptions<ManagedGetUserTrafficHistoryResponse, ManagedGetUserTrafficHistoryError, ManagedGetUserTrafficHistoryResponse, ReturnType<typeof managedGetUserTrafficHistoryQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await managedGetUserTrafficHistory({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: managedGetUserTrafficHistoryQueryKey(options)
+});
+
+export const managedGetUserIpHistoryQueryKey = (options: Options<ManagedGetUserIpHistoryData>) => createQueryKey('managedGetUserIpHistory', options);
+
+/**
+ * Node-scoped management. Uses only the selected node client, history, jobs and SSE. Legacy default history stays with default. Panel-observed address history, not a connection log. Ranges end now and filter last observation. Live pagination may move updated rows; clients should deduplicate by IP and offer refresh. No-store response.
+ */
+export const managedGetUserIpHistoryOptions = (options: Options<ManagedGetUserIpHistoryData>) => queryOptions<ManagedGetUserIpHistoryResponse, ManagedGetUserIpHistoryError, ManagedGetUserIpHistoryResponse, ReturnType<typeof managedGetUserIpHistoryQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await managedGetUserIpHistory({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: managedGetUserIpHistoryQueryKey(options)
+});
+
+export const managedGetUserIpHistoryInfiniteQueryKey = (options: Options<ManagedGetUserIpHistoryData>): QueryKey<Options<ManagedGetUserIpHistoryData>> => createQueryKey('managedGetUserIpHistory', options, true);
+
+/**
+ * Node-scoped management. Uses only the selected node client, history, jobs and SSE. Legacy default history stays with default. Panel-observed address history, not a connection log. Ranges end now and filter last observation. Live pagination may move updated rows; clients should deduplicate by IP and offer refresh. No-store response.
+ */
+export const managedGetUserIpHistoryInfiniteOptions = (options: Options<ManagedGetUserIpHistoryData>) => {
+    const opts = infiniteQueryOptions<ManagedGetUserIpHistoryResponse, ManagedGetUserIpHistoryError, InfiniteData<ManagedGetUserIpHistoryResponse>, QueryKey<Options<ManagedGetUserIpHistoryData>>, string | Pick<QueryKey<Options<ManagedGetUserIpHistoryData>>[0], 'body' | 'headers' | 'path' | 'query'>>(
+    // @ts-ignore
+    {
+        queryFn: async ({ pageParam, queryKey, signal }) => {
+            // @ts-ignore
+            const page: Pick<QueryKey<Options<ManagedGetUserIpHistoryData>>[0], 'body' | 'headers' | 'path' | 'query'> = typeof pageParam === 'object' ? pageParam : {
+                query: {
+                    cursor: pageParam
+                }
+            };
+            const params = createInfiniteParams(queryKey, page);
+            const { data } = await managedGetUserIpHistory({
+                ...options,
+                ...params,
+                signal,
+                throwOnError: true
+            });
+            return data;
+        },
+        queryKey: managedGetUserIpHistoryInfiniteQueryKey(options)
+    });
+    return opts as Omit<typeof opts, 'initialData'>;
+};
+
+/**
+ * Node-scoped management. Uses only the selected node client, history, jobs and SSE. Legacy default history stays with default. Clears only address history, including pending writes. Later observations may create new history. Does not reset traffic or Telemt IP limits.
+ */
+export const managedResetUserIpHistoryMutation = (options?: Partial<Options<ManagedResetUserIpHistoryData>>): UseMutationOptions<ManagedResetUserIpHistoryResponse, ManagedResetUserIpHistoryError, Options<ManagedResetUserIpHistoryData>> => {
+    const mutationOptions: UseMutationOptions<ManagedResetUserIpHistoryResponse, ManagedResetUserIpHistoryError, Options<ManagedResetUserIpHistoryData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await managedResetUserIpHistory({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+/**
+ * Node-scoped management. Uses only the selected node client, history, jobs and SSE. Legacy default history stays with default. Irreversibly removes the panel-observed total, current baseline and graph history for one account. The next coherent collector snapshot establishes a new baseline.
+ */
+export const managedResetUserTrafficMutation = (options?: Partial<Options<ManagedResetUserTrafficData>>): UseMutationOptions<ManagedResetUserTrafficResponse, ManagedResetUserTrafficError, Options<ManagedResetUserTrafficData>> => {
+    const mutationOptions: UseMutationOptions<ManagedResetUserTrafficResponse, ManagedResetUserTrafficError, Options<ManagedResetUserTrafficData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await managedResetUserTraffic({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+export const managedGetTrafficSummaryQueryKey = (options: Options<ManagedGetTrafficSummaryData>) => createQueryKey('managedGetTrafficSummary', options);
+
+/**
+ * Node-scoped management. Uses only the selected node client, history, jobs and SSE. Legacy default history stays with default.
+ */
+export const managedGetTrafficSummaryOptions = (options: Options<ManagedGetTrafficSummaryData>) => queryOptions<ManagedGetTrafficSummaryResponse, ManagedGetTrafficSummaryError, ManagedGetTrafficSummaryResponse, ReturnType<typeof managedGetTrafficSummaryQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await managedGetTrafficSummary({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: managedGetTrafficSummaryQueryKey(options)
+});
+
+export const managedGetTrafficUsersQueryKey = (options: Options<ManagedGetTrafficUsersData>) => createQueryKey('managedGetTrafficUsers', options);
+
+/**
+ * Node-scoped management. Uses only the selected node client, history, jobs and SSE. Legacy default history stays with default.
+ */
+export const managedGetTrafficUsersOptions = (options: Options<ManagedGetTrafficUsersData>) => queryOptions<ManagedGetTrafficUsersResponse, ManagedGetTrafficUsersError, ManagedGetTrafficUsersResponse, ReturnType<typeof managedGetTrafficUsersQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await managedGetTrafficUsers({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: managedGetTrafficUsersQueryKey(options)
+});
+
+export const managedGetTrafficUsersInfiniteQueryKey = (options: Options<ManagedGetTrafficUsersData>): QueryKey<Options<ManagedGetTrafficUsersData>> => createQueryKey('managedGetTrafficUsers', options, true);
+
+/**
+ * Node-scoped management. Uses only the selected node client, history, jobs and SSE. Legacy default history stays with default.
+ */
+export const managedGetTrafficUsersInfiniteOptions = (options: Options<ManagedGetTrafficUsersData>) => {
+    const opts = infiniteQueryOptions<ManagedGetTrafficUsersResponse, ManagedGetTrafficUsersError, InfiniteData<ManagedGetTrafficUsersResponse>, QueryKey<Options<ManagedGetTrafficUsersData>>, string | Pick<QueryKey<Options<ManagedGetTrafficUsersData>>[0], 'body' | 'headers' | 'path' | 'query'>>(
+    // @ts-ignore
+    {
+        queryFn: async ({ pageParam, queryKey, signal }) => {
+            // @ts-ignore
+            const page: Pick<QueryKey<Options<ManagedGetTrafficUsersData>>[0], 'body' | 'headers' | 'path' | 'query'> = typeof pageParam === 'object' ? pageParam : {
+                query: {
+                    cursor: pageParam
+                }
+            };
+            const params = createInfiniteParams(queryKey, page);
+            const { data } = await managedGetTrafficUsers({
+                ...options,
+                ...params,
+                signal,
+                throwOnError: true
+            });
+            return data;
+        },
+        queryKey: managedGetTrafficUsersInfiniteQueryKey(options)
+    });
+    return opts as Omit<typeof opts, 'initialData'>;
+};
+
+/**
+ * Node-scoped management. Uses only the selected node client, history, jobs and SSE. Legacy default history stays with default. Irreversibly removes every panel-observed user traffic total, baseline and graph bucket. The next coherent collector snapshot establishes new baselines.
+ */
+export const managedResetAllUserTrafficMutation = (options?: Partial<Options<ManagedResetAllUserTrafficData>>): UseMutationOptions<ManagedResetAllUserTrafficResponse, ManagedResetAllUserTrafficError, Options<ManagedResetAllUserTrafficData>> => {
+    const mutationOptions: UseMutationOptions<ManagedResetAllUserTrafficResponse, ManagedResetAllUserTrafficError, Options<ManagedResetAllUserTrafficData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await managedResetAllUserTraffic({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+export const managedGetLinkSettingsQueryKey = (options: Options<ManagedGetLinkSettingsData>) => createQueryKey('managedGetLinkSettings', options);
+
+/**
+ * Node-scoped management. Uses only the selected node client, history, jobs and SSE. Legacy default history stays with default.
+ */
+export const managedGetLinkSettingsOptions = (options: Options<ManagedGetLinkSettingsData>) => queryOptions<ManagedGetLinkSettingsResponse, ManagedGetLinkSettingsError, ManagedGetLinkSettingsResponse, ReturnType<typeof managedGetLinkSettingsQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await managedGetLinkSettings({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: managedGetLinkSettingsQueryKey(options)
+});
+
+/**
+ * Node-scoped management. Uses only the selected node client, history, jobs and SSE. Legacy default history stays with default. Save in local panel state without restart. Only affects the address selector in a user's Access tab, never quick links, subscriptions or WEB profiles.
+ */
+export const managedPutLinkSettingsMutation = (options?: Partial<Options<ManagedPutLinkSettingsData>>): UseMutationOptions<ManagedPutLinkSettingsResponse, ManagedPutLinkSettingsError, Options<ManagedPutLinkSettingsData>> => {
+    const mutationOptions: UseMutationOptions<ManagedPutLinkSettingsResponse, ManagedPutLinkSettingsError, Options<ManagedPutLinkSettingsData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await managedPutLinkSettings({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+export const managedGetStorageSettingsQueryKey = (options: Options<ManagedGetStorageSettingsData>) => createQueryKey('managedGetStorageSettings', options);
+
+/**
+ * Node-scoped management. Uses only the selected node client, history, jobs and SSE. Legacy default history stays with default. Returns optional history policies and the active store footprint. Mandatory panel state is not configurable here.
+ */
+export const managedGetStorageSettingsOptions = (options: Options<ManagedGetStorageSettingsData>) => queryOptions<ManagedGetStorageSettingsResponse, ManagedGetStorageSettingsError, ManagedGetStorageSettingsResponse, ReturnType<typeof managedGetStorageSettingsQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await managedGetStorageSettings({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: managedGetStorageSettingsQueryKey(options)
+});
+
+/**
+ * Node-scoped management. Uses only the selected node client, history, jobs and SSE. Legacy default history stays with default. Replaces the complete optional-history policy set. Reducing retention or a per-user IP history cap (including unlimited to finite) requires confirm_retention_reduction. Omitted/null max_ips_per_user preserves the existing value. Disabling a category stops future writes but does not delete retained data or disable live RAM graphs. Existing mixed policies remain unchanged until explicitly saved.
+ */
+export const managedPutStorageSettingsMutation = (options?: Partial<Options<ManagedPutStorageSettingsData>>): UseMutationOptions<ManagedPutStorageSettingsResponse, ManagedPutStorageSettingsError, Options<ManagedPutStorageSettingsData>> => {
+    const mutationOptions: UseMutationOptions<ManagedPutStorageSettingsResponse, ManagedPutStorageSettingsError, Options<ManagedPutStorageSettingsData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await managedPutStorageSettings({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+/**
+ * Node-scoped management. Uses only the selected node client, history, jobs and SSE. Legacy default history stays with default. Permanently deletes retained history for one category without changing its write policy.
+ */
+export const managedPurgeStorageHistoryMutation = (options?: Partial<Options<ManagedPurgeStorageHistoryData>>): UseMutationOptions<ManagedPurgeStorageHistoryResponse, ManagedPurgeStorageHistoryError, Options<ManagedPurgeStorageHistoryData>> => {
+    const mutationOptions: UseMutationOptions<ManagedPurgeStorageHistoryResponse, ManagedPurgeStorageHistoryError, Options<ManagedPurgeStorageHistoryData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await managedPurgeStorageHistory({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+export const managedGetGeographyQueryKey = (options: Options<ManagedGetGeographyData>) => createQueryKey('managedGetGeography', options);
+
+/**
+ * Node-scoped management. Uses only the selected node client, history, jobs and SSE. Legacy default history stays with default. Project observed IP networks with local MMDB; never query Telemt, geocode remotely, or return raw addresses. Only range/family create a projection; selection uses the same totals. Pinned requests inherit omitted range/family. Live reuse 10s, history 60s, immutable lifetime 120s.
+ */
+export const managedGetGeographyOptions = (options: Options<ManagedGetGeographyData>) => queryOptions<ManagedGetGeographyResponse, ManagedGetGeographyError, ManagedGetGeographyResponse, ReturnType<typeof managedGetGeographyQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await managedGetGeography({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: managedGetGeographyQueryKey(options)
+});
+
+export const managedGetGeographyLocationsQueryKey = (options: Options<ManagedGetGeographyLocationsData>) => createQueryKey('managedGetGeographyLocations', options);
+
+/**
+ * Node-scoped management. Uses only the selected node client, history, jobs and SSE. Legacy default history stays with default. Stable groups ordered by unique_ips descending then ID. Country filter only for kind=location. Coordinate-less and unknown service groups remain accessible.
+ */
+export const managedGetGeographyLocationsOptions = (options: Options<ManagedGetGeographyLocationsData>) => queryOptions<ManagedGetGeographyLocationsResponse, ManagedGetGeographyLocationsError, ManagedGetGeographyLocationsResponse, ReturnType<typeof managedGetGeographyLocationsQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await managedGetGeographyLocations({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: managedGetGeographyLocationsQueryKey(options)
+});
+
+export const managedGetGeographyLocationsInfiniteQueryKey = (options: Options<ManagedGetGeographyLocationsData>): QueryKey<Options<ManagedGetGeographyLocationsData>> => createQueryKey('managedGetGeographyLocations', options, true);
+
+/**
+ * Node-scoped management. Uses only the selected node client, history, jobs and SSE. Legacy default history stays with default. Stable groups ordered by unique_ips descending then ID. Country filter only for kind=location. Coordinate-less and unknown service groups remain accessible.
+ */
+export const managedGetGeographyLocationsInfiniteOptions = (options: Options<ManagedGetGeographyLocationsData>) => {
+    const opts = infiniteQueryOptions<ManagedGetGeographyLocationsResponse, ManagedGetGeographyLocationsError, InfiniteData<ManagedGetGeographyLocationsResponse>, QueryKey<Options<ManagedGetGeographyLocationsData>>, string | Pick<QueryKey<Options<ManagedGetGeographyLocationsData>>[0], 'body' | 'headers' | 'path' | 'query'>>(
+    // @ts-ignore
+    {
+        queryFn: async ({ pageParam, queryKey, signal }) => {
+            // @ts-ignore
+            const page: Pick<QueryKey<Options<ManagedGetGeographyLocationsData>>[0], 'body' | 'headers' | 'path' | 'query'> = typeof pageParam === 'object' ? pageParam : {
+                query: {
+                    cursor: pageParam
+                }
+            };
+            const params = createInfiniteParams(queryKey, page);
+            const { data } = await managedGetGeographyLocations({
+                ...options,
+                ...params,
+                signal,
+                throwOnError: true
+            });
+            return data;
+        },
+        queryKey: managedGetGeographyLocationsInfiniteQueryKey(options)
+    });
+    return opts as Omit<typeof opts, 'initialData'>;
+};
+
+export const managedGetGeographyUsersQueryKey = (options: Options<ManagedGetGeographyUsersData>) => createQueryKey('managedGetGeographyUsers', options);
+
+/**
+ * Node-scoped management. Uses only the selected node client, history, jobs and SSE. Legacy default history stays with default. One row per account in a pinned group, sorted by unique_ips descending then username. No IPs, secrets or subscription URLs.
+ */
+export const managedGetGeographyUsersOptions = (options: Options<ManagedGetGeographyUsersData>) => queryOptions<ManagedGetGeographyUsersResponse, ManagedGetGeographyUsersError, ManagedGetGeographyUsersResponse, ReturnType<typeof managedGetGeographyUsersQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await managedGetGeographyUsers({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: managedGetGeographyUsersQueryKey(options)
+});
+
+export const managedGetGeographyUsersInfiniteQueryKey = (options: Options<ManagedGetGeographyUsersData>): QueryKey<Options<ManagedGetGeographyUsersData>> => createQueryKey('managedGetGeographyUsers', options, true);
+
+/**
+ * Node-scoped management. Uses only the selected node client, history, jobs and SSE. Legacy default history stays with default. One row per account in a pinned group, sorted by unique_ips descending then username. No IPs, secrets or subscription URLs.
+ */
+export const managedGetGeographyUsersInfiniteOptions = (options: Options<ManagedGetGeographyUsersData>) => {
+    const opts = infiniteQueryOptions<ManagedGetGeographyUsersResponse, ManagedGetGeographyUsersError, InfiniteData<ManagedGetGeographyUsersResponse>, QueryKey<Options<ManagedGetGeographyUsersData>>, string | Pick<QueryKey<Options<ManagedGetGeographyUsersData>>[0], 'body' | 'headers' | 'path' | 'query'>>(
+    // @ts-ignore
+    {
+        queryFn: async ({ pageParam, queryKey, signal }) => {
+            // @ts-ignore
+            const page: Pick<QueryKey<Options<ManagedGetGeographyUsersData>>[0], 'body' | 'headers' | 'path' | 'query'> = typeof pageParam === 'object' ? pageParam : {
+                query: {
+                    cursor: pageParam
+                }
+            };
+            const params = createInfiniteParams(queryKey, page);
+            const { data } = await managedGetGeographyUsers({
+                ...options,
+                ...params,
+                signal,
+                throwOnError: true
+            });
+            return data;
+        },
+        queryKey: managedGetGeographyUsersInfiniteQueryKey(options)
+    });
+    return opts as Omit<typeof opts, 'initialData'>;
+};
+
+export const managedGetGeographySettingsQueryKey = (options: Options<ManagedGetGeographySettingsData>) => createQueryKey('managedGetGeographySettings', options);
+
+/**
+ * Node-scoped management. Uses only the selected node client, history, jobs and SSE. Legacy default history stays with default.
+ */
+export const managedGetGeographySettingsOptions = (options: Options<ManagedGetGeographySettingsData>) => queryOptions<ManagedGetGeographySettingsResponse, ManagedGetGeographySettingsError, ManagedGetGeographySettingsResponse, ReturnType<typeof managedGetGeographySettingsQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await managedGetGeographySettings({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: managedGetGeographySettingsQueryKey(options)
+});
+
+/**
+ * Node-scoped management. Uses only the selected node client, history, jobs and SSE. Legacy default history stays with default. Full strict body up to 4 KiB. Explicit Telemt server position in panel state. Persist before publishing; audit excludes IPs and coordinates.
+ */
+export const managedPutGeographySettingsMutation = (options?: Partial<Options<ManagedPutGeographySettingsData>>): UseMutationOptions<ManagedPutGeographySettingsResponse, ManagedPutGeographySettingsError, Options<ManagedPutGeographySettingsData>> => {
+    const mutationOptions: UseMutationOptions<ManagedPutGeographySettingsResponse, ManagedPutGeographySettingsError, Options<ManagedPutGeographySettingsData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await managedPutGeographySettings({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+export const managedGetSnapshotQueryKey = (options: Options<ManagedGetSnapshotData>) => createQueryKey('managedGetSnapshot', options);
+
+/**
+ * Node-scoped management. Uses only the selected node client, history, jobs and SSE. Legacy default history stays with default. One-shot topic snapshots (initial render / no-SSE fallback). Same payloads as SSE events. A topic whose on-demand fetch fails is omitted from the response object entirely — never a bare JSON null — so every key present is a real snapshot.
+ */
+export const managedGetSnapshotOptions = (options: Options<ManagedGetSnapshotData>) => queryOptions<ManagedGetSnapshotResponse, ManagedGetSnapshotError, ManagedGetSnapshotResponse, ReturnType<typeof managedGetSnapshotQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await managedGetSnapshot({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: managedGetSnapshotQueryKey(options)
+});
+
+export const managedListUsersQueryKey = (options: Options<ManagedListUsersData>) => createQueryKey('managedListUsers', options);
+
+/**
+ * Node-scoped management. Uses only the selected node client, history, jobs and SSE. Legacy default history stays with default. Composite of Telemt GET /v1/users merged with quota usage (when the `quota` capability is present) and the panel's subscription URL.
+ */
+export const managedListUsersOptions = (options: Options<ManagedListUsersData>) => queryOptions<ManagedListUsersResponse, ManagedListUsersError, ManagedListUsersResponse, ReturnType<typeof managedListUsersQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await managedListUsers({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: managedListUsersQueryKey(options)
+});
+
+/**
+ * Node-scoped management. Uses only the selected node client, history, jobs and SSE. Legacy default history stays with default.
+ */
+export const managedCreateUserMutation = (options?: Partial<Options<ManagedCreateUserData>>): UseMutationOptions<ManagedCreateUserResponse, ManagedCreateUserError, Options<ManagedCreateUserData>> => {
+    const mutationOptions: UseMutationOptions<ManagedCreateUserResponse, ManagedCreateUserError, Options<ManagedCreateUserData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await managedCreateUser({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+/**
+ * Node-scoped management. Uses only the selected node client, history, jobs and SSE. Legacy default history stays with default.
+ */
+export const managedDeleteUserMutation = (options?: Partial<Options<ManagedDeleteUserData>>): UseMutationOptions<ManagedDeleteUserResponse, ManagedDeleteUserError, Options<ManagedDeleteUserData>> => {
+    const mutationOptions: UseMutationOptions<ManagedDeleteUserResponse, ManagedDeleteUserError, Options<ManagedDeleteUserData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await managedDeleteUser({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+export const managedGetUserQueryKey = (options: Options<ManagedGetUserData>) => createQueryKey('managedGetUser', options);
+
+/**
+ * Node-scoped management. Uses only the selected node client, history, jobs and SSE. Legacy default history stays with default.
+ */
+export const managedGetUserOptions = (options: Options<ManagedGetUserData>) => queryOptions<ManagedGetUserResponse, ManagedGetUserError, ManagedGetUserResponse, ReturnType<typeof managedGetUserQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await managedGetUser({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: managedGetUserQueryKey(options)
+});
+
+/**
+ * Node-scoped management. Uses only the selected node client, history, jobs and SSE. Legacy default history stays with default. JSON Merge Patch semantics forwarded to Telemt: omitted = unchanged, null = remove the limit, value = set.
+ */
+export const managedPatchUserMutation = (options?: Partial<Options<ManagedPatchUserData>>): UseMutationOptions<ManagedPatchUserResponse, ManagedPatchUserError, Options<ManagedPatchUserData>> => {
+    const mutationOptions: UseMutationOptions<ManagedPatchUserResponse, ManagedPatchUserError, Options<ManagedPatchUserData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await managedPatchUser({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+/**
+ * Node-scoped management. Uses only the selected node client, history, jobs and SSE. Legacy default history stays with default.
+ */
+export const managedResetUserQuotaMutation = (options?: Partial<Options<ManagedResetUserQuotaData>>): UseMutationOptions<ManagedResetUserQuotaResponse, ManagedResetUserQuotaError, Options<ManagedResetUserQuotaData>> => {
+    const mutationOptions: UseMutationOptions<ManagedResetUserQuotaResponse, ManagedResetUserQuotaError, Options<ManagedResetUserQuotaData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await managedResetUserQuota({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+/**
+ * Node-scoped management. Uses only the selected node client, history, jobs and SSE. Legacy default history stays with default. Rotates the user's secret; implicitly invalidates the old subscription link.
+ */
+export const managedRotateUserSecretMutation = (options?: Partial<Options<ManagedRotateUserSecretData>>): UseMutationOptions<ManagedRotateUserSecretResponse, ManagedRotateUserSecretError, Options<ManagedRotateUserSecretData>> => {
+    const mutationOptions: UseMutationOptions<ManagedRotateUserSecretResponse, ManagedRotateUserSecretError, Options<ManagedRotateUserSecretData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await managedRotateUserSecret({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+/**
+ * Node-scoped management. Uses only the selected node client, history, jobs and SSE. Legacy default history stays with default.
+ */
+export const managedSetUserEnabledMutation = (options?: Partial<Options<ManagedSetUserEnabledData>>): UseMutationOptions<ManagedSetUserEnabledResponse, ManagedSetUserEnabledError, Options<ManagedSetUserEnabledData>> => {
+    const mutationOptions: UseMutationOptions<ManagedSetUserEnabledResponse, ManagedSetUserEnabledError, Options<ManagedSetUserEnabledData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await managedSetUserEnabled({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+export const managedGetUserSublinkQueryKey = (options: Options<ManagedGetUserSublinkData>) => createQueryKey('managedGetUserSublink', options);
+
+/**
+ * Unavailable through node management. Local host actions and public subscription routing require a node agent or node-aware subscription service.
+ */
+export const managedGetUserSublinkOptions = (options: Options<ManagedGetUserSublinkData>) => queryOptions<unknown, ManagedGetUserSublinkError, unknown, ReturnType<typeof managedGetUserSublinkQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await managedGetUserSublink({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: managedGetUserSublinkQueryKey(options)
+});
+
+/**
+ * Unavailable through node management. Local host actions and public subscription routing require a node agent or node-aware subscription service.
+ */
+export const managedRegenerateUserSublinkMutation = (options?: Partial<Options<ManagedRegenerateUserSublinkData>>): UseMutationOptions<unknown, ManagedRegenerateUserSublinkError, Options<ManagedRegenerateUserSublinkData>> => {
+    const mutationOptions: UseMutationOptions<unknown, ManagedRegenerateUserSublinkError, Options<ManagedRegenerateUserSublinkData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await managedRegenerateUserSublink({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+export const managedGetHostQueryKey = (options: Options<ManagedGetHostData>) => createQueryKey('managedGetHost', options);
+
+/**
+ * Agent host capabilities when bound; otherwise all host operations false. Global panel host information is never exposed as remote node information.
+ */
+export const managedGetHostOptions = (options: Options<ManagedGetHostData>) => queryOptions<ManagedGetHostResponse, ManagedGetHostError, ManagedGetHostResponse, ReturnType<typeof managedGetHostQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await managedGetHost({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: managedGetHostQueryKey(options)
+});
+
+export const managedTailLogsQueryKey = (options: Options<ManagedTailLogsData>) => createQueryKey('managedTailLogs', options);
+
+/**
+ * Node-scoped management. Uses only the selected node client, history, jobs and SSE. Legacy default history stays with default.
+ */
+export const managedTailLogsOptions = (options: Options<ManagedTailLogsData>) => queryOptions<ManagedTailLogsResponse, ManagedTailLogsError, ManagedTailLogsResponse, ReturnType<typeof managedTailLogsQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await managedTailLogs({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: managedTailLogsQueryKey(options)
+});
+
+export const managedGetUpdatesQueryKey = (options: Options<ManagedGetUpdatesData>) => createQueryKey('managedGetUpdates', options);
+
+/**
+ * Unavailable through node management. Local host actions and public subscription routing require a node agent or node-aware subscription service.
+ */
+export const managedGetUpdatesOptions = (options: Options<ManagedGetUpdatesData>) => queryOptions<unknown, ManagedGetUpdatesError, unknown, ReturnType<typeof managedGetUpdatesQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await managedGetUpdates({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: managedGetUpdatesQueryKey(options)
+});
+
+/**
+ * Unavailable through node management. Local host actions and public subscription routing require a node agent or node-aware subscription service.
+ */
+export const managedApplyUpdateMutation = (options?: Partial<Options<ManagedApplyUpdateData>>): UseMutationOptions<unknown, ManagedApplyUpdateError, Options<ManagedApplyUpdateData>> => {
+    const mutationOptions: UseMutationOptions<unknown, ManagedApplyUpdateError, Options<ManagedApplyUpdateData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await managedApplyUpdate({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+export const managedGetAutoUpdateQueryKey = (options: Options<ManagedGetAutoUpdateData>) => createQueryKey('managedGetAutoUpdate', options);
+
+/**
+ * Unavailable through node management. Local host actions and public subscription routing require a node agent or node-aware subscription service.
+ */
+export const managedGetAutoUpdateOptions = (options: Options<ManagedGetAutoUpdateData>) => queryOptions<unknown, ManagedGetAutoUpdateError, unknown, ReturnType<typeof managedGetAutoUpdateQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await managedGetAutoUpdate({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: managedGetAutoUpdateQueryKey(options)
+});
+
+/**
+ * Unavailable through node management. Local host actions and public subscription routing require a node agent or node-aware subscription service.
+ */
+export const managedPutAutoUpdateMutation = (options?: Partial<Options<ManagedPutAutoUpdateData>>): UseMutationOptions<unknown, ManagedPutAutoUpdateError, Options<ManagedPutAutoUpdateData>> => {
+    const mutationOptions: UseMutationOptions<unknown, ManagedPutAutoUpdateError, Options<ManagedPutAutoUpdateData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await managedPutAutoUpdate({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
 };
 
 export const getPublicBrandingQueryKey = (options?: Options<GetPublicBrandingData>) => createQueryKey('getPublicBranding', options);
@@ -339,35 +3051,6 @@ export const listSessionsOptions = (options?: Options<ListSessionsData>) => quer
     },
     queryKey: listSessionsQueryKey(options)
 });
-
-const createInfiniteParams = <K extends Pick<QueryKey<Options>[0], 'body' | 'headers' | 'path' | 'query'>>(queryKey: QueryKey<Options>, page: K) => {
-    const params = { ...queryKey[0] };
-    if (page.body) {
-        params.body = {
-            ...queryKey[0].body as any,
-            ...page.body as any
-        };
-    }
-    if (page.headers) {
-        params.headers = {
-            ...queryKey[0].headers,
-            ...page.headers
-        };
-    }
-    if (page.path) {
-        params.path = {
-            ...queryKey[0].path as any,
-            ...page.path as any
-        };
-    }
-    if (page.query) {
-        params.query = {
-            ...queryKey[0].query as any,
-            ...page.query as any
-        };
-    }
-    return params as unknown as typeof page;
-};
 
 export const listSessionsInfiniteQueryKey = (options?: Options<ListSessionsData>): QueryKey<Options<ListSessionsData>> => createQueryKey('listSessions', options, true);
 

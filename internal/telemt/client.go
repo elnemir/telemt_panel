@@ -71,6 +71,20 @@ func New(baseURL, authHeader string) *Client {
 	return newClient(baseURL, authHeader, time.Now)
 }
 
+// NewIsolated gives a registry node its own connection pool and forbids
+// redirecting an authenticated control request to a different destination.
+func NewIsolated(baseURL, authHeader string) *Client {
+	c := New(baseURL, authHeader)
+	c.http.Transport = http.DefaultTransport.(*http.Transport).Clone()
+	c.http.CheckRedirect = func(*http.Request, []*http.Request) error {
+		return http.ErrUseLastResponse
+	}
+	return c
+}
+
+// CloseIdleConnections releases unused sockets when a node is retired.
+func (c *Client) CloseIdleConnections() { c.http.CloseIdleConnections() }
+
 // newClient is the injectable-clock constructor used by tests to exercise
 // the Capabilities cache without sleeping.
 func newClient(baseURL, authHeader string, now func() time.Time) *Client {
@@ -413,6 +427,17 @@ func (c *Client) CreateUser(ctx context.Context, req CreateUserRequest) (UserInf
 		return UserInfo{}, "", err
 	}
 	return out.User, out.Secret, nil
+}
+
+// Copy mutations require the exact revision reviewed by the administrator.
+func (c *Client) CreateUserWithRevision(ctx context.Context, req CreateUserRequest, revision string) (UserInfo, error) {
+	out, _, err := mutateRevision[userSecret](ctx, c, http.MethodPost, "/v1/users", req, revision)
+	return out.User, err
+}
+
+func (c *Client) PatchUserWithRevision(ctx context.Context, username string, patch map[string]any, revision string) (UserInfo, error) {
+	out, _, err := mutateRevision[UserInfo](ctx, c, http.MethodPatch, "/v1/users/"+url.PathEscape(username), patch, revision)
+	return out, err
 }
 
 // PatchUser calls PATCH /v1/users/{username} with a caller-built JSON Merge

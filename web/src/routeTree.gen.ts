@@ -12,6 +12,9 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthedRouteImport } from './routes/_authed'
 import { Route as LoginRouteImport } from './routes/login'
+import { Route as PortalRouteImport } from './routes/portal'
+import { Route as AuthedBillingRouteImport } from './routes/_authed/billing'
+import { Route as AuthedClustersRouteImport } from './routes/_authed/clusters'
 import { Route as AuthedGeographyRouteImport } from './routes/_authed/geography'
 import { Route as AuthedJournalRouteImport } from './routes/_authed/journal'
 import { Route as AuthedOverviewRouteImport } from './routes/_authed/overview'
@@ -25,6 +28,7 @@ import { Route as AuthedPeopleUsernameRouteImport } from './routes/_authed/peopl
 import { Route as AuthedPulseIndexRouteImport } from './routes/_authed/pulse/index'
 import { Route as AuthedServerIndexRouteImport } from './routes/_authed/server/index'
 import { Route as AuthedServerConfigRouteImport } from './routes/_authed/server/config'
+import { Route as AuthedServerFilesRouteImport } from './routes/_authed/server/files'
 import { Route as AuthedServerPlatformRouteImport } from './routes/_authed/server/platform'
 import { Route as AuthedServerSecurityRouteImport } from './routes/_authed/server/security'
 import { Route as AuthedServerSettingsRouteImport } from './routes/_authed/server/settings'
@@ -44,6 +48,21 @@ const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
   getParentRoute: () => rootRouteImport,
+} as any)
+const PortalRoute = PortalRouteImport.update({
+  id: '/portal',
+  path: '/portal',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthedBillingRoute = AuthedBillingRouteImport.update({
+  id: '/billing',
+  path: '/billing',
+  getParentRoute: () => AuthedRoute,
+} as any)
+const AuthedClustersRoute = AuthedClustersRouteImport.update({
+  id: '/clusters',
+  path: '/clusters',
+  getParentRoute: () => AuthedRoute,
 } as any)
 const AuthedGeographyRoute = AuthedGeographyRouteImport.update({
   id: '/geography',
@@ -110,6 +129,11 @@ const AuthedServerConfigRoute = AuthedServerConfigRouteImport.update({
   path: '/config',
   getParentRoute: () => AuthedServerRouteRoute,
 } as any)
+const AuthedServerFilesRoute = AuthedServerFilesRouteImport.update({
+  id: '/files',
+  path: '/files',
+  getParentRoute: () => AuthedServerRouteRoute,
+} as any)
 const AuthedServerPlatformRoute = AuthedServerPlatformRouteImport.update({
   id: '/platform',
   path: '/platform',
@@ -139,9 +163,12 @@ const AuthedPulseDiagDomainRoute = AuthedPulseDiagDomainRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
+  '/portal': typeof PortalRoute
   '/people': typeof AuthedPeopleRouteRouteWithChildren
   '/pulse': typeof AuthedPulseRouteRouteWithChildren
   '/server': typeof AuthedServerRouteRouteWithChildren
+  '/billing': typeof AuthedBillingRoute
+  '/clusters': typeof AuthedClustersRoute
   '/geography': typeof AuthedGeographyRoute
   '/journal': typeof AuthedJournalRoute
   '/overview': typeof AuthedOverviewRoute
@@ -149,6 +176,7 @@ export interface FileRoutesByFullPath {
   '/dev/ui': typeof DevUiRoute
   '/people/$username': typeof AuthedPeopleUsernameRoute
   '/server/config': typeof AuthedServerConfigRoute
+  '/server/files': typeof AuthedServerFilesRoute
   '/server/platform': typeof AuthedServerPlatformRoute
   '/server/security': typeof AuthedServerSecurityRoute
   '/server/settings': typeof AuthedServerSettingsRoute
@@ -161,6 +189,9 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
+  '/portal': typeof PortalRoute
+  '/billing': typeof AuthedBillingRoute
+  '/clusters': typeof AuthedClustersRoute
   '/geography': typeof AuthedGeographyRoute
   '/journal': typeof AuthedJournalRoute
   '/overview': typeof AuthedOverviewRoute
@@ -168,6 +199,7 @@ export interface FileRoutesByTo {
   '/dev/ui': typeof DevUiRoute
   '/people/$username': typeof AuthedPeopleUsernameRoute
   '/server/config': typeof AuthedServerConfigRoute
+  '/server/files': typeof AuthedServerFilesRoute
   '/server/platform': typeof AuthedServerPlatformRoute
   '/server/security': typeof AuthedServerSecurityRoute
   '/server/settings': typeof AuthedServerSettingsRoute
@@ -182,9 +214,12 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/_authed': typeof AuthedRouteWithChildren
   '/login': typeof LoginRoute
+  '/portal': typeof PortalRoute
   '/_authed/people': typeof AuthedPeopleRouteRouteWithChildren
   '/_authed/pulse': typeof AuthedPulseRouteRouteWithChildren
   '/_authed/server': typeof AuthedServerRouteRouteWithChildren
+  '/_authed/billing': typeof AuthedBillingRoute
+  '/_authed/clusters': typeof AuthedClustersRoute
   '/_authed/geography': typeof AuthedGeographyRoute
   '/_authed/journal': typeof AuthedJournalRoute
   '/_authed/overview': typeof AuthedOverviewRoute
@@ -192,6 +227,7 @@ export interface FileRoutesById {
   '/dev/ui': typeof DevUiRoute
   '/_authed/people/$username': typeof AuthedPeopleUsernameRoute
   '/_authed/server/config': typeof AuthedServerConfigRoute
+  '/_authed/server/files': typeof AuthedServerFilesRoute
   '/_authed/server/platform': typeof AuthedServerPlatformRoute
   '/_authed/server/security': typeof AuthedServerSecurityRoute
   '/_authed/server/settings': typeof AuthedServerSettingsRoute
@@ -206,9 +242,12 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/login'
+    | '/portal'
     | '/people'
     | '/pulse'
     | '/server'
+    | '/billing'
+    | '/clusters'
     | '/geography'
     | '/journal'
     | '/overview'
@@ -216,6 +255,7 @@ export interface FileRouteTypes {
     | '/dev/ui'
     | '/people/$username'
     | '/server/config'
+    | '/server/files'
     | '/server/platform'
     | '/server/security'
     | '/server/settings'
@@ -228,6 +268,9 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/login'
+    | '/portal'
+    | '/billing'
+    | '/clusters'
     | '/geography'
     | '/journal'
     | '/overview'
@@ -235,6 +278,7 @@ export interface FileRouteTypes {
     | '/dev/ui'
     | '/people/$username'
     | '/server/config'
+    | '/server/files'
     | '/server/platform'
     | '/server/security'
     | '/server/settings'
@@ -248,9 +292,12 @@ export interface FileRouteTypes {
     | '/'
     | '/_authed'
     | '/login'
+    | '/portal'
     | '/_authed/people'
     | '/_authed/pulse'
     | '/_authed/server'
+    | '/_authed/billing'
+    | '/_authed/clusters'
     | '/_authed/geography'
     | '/_authed/journal'
     | '/_authed/overview'
@@ -258,6 +305,7 @@ export interface FileRouteTypes {
     | '/dev/ui'
     | '/_authed/people/$username'
     | '/_authed/server/config'
+    | '/_authed/server/files'
     | '/_authed/server/platform'
     | '/_authed/server/security'
     | '/_authed/server/settings'
@@ -272,6 +320,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthedRoute: typeof AuthedRouteWithChildren
   LoginRoute: typeof LoginRoute
+  PortalRoute: typeof PortalRoute
   DevUiRoute: typeof DevUiRoute
 }
 
@@ -297,6 +346,27 @@ declare module '@tanstack/react-router' {
       fullPath: '/login'
       preLoaderRoute: typeof LoginRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/portal': {
+      id: '/portal'
+      path: '/portal'
+      fullPath: '/portal'
+      preLoaderRoute: typeof PortalRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_authed/billing': {
+      id: '/_authed/billing'
+      path: '/billing'
+      fullPath: '/billing'
+      preLoaderRoute: typeof AuthedBillingRouteImport
+      parentRoute: typeof AuthedRoute
+    }
+    '/_authed/clusters': {
+      id: '/_authed/clusters'
+      path: '/clusters'
+      fullPath: '/clusters'
+      preLoaderRoute: typeof AuthedClustersRouteImport
+      parentRoute: typeof AuthedRoute
     }
     '/_authed/geography': {
       id: '/_authed/geography'
@@ -389,6 +459,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthedServerConfigRouteImport
       parentRoute: typeof AuthedServerRouteRoute
     }
+    '/_authed/server/files': {
+      id: '/_authed/server/files'
+      path: '/files'
+      fullPath: '/server/files'
+      preLoaderRoute: typeof AuthedServerFilesRouteImport
+      parentRoute: typeof AuthedServerRouteRoute
+    }
     '/_authed/server/platform': {
       id: '/_authed/server/platform'
       path: '/platform'
@@ -455,6 +532,7 @@ const AuthedPulseRouteRouteWithChildren =
 
 interface AuthedServerRouteRouteChildren {
   AuthedServerConfigRoute: typeof AuthedServerConfigRoute
+  AuthedServerFilesRoute: typeof AuthedServerFilesRoute
   AuthedServerPlatformRoute: typeof AuthedServerPlatformRoute
   AuthedServerSecurityRoute: typeof AuthedServerSecurityRoute
   AuthedServerSettingsRoute: typeof AuthedServerSettingsRoute
@@ -464,6 +542,7 @@ interface AuthedServerRouteRouteChildren {
 
 const AuthedServerRouteRouteChildren: AuthedServerRouteRouteChildren = {
   AuthedServerConfigRoute: AuthedServerConfigRoute,
+  AuthedServerFilesRoute: AuthedServerFilesRoute,
   AuthedServerPlatformRoute: AuthedServerPlatformRoute,
   AuthedServerSecurityRoute: AuthedServerSecurityRoute,
   AuthedServerSettingsRoute: AuthedServerSettingsRoute,
@@ -478,6 +557,8 @@ interface AuthedRouteChildren {
   AuthedPeopleRouteRoute: typeof AuthedPeopleRouteRouteWithChildren
   AuthedPulseRouteRoute: typeof AuthedPulseRouteRouteWithChildren
   AuthedServerRouteRoute: typeof AuthedServerRouteRouteWithChildren
+  AuthedBillingRoute: typeof AuthedBillingRoute
+  AuthedClustersRoute: typeof AuthedClustersRoute
   AuthedGeographyRoute: typeof AuthedGeographyRoute
   AuthedJournalRoute: typeof AuthedJournalRoute
   AuthedOverviewRoute: typeof AuthedOverviewRoute
@@ -488,6 +569,8 @@ const AuthedRouteChildren: AuthedRouteChildren = {
   AuthedPeopleRouteRoute: AuthedPeopleRouteRouteWithChildren,
   AuthedPulseRouteRoute: AuthedPulseRouteRouteWithChildren,
   AuthedServerRouteRoute: AuthedServerRouteRouteWithChildren,
+  AuthedBillingRoute: AuthedBillingRoute,
+  AuthedClustersRoute: AuthedClustersRoute,
   AuthedGeographyRoute: AuthedGeographyRoute,
   AuthedJournalRoute: AuthedJournalRoute,
   AuthedOverviewRoute: AuthedOverviewRoute,
@@ -501,6 +584,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthedRoute: AuthedRouteWithChildren,
   LoginRoute: LoginRoute,
+  PortalRoute: PortalRoute,
   DevUiRoute: DevUiRoute,
 }
 export const routeTree = rootRouteImport

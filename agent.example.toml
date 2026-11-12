@@ -1,0 +1,41 @@
+# Separate process/service with its own durable state directory.
+# Default HTTP is loopback-only; expose using an authenticated TLS reverse proxy
+# preserving Authorization and X-Telemt-Agent-ID, or set tls.mode=certificate.
+listen = "127.0.0.1:9092"
+data_dir = "/var/lib/telemt-agent"
+
+[agent]
+enabled = true
+# Generate a unique random identity per installation; keep it across restarts.
+id = "REPLACE_WITH_RANDOM_AGENT_ID"
+authorization_env = "TELEMT_AGENT_AUTH"
+# Optional full source editor. Requires the modified Telemt binary advertising
+# config-file-v1. Old binaries are rejected BEFORE invoking the subcommand.
+# Both paths are local installation settings, never browser-supplied paths.
+# config_path = "/etc/telemt/telemt.toml"
+# config_binary = "/usr/local/bin/telemt"
+
+[tls]
+mode = "http"
+# mode = "certificate"
+# cert_file = "/etc/telemt-agent/fullchain.pem"
+# key_file = "/etc/telemt-agent/privkey.pem"
+
+[telemt]
+url = "http://127.0.0.1:9091"
+# The central panel currently also needs direct access to the Telemt control API.
+# This agent does not proxy the control API.
+
+[host]
+service_manager = "systemd"
+log_source = "journald"
+telemt_service = "telemt"
+panel_service = "telemt-agent"
+
+[privileges]
+# Start read-only. Enable direct/sudo only with explicitly configured host rights.
+mode = "manual"
+
+[store]
+driver = "memory"
+# Command journal uses data_dir/panel-state.json regardless of history driver.

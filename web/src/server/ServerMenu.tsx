@@ -159,6 +159,7 @@ export function ServerMenu() {
       </section>
 
       <div className="server-hub-grid">
+        <HubCard to="/server/files" title={s.configFiles.title} eyebrow="Telemt" Icon={IconWrench} tone="blue"><p className="text-sm text-text-muted">{s.configFiles.description}</p></HubCard>
         <HubCard
           to="/server/config"
           title={s.server.menu.config.title}
@@ -311,7 +312,7 @@ function SummaryFact({ label, value, detail, attention = false }: { label: strin
 }
 
 function HubCard({ to, title, eyebrow, Icon, tone, state, wide = false, attention = false, active = false, children }: {
-  to: "/server/config" | "/server/updates" | "/server/security" | "/server/platform" | "/server/settings";
+  to: "/server/files" | "/server/config" | "/server/updates" | "/server/security" | "/server/platform" | "/server/settings";
   title: string;
   eyebrow: string;
   Icon: ComponentType<IconProps>;

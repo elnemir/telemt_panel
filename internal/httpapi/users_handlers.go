@@ -165,6 +165,12 @@ func (s *Server) handleCreateUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	unlock, allowed := s.guardManagedUser(w, r, req.Username)
+	if !allowed {
+		return
+	}
+	defer unlock()
+
 	ctx, cancel := context.WithTimeout(r.Context(), subpageRequestTimeout)
 	defer cancel()
 
@@ -207,6 +213,11 @@ func (s *Server) handleGetUser(w http.ResponseWriter, r *http.Request) {
 // handlePatchUser implements PATCH /api/users/{username}.
 func (s *Server) handlePatchUser(w http.ResponseWriter, r *http.Request) {
 	username := r.PathValue("username")
+	unlock, allowed := s.guardManagedUser(w, r, username)
+	if !allowed {
+		return
+	}
+	defer unlock()
 
 	var body json.RawMessage
 	if err := decodeJSONBody(w, r, &body, jsonBodyOptions{MaxBytes: maxUserPatchBody}); err != nil {
@@ -254,6 +265,11 @@ func (s *Server) handlePatchUser(w http.ResponseWriter, r *http.Request) {
 // handleDeleteUser implements DELETE /api/users/{username}.
 func (s *Server) handleDeleteUser(w http.ResponseWriter, r *http.Request) {
 	username := r.PathValue("username")
+	unlock, allowed := s.guardManagedUser(w, r, username)
+	if !allowed {
+		return
+	}
+	defer unlock()
 
 	ctx, cancel := context.WithTimeout(r.Context(), subpageRequestTimeout)
 	defer cancel()
@@ -320,6 +336,11 @@ func (s *Server) handleResetQuota(w http.ResponseWriter, r *http.Request) {
 // 404 not_found.
 func (s *Server) handleRotateSecret(w http.ResponseWriter, r *http.Request) {
 	username := r.PathValue("username")
+	unlock, allowed := s.guardManagedUser(w, r, username)
+	if !allowed {
+		return
+	}
+	defer unlock()
 
 	ctx, cancel := context.WithTimeout(r.Context(), subpageRequestTimeout)
 	defer cancel()
@@ -353,6 +374,11 @@ func (s *Server) handleRotateSecret(w http.ResponseWriter, r *http.Request) {
 // is absent or explicitly null rather than silently defaulting to false.
 func (s *Server) handleSetEnabled(w http.ResponseWriter, r *http.Request) {
 	username := r.PathValue("username")
+	unlock, allowed := s.guardManagedUser(w, r, username)
+	if !allowed {
+		return
+	}
+	defer unlock()
 
 	var body json.RawMessage
 	if err := decodeJSONBody(w, r, &body, jsonBodyOptions{MaxBytes: maxUserPatchBody}); err != nil {

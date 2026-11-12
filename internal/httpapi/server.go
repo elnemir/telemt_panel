@@ -21,36 +21,56 @@ import (
 	"github.com/amirotin/telemt_panel/internal/auth"
 	"github.com/amirotin/telemt_panel/internal/branding"
 	"github.com/amirotin/telemt_panel/internal/config"
+	"github.com/amirotin/telemt_panel/internal/customer"
 	"github.com/amirotin/telemt_panel/internal/geography"
 	"github.com/amirotin/telemt_panel/internal/geoip"
 	"github.com/amirotin/telemt_panel/internal/host"
 	"github.com/amirotin/telemt_panel/internal/hub"
+	"github.com/amirotin/telemt_panel/internal/nodeagent"
+	"github.com/amirotin/telemt_panel/internal/nodes"
 	"github.com/amirotin/telemt_panel/internal/paneltls"
+	"github.com/amirotin/telemt_panel/internal/platform"
 	"github.com/amirotin/telemt_panel/internal/quotareset"
 	"github.com/amirotin/telemt_panel/internal/store"
 	"github.com/amirotin/telemt_panel/internal/subpage"
 	"github.com/amirotin/telemt_panel/internal/telemt"
 	"github.com/amirotin/telemt_panel/internal/update"
+	"github.com/amirotin/telemt_panel/internal/usercopy"
 	"github.com/amirotin/telemt_panel/internal/webui"
 )
 
 // Server holds the panel's HTTP dependencies.
 type Server struct {
-	quotaResets    *quotareset.Manager
-	quotaSchedules *quotareset.Scheduler
-	access         *panelAccess
-	tlsManager     *paneltls.Manager
-	subTLSManager  *paneltls.Manager
-	cfg            *config.Config
-	tc             *telemt.Client
-	st             store.Store
-	hub            *hub.Hub
-	limiter        *auth.Limiter
-	sessions       *auth.SessionGuard
-	subSvc         *subpage.Service
-	subIndex       *subpage.Index
-	subLimiter     *subpage.RateLimiter
-	version        string
+	customer           *customer.Service
+	platform           *platform.Store
+	platformMu         *sync.RWMutex
+	platformNodeID     string
+	userCopies         *usercopy.Manager
+	agentJournal       *nodeagent.Journal
+	agentClient        *nodeagent.Client
+	agentConfig        *nodeagent.ConfigFiles
+	quotaResets        *quotareset.Manager
+	quotaSchedules     *quotareset.Scheduler
+	access             *panelAccess
+	tlsManager         *paneltls.Manager
+	subTLSManager      *paneltls.Manager
+	cfg                *config.Config
+	tc                 *telemt.Client
+	nodes              *nodes.Registry
+	nodeRuntimeMu      sync.Mutex
+	nodeRuntimesClosed bool
+	nodeEntries        map[string]*nodeRuntimeEntry
+	nodeDefaultOnce    sync.Once
+	nodeDefaultScope   string
+	nodeDefaultHandler http.Handler
+	st                 store.Store
+	hub                *hub.Hub
+	limiter            *auth.Limiter
+	sessions           *auth.SessionGuard
+	subSvc             *subpage.Service
+	subIndex           *subpage.Index
+	subLimiter         *subpage.RateLimiter
+	version            string
 
 	svcMgr         host.ServiceManager
 	logSrc         host.LogSource
@@ -98,8 +118,11 @@ type Server struct {
 	webUI http.Handler
 }
 
-// EngineOptions supplies process lifecycle information to the update engine.
+// EngineOptions supplies process-owned dependencies and lifecycle information.
 type EngineOptions struct {
+	Customer              *customer.Service
+	Platform              *platform.Store
+	Nodes                 *nodes.Registry
 	PanelLifecycleContext context.Context
 	OnReady               func() error
 }
@@ -109,6 +132,23 @@ func New(cfg *config.Config, tc *telemt.Client, st store.Store, hb *hub.Hub, ver
 	var engineOptions EngineOptions
 	if len(options) > 0 {
 		engineOptions = options[0]
+	}
+	if cfg.ControlPlaneOnly {
+		// Defense in depth for programmatic Config callers too: no local
+		// Telemt/service binding is activated by a central-only installation.
+		isolated := *cfg
+		isolated.Telemt.URL, isolated.Telemt.AuthHeader = "", ""
+		isolated.Subpage.Enabled = false
+		isolated.Host.ServiceManager, isolated.Host.LogSource = "none", "none"
+		isolated.Host.Commands = host.CustomCommands{}
+		isolated.Privileges.Mode = host.PrivilegesModeManual
+		cfg = &isolated
+	}
+	if cfg.Agent.Enabled {
+		isolated := *cfg
+		isolated.Auth.Disabled = true
+		isolated.Subpage.Enabled = false
+		cfg = &isolated
 	}
 	probe := host.DefaultProbe()
 	svcMgr := configuredServiceManager(cfg.Host, cfg.Host.ServiceManager, probe, host.OSCmdRunner)
@@ -149,7 +189,7 @@ func New(cfg *config.Config, tc *telemt.Client, st store.Store, hb *hub.Hub, ver
 	privilegesMode := host.PrivilegesModeManual
 	var worker *update.WorkerClient
 	var workerErr error
-	if cfg.WorkerStateDir() != "" {
+	if cfg.WorkerStateDir() != "" && !cfg.ControlPlaneOnly && !cfg.Agent.Enabled {
 		worker, workerErr = update.NewWorkerClient(cfg.WorkerStateDir(), func(ctx context.Context, argv []string) error {
 			if privilegesMode == host.PrivilegesModeManual {
 				return host.ErrPrivilegesUnavailable
@@ -269,11 +309,13 @@ func New(cfg *config.Config, tc *telemt.Client, st store.Store, hb *hub.Hub, ver
 	}
 
 	s := &Server{
+		customer: engineOptions.Customer, platform: engineOptions.Platform, platformMu: &sync.RWMutex{}, platformNodeID: nodes.DefaultID,
 		access:              newPanelAccess(),
 		tlsManager:          paneltls.New(cfg.TLS, cfg.Listen),
 		subTLSManager:       paneltls.New(cfg.Subpage.TLS, cfg.Subpage.Listen),
 		cfg:                 cfg,
 		tc:                  tc,
+		nodes:               engineOptions.Nodes,
 		st:                  st,
 		hub:                 hb,
 		limiter:             auth.NewLimiter(),
@@ -300,7 +342,25 @@ func New(cfg *config.Config, tc *telemt.Client, st store.Store, hb *hub.Hub, ver
 		serviceStopAllowed:  stopAllowed,
 		webUI:               webUI,
 	}
+	if cfg.Agent.Enabled {
+		if cfg.Agent.ConfigPath != "" {
+			s.agentConfig, err = nodeagent.NewConfigFiles(cfg.Agent.ConfigBinary, cfg.Agent.ConfigPath, cfg.DataDir)
+			if err != nil {
+				slog.Error("agent configuration files unavailable")
+			}
+		}
+		s.agentJournal, err = nodeagent.OpenJournal(st)
+		if err != nil {
+			slog.Error("agent command journal unavailable")
+		}
+	}
 	s.quotaResets = quotareset.New(tc, s.quotaResetEvent)
+	if !cfg.Agent.Enabled && st.StateDurable() {
+		s.userCopies, err = usercopy.New(st, s.withCopyNode)
+		if err != nil {
+			slog.Error("user copy journal unavailable")
+		}
+	}
 	s.quotaSchedules = quotareset.NewScheduler(st, s.quotaResets)
 	buildTimeout := time.Duration(cfg.Geography.BuildTimeoutSecs) * time.Second
 	geoDeps := geography.Dependencies{
@@ -402,6 +462,9 @@ func chain(h http.Handler, mws ...func(http.Handler) http.Handler) http.Handler 
 
 // Handler returns the routed HTTP handler.
 func (s *Server) Handler() http.Handler {
+	if s.cfg.Agent.Enabled {
+		return acceptBasePath(s.cfg.BasePath, s.agentHandler())
+	}
 	mux := http.NewServeMux()
 
 	mux.HandleFunc("GET /api/health", func(w http.ResponseWriter, r *http.Request) {
@@ -424,7 +487,14 @@ func (s *Server) Handler() http.Handler {
 	// its own checks) and /sub/* (no cookie, no mutations, out of scope
 	// here).
 	protect := func(h http.HandlerFunc) http.Handler {
-		return chain(h, auth.CSRF(s.cfg), auth.RequireSession(s.st, s.cfg, s.sessions))
+		guarded := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if s.cfg.ControlPlaneOnly && defaultNodeAPI(r.URL.Path) {
+				auth.WriteError(w, http.StatusNotFound, "node_not_found", "No configuration-owned default node; select a registered node")
+				return
+			}
+			h(w, r)
+		})
+		return chain(guarded, auth.CSRF(s.cfg), auth.RequireSession(s.st, s.cfg, s.sessions))
 	}
 	// Disabled authentication has no sessions or credential-management API.
 	// Keep these routes explicit; normal panel APIs still retain CSRF checks.
@@ -466,6 +536,21 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("POST /api/auth/webauthn/login/finish", sessionOnly(s.handleWebAuthnLoginFinish))
 	mux.Handle("DELETE /api/auth/webauthn/credentials/{credentialId}", protect(sessionOnly(s.handleWebAuthnCredentialDelete)))
 
+	s.registerPlatformRoutes(mux, protect)
+	s.registerBillingRoutes(mux, protect)
+	s.registerCustomerRoutes(mux)
+	mux.Handle("GET /api/nodes", protect(s.handleListNodes))
+	mux.Handle("POST /api/user-copies/prepare", protect(s.handlePrepareUserCopy))
+	mux.Handle("POST /api/user-copies", protect(s.handleExecuteUserCopy))
+	mux.Handle("GET /api/user-copies/{key}", protect(s.handleUserCopyStatus))
+	mux.Handle("POST /api/nodes", protect(s.handleCreateNode))
+	mux.Handle("GET /api/nodes/{node_id}", protect(s.handleGetNode))
+	mux.Handle("PUT /api/nodes/{node_id}", protect(s.handleReplaceNode))
+	mux.Handle("DELETE /api/nodes/{node_id}", protect(s.handleDeleteNode))
+	mux.Handle("/api/nodes/{node_id}/manage/{path...}", protect(s.handleNodeManagement))
+	mux.Handle("GET /api/nodes/{node_id}/health", protect(s.handleNodeRead("health")))
+	mux.Handle("GET /api/nodes/{node_id}/users", protect(s.handleNodeRead("users")))
+	mux.Handle("GET /api/nodes/{node_id}/config", protect(s.handleNodeRead("config")))
 	mux.Handle("GET /api/telemt/info", protect(s.handleTelemtInfo))
 	mux.Handle("POST /api/users/operations/quota-reset/prepare", protect(s.handlePrepareQuotaReset))
 	mux.Handle("POST /api/users/operations/quota-reset", protect(s.handleStartQuotaReset))
@@ -680,6 +765,8 @@ func (s *Server) Run(ctx context.Context) error {
 		cancel()
 		s.access.close()
 		s.quotaResets.Close()
+		wg.Wait()
+		s.CloseNodeRuntimes()
 		s.sessions.Close()
 		s.logStreams.Close()
 		if s.geography != nil {
@@ -688,7 +775,6 @@ func (s *Server) Run(ctx context.Context) error {
 		if s.geoip != nil {
 			s.geoip.Close()
 		}
-		wg.Wait()
 		s.updateEngine.Close()
 		s.hub.Close()
 		s.limiter.Stop()
@@ -696,15 +782,31 @@ func (s *Server) Run(ctx context.Context) error {
 		s.tlsManager.Close()
 		s.subTLSManager.Close()
 	}()
+
+	if s.platform != nil {
+		wg.Go(func() {
+			platform.NewWorker(s.platform, s.withPlatformNode).Run(ctx, func(error) { slog.Error("platform reconciliation state failed") })
+		})
+	}
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		s.autoUpdater.Run(ctx)
+		s.runNodeRuntimes(ctx)
+		s.CloseNodeRuntimes() // cancel scoped SSE/requests while HTTP listeners drain
 	}()
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		s.quotaSchedules.Run(ctx)
+		if !s.cfg.ControlPlaneOnly && !s.cfg.Agent.Enabled {
+			s.autoUpdater.Run(ctx)
+		}
+	}()
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		if !s.cfg.ControlPlaneOnly && !s.cfg.Agent.Enabled {
+			s.quotaSchedules.Run(ctx)
+		}
 	}()
 	if s.geoip != nil {
 		wg.Add(1)
@@ -714,6 +816,9 @@ func (s *Server) Run(ctx context.Context) error {
 		}()
 	}
 
+	if s.cfg.Agent.Enabled && (s.agentJournal == nil || len(os.Getenv(s.cfg.Agent.AuthEnv)) < 32) {
+		return nodeagent.ErrJournal
+	}
 	tlsConfig, challengeHandler, err := s.tlsManager.Prepare()
 	if err != nil {
 		return err

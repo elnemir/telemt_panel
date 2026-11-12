@@ -1,3 +1,4 @@
+import { NodeWorkspace } from "../nodes/NodeSelector";
 import { useEffect, useState, type ReactNode } from "react";
 import { Link, useRouterState } from "@tanstack/react-router";
 import { cn } from "../lib/cn";
@@ -87,6 +88,7 @@ export function Shell({ children }: { children: ReactNode }) {
       </aside>
 
       <div className="flex min-h-0 min-w-0 flex-1 flex-col">
+        <NodeWorkspace>
         <main
           className={cn(
             "flex min-h-0 flex-1 flex-col",
@@ -109,6 +111,7 @@ export function Shell({ children }: { children: ReactNode }) {
             {children}
           </div>
         </main>
+        </NodeWorkspace>
 
         <nav
           data-testid="mobile-bottom-nav"

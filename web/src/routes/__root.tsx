@@ -1,4 +1,4 @@
-import { createRootRouteWithContext, Outlet } from "@tanstack/react-router";
+import { createRootRouteWithContext, Outlet, retainSearchParams } from "@tanstack/react-router";
 import type { QueryClient } from "@tanstack/react-query";
 import { ToastViewport } from "../ui/Toast";
 
@@ -13,6 +13,8 @@ export interface RouterContext {
 // shell lives one level down, in the `_authed` layout route (shell/Shell.tsx)
 // — /login renders without it.
 export const Route = createRootRouteWithContext<RouterContext>()({
+  validateSearch: (search: Record<string, unknown>): { node?: string } => ({node: typeof search["node"] === "string" ? search["node"] : undefined}),
+  search: { middlewares: [retainSearchParams(["node"])] },
   component: RootComponent,
 });
 

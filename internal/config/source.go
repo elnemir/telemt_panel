@@ -41,6 +41,8 @@ func (s *Source) ReuseLegacyPasswordHash(hash string) bool {
 
 // SourceReport is the allowlisted, non-secret output for offline inspection.
 type SourceReport struct {
+	AgentEnabled         bool     `json:"agent_enabled"`
+	ControlPlaneOnly     bool     `json:"control_plane_only"`
 	Format               string   `json:"format"`
 	RequiresMigration    bool     `json:"requires_migration"`
 	Listen               string   `json:"listen"`
@@ -69,7 +71,7 @@ type SourceReport struct {
 // Report deliberately excludes API URLs, tokens, password hashes and JWT keys.
 func (s *Source) Report() SourceReport {
 	c := s.Config
-	return SourceReport{Format: s.Format, RequiresMigration: s.Legacy != nil,
+	return SourceReport{AgentEnabled: c.Agent.Enabled, ControlPlaneOnly: c.ControlPlaneOnly, Format: s.Format, RequiresMigration: s.Legacy != nil,
 		Listen: c.Listen, BasePath: c.BasePath, DataDir: c.DataDir,
 		TLSMode: c.TLS.Mode, ACMEDomain: c.TLS.AcmeDomain,
 		SessionTTL: c.Auth.SessionTTLDuration().String(), ServiceManager: c.Host.ServiceManager,
@@ -166,7 +168,7 @@ func sourceValidationError(err error) error {
 	// Existing validator errors may quote values. Only trusted field labels are
 	// exposed here; raw diagnostics must not leak credentials through inspect.
 	message := err.Error()
-	for _, field := range []string{"telemt.url", "telemt.config_edit_mode", "auth.username", "auth.password_hash",
+	for _, field := range []string{"control_plane_only", "agent", "telemt.url", "telemt.config_edit_mode", "auth.username", "auth.password_hash",
 		"auth.session_ttl", "base_path", "trusted_proxies", "store.driver", "store.path", "subpage.secret",
 		"host.commands.telemt.start", "host.commands.telemt.stop", "host.commands.telemt.restart", "host.commands.panel.start", "host.commands.panel.stop", "host.commands.panel.restart",
 		"host.commands", "host.panel_service", "host.service_manager", "host.log_source", "privileges.mode", "updates.worker_state_dir", "tls.mode", "tls.acme_domain", "tls.acme_cache_dir", "tls", "listen"} {

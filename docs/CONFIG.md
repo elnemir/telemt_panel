@@ -709,3 +709,78 @@ JSON и без подмены успешным пустым результато
 ошибка сохранения даёт ненулевой код выхода. Определение libc использует
 отменяемую пробу `ldd` до двух секунд; неопределённый результат выбирает musl
 с пояснением в журнале.
+
+
+## Central-only installation
+
+Set top-level `control_plane_only = true` and omit the `[telemt]` URL and
+credential. Keep administrator authentication, `data_dir`, TLS and history
+settings as usual. Add and explicitly select nodes in the UI. A Telemt binary
+or service on the panel host is not required. This mode disables local host
+adapters, automatic updates and the legacy default quota scheduler/collectors.
+The legacy subscription listener is rejected; node-aware customer access is a
+separate service. Legacy node APIs return `404 node_not_found`, never redirect
+to the first registered node. Global authentication, registry and panel access
+settings remain available. Existing default files remain on disk and are never
+silently adopted by a newly registered node.
+
+### Transactional platform
+
+`[platform] enabled = true` activates cluster identity state in
+`data_dir/platform.sqlite` in the full build. Set `encryption_key_env` to the name
+of an environment variable containing 32 random bytes encoded as Base64
+(`openssl rand -base64 32`). The key is never stored in configuration or API
+responses. Retain it separately from the database backup. Startup rejects a
+missing/wrong key, incompatible database or lite build; there is no in-memory
+fallback. The node agent cannot enable this central subsystem.
+
+The database is separate from optional history. Back it up consistently with
+SQLite WAL (stop the writer before copying, or use a SQLite backup operation),
+not by copying the main database alone while it is running. One central process
+owns this state under the existing data-directory lock. This is not an HA control
+plane. Cluster changes use desired revisions and verified per-node jobs; an
+accepted request does not establish runtime convergence or external connectivity.
+
+## Customer portal
+
+`[customer_portal] enabled = true` enables separate customer authentication and
+`/portal`. It requires the full build and durable `[platform]` storage. The
+`public_url` is the externally reachable panel URL including the same `base_path`;
+it must use HTTPS, except on loopback for local development. It owns email links,
+Telegram redirects and payment return URLs. Request headers cannot override it.
+At least one customer login method must be enabled. Admin `auth.disabled` never
+makes customer financial data public.
+
+`[customer_portal.email]` configures SMTP `host`, `port`, `mode` (`tls` or
+`starttls`), bare `from` mailbox, `username` and `password_env`. Secret variable
+names start with `TELEMT_CUSTOMER_`; values remain outside configuration exports
+and API responses. Certificate validation is mandatory. Optional absolute
+`ca_file` adds PEM CA certificates to system roots, with a 1 MiB file bound.
+A delivery configuration failure blocks new verification/recovery messages but
+does not block existing password login. SMTP DATA acceptance means handed to the
+mail server, not guaranteed arrival in the recipient inbox.
+
+`[customer_portal.telegram]` uses BotFather Login Widget `client_id` and
+`client_secret_env`, not a Bot API token. Register the exact redirect URL
+`<customer_portal.public_url>/api/customer/auth/telegram/callback` in BotFather.
+The implementation uses authorization code, PKCE S256, nonce and RS256 with fixed
+Telegram issuer/JWKS endpoints. Other signing algorithms are not enabled. A link
+to an existing customer requires authentication within five minutes; identities
+are never merged by display name.
+
+Customers use a separate HttpOnly cookie and durable hashed sessions (30-day
+absolute TTL, maximum 10 per customer). Email registration proofs expire after
+30 minutes, password recovery after 15; newer requests invalidate older proofs
+for the same action. Password reset changes the credential revision and revokes
+previous customer sessions. A new email account is created only after proof.
+ASCII email addresses use a case-insensitive account key; passwords are bcrypt
+cost 10 and 12–72 UTF-8 bytes, with no truncation. Auth request limits are local to
+one panel process; they are not a distributed rate limiter.
+
+Schema v3 migrates customer authentication data after checking the platform
+key. Back up the database and encryption key before upgrading; older binaries
+cannot open the upgraded schema. Financial accounting, payment confirmation,
+proxy access and quota usage are separate states. Shared-quota provisioning is
+still under implementation; enabling the portal does not claim active proxy
+access or working usage statistics. See the workspace billing/customer wiki for
+local acceptance versus unverified external integrations.

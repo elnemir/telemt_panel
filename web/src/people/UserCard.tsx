@@ -3,7 +3,7 @@ import {formatBytes} from "../lib/format";
 import {localeOf,useStrings} from "../i18n";
 import {IconMore,IconRefresh,IconShield} from "../ui/icons";
 import {computeUserStatus,getUserQuota,isOnline} from "./users.helpers";
-import {QuickConnectionLinks} from "./ConnectionLinks";
+import {QuickConnectionLinks} from "./ConnectionLinksView";
 import {useUserRowGestures,type SwipeSide} from "./useUserRowGestures";
 import type {UsersTopicQuotaEntry,UsersTopicUser} from "../realtime/topics";
 

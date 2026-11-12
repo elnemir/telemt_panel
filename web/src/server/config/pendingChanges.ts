@@ -1,3 +1,5 @@
+import { nodeStorageKey } from "../../nodes/scope";
+import { getBasePath } from "../../lib/base-path";
 import type { TelemtConfigPatchResult } from "../../lib/api/generated/types.gen";
 import type { StatsSnapshot } from "../../realtime/topics";
 
@@ -21,7 +23,7 @@ export interface PendingConfigChanges {
   at: number;
 }
 
-const STORAGE_KEY = "telemt-panel:pending-config:v1";
+const STORAGE_KEY = nodeStorageKey("telemt-panel:pending-config:v1", getBasePath());
 
 /**
  * Uptime is sampled at Telemt's own cadence and travels through a poll, so

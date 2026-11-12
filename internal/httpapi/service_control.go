@@ -34,6 +34,9 @@ func (s *Server) serviceCaps() serviceControlCaps {
 	caps := serviceControlCaps{Restart: s.svcMgr.Caps().CanRestart && s.privilegesMode != host.PrivilegesModeManual}
 	panelName, _ := resolveLogicalService("panel", s.svcMgr.Kind(), s.cfg.Host)
 	if !serviceBindingsDiffer(s.svcMgr.Kind(), s.telemtServiceName, panelName) {
+		if s.cfg.Agent.Enabled {
+			caps.Restart = false
+		}
 		return caps
 	}
 	if _, ok := s.svcMgr.(host.ServiceController); !ok {

@@ -328,3 +328,70 @@ func TestLoadRejectsScriptInjectionBasePath(t *testing.T) {
 		t.Fatalf("want a base_path error, got %v", err)
 	}
 }
+
+func TestControlPlaneOnlyConfig(t *testing.T) {
+	raw := "control_plane_only = true\n[auth]\ndisabled = true\n"
+	cfg, err := load(t, raw)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if cfg.Telemt.URL != "" || cfg.Host.ServiceManager != "none" || cfg.Host.LogSource != "none" || cfg.Privileges.Mode != "manual" || cfg.WorkerStateDir() != "" {
+		t.Fatal("standalone activated host dependencies", cfg.Host, cfg.Privileges)
+	}
+	for _, extra := range []string{"[telemt]\nurl='http://127.0.0.1:9091'", "[telemt]\nauth_header='secret'", "[subpage]\nenabled=true\nsecret='x'"} {
+		if _, err := load(t, raw+extra); err == nil {
+			t.Fatal("ambiguous standalone config accepted", extra)
+		}
+	}
+}
+
+func TestAgentConfig(t *testing.T) {
+	raw := `listen = "127.0.0.1:9092"
+data_dir = "/var/lib/telemt-agent"
+[agent]
+enabled = true
+id = "installed-agent-0001"
+authorization_env = "TELEMT_AGENT_AUTH"
+[telemt]
+url = "http://127.0.0.1:9091"
+`
+	cfg, err := load(t, raw)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !cfg.Agent.Enabled || !cfg.Auth.Disabled || cfg.WorkerStateDir() != "" || cfg.Host.PanelService != "telemt-agent" {
+		t.Fatal("incorrect mode")
+	}
+	for _, bad := range []string{
+		strings.Replace(raw, "127.0.0.1:9092", "0.0.0.0:9092", 1),
+		strings.Replace(raw, "installed-agent-0001", "short", 1),
+		strings.Replace(raw, "/var/lib/telemt-agent", "", 1),
+		raw + "[host]\ntelemt_service='telemt-agent.service'\npanel_service='telemt-agent'\n",
+		"control_plane_only = true\n" + raw,
+	} {
+		if _, err := load(t, bad); err == nil {
+			t.Fatal("unsafe agent config accepted")
+		}
+	}
+}
+
+func TestPlatformConfigurationRequiresDurableCentralStateAndKeyReference(t *testing.T) {
+	for _, tc := range []struct {
+		name, prefix, section string
+		valid                 bool
+	}{
+		{"disabled", "", "[platform]\nenabled = false\n", true},
+		{"enabled", "", "[platform]\nenabled = true\nencryption_key_env = 'TELEMT_PLATFORM_KEY'\n", true},
+		{"missing key", "", "[platform]\nenabled = true\n", false},
+		{"invalid key name", "", "[platform]\nenabled = true\nencryption_key_env = 'not a name'\n", false},
+		{"ephemeral", "data_dir = ''\n", "[platform]\nenabled = true\nencryption_key_env = 'KEY'\n", false},
+		{"agent", "", "[platform]\nenabled = true\nencryption_key_env = 'KEY'\n[agent]\nenabled = true\nid = 'test-agent-identity'\nauthorization_env = 'AGENT_AUTH'\n", false},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			_, e := load(t, tc.prefix+minimal+tc.section)
+			if (e == nil) != tc.valid {
+				t.Fatal(e)
+			}
+		})
+	}
+}

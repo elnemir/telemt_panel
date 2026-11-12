@@ -6,6 +6,7 @@ package config
 import (
 	"bytes"
 	"fmt"
+	"net"
 	"net/netip"
 	"os"
 	"path/filepath"
@@ -16,14 +17,16 @@ import (
 
 	"github.com/BurntSushi/toml"
 	"github.com/amirotin/telemt_panel/internal/host"
+	"github.com/amirotin/telemt_panel/internal/nodeagent"
 )
 
 // Config is the panel's own configuration (config.toml).
 type Config struct {
-	Path      string `toml:"-"` // file path, set after loading
-	Listen    string `toml:"listen"`
-	BasePath  string `toml:"base_path"`
-	PublicURL string `toml:"public_url"`
+	ControlPlaneOnly bool   `toml:"control_plane_only"`
+	Path             string `toml:"-"` // file path, set after loading
+	Listen           string `toml:"listen"`
+	BasePath         string `toml:"base_path"`
+	PublicURL        string `toml:"public_url"`
 	// TrustedProxies lists CIDRs (or bare IPs) of reverse proxies whose
 	// X-Forwarded-* headers are trusted. Empty means headers are ignored.
 	TrustedProxies       []string       `toml:"trusted_proxies"`
@@ -33,15 +36,33 @@ type Config struct {
 	// control-plane state process-local without changing the history driver.
 	DataDir string `toml:"data_dir"`
 
-	Telemt     TelemtConfig     `toml:"telemt"`
-	Auth       AuthConfig       `toml:"auth"`
-	Store      StoreConfig      `toml:"store"`
-	Geography  GeographyConfig  `toml:"geography"`
-	Subpage    SubpageConfig    `toml:"subpage"`
-	Host       HostConfig       `toml:"host"`
-	Updates    UpdatesConfig    `toml:"updates"`
-	Privileges PrivilegesConfig `toml:"privileges"`
-	TLS        TLSConfig        `toml:"tls"`
+	CustomerPortal CustomerPortalConfig `toml:"customer_portal"`
+	Platform       PlatformConfig       `toml:"platform"`
+	Agent          AgentConfig          `toml:"agent"`
+	Telemt         TelemtConfig         `toml:"telemt"`
+	Auth           AuthConfig           `toml:"auth"`
+	Store          StoreConfig          `toml:"store"`
+	Geography      GeographyConfig      `toml:"geography"`
+	Subpage        SubpageConfig        `toml:"subpage"`
+	Host           HostConfig           `toml:"host"`
+	Updates        UpdatesConfig        `toml:"updates"`
+	Privileges     PrivilegesConfig     `toml:"privileges"`
+	TLS            TLSConfig            `toml:"tls"`
+}
+
+// PlatformConfig enables durable cluster state independently of history.
+type PlatformConfig struct {
+	Enabled bool   `toml:"enabled"`
+	KeyEnv  string `toml:"encryption_key_env"`
+}
+
+// AgentConfig switches the binary to the private node host API only.
+type AgentConfig struct {
+	ConfigPath   string `toml:"config_path"`
+	ConfigBinary string `toml:"config_binary"`
+	Enabled      bool   `toml:"enabled"`
+	ID           string `toml:"id"`
+	AuthEnv      string `toml:"authorization_env"`
 }
 
 // TelemtConfig points the panel at the Telemt API.
@@ -138,6 +159,9 @@ type UpdatesConfig struct {
 
 // WorkerStateDir permits durable recovery metadata when runtime data lives in RAM.
 func (cfg *Config) WorkerStateDir() string {
+	if cfg.ControlPlaneOnly || cfg.Agent.Enabled {
+		return ""
+	}
 	if cfg.Updates.WorkerStateDir != "" {
 		return cfg.Updates.WorkerStateDir
 	}
@@ -206,11 +230,43 @@ func decode(data []byte, path string) (*Config, error) {
 		return nil, fmt.Errorf("unknown config keys: %s", strings.Join(slices.Compact(paths), ", "))
 	}
 
-	if cfg.Telemt.URL == "" {
+	if cfg.Platform.Enabled && (cfg.Agent.Enabled || cfg.DataDir == "" || !nodeagent.EnvPattern.MatchString(cfg.Platform.KeyEnv)) {
+		return nil, fmt.Errorf("platform: central mode, durable data_dir and encryption_key_env are required")
+	}
+
+	if cfg.Agent.Enabled {
+		if cfg.ControlPlaneOnly || cfg.Subpage.Enabled || cfg.DataDir == "" || !nodeagent.IDPattern.MatchString(cfg.Agent.ID) || !nodeagent.EnvPattern.MatchString(cfg.Agent.AuthEnv) {
+			return nil, fmt.Errorf("agent: identity, authorization_env and durable data_dir are required; panel-only/subpage modes are incompatible")
+		}
+		if (cfg.Agent.ConfigPath != "" || cfg.Agent.ConfigBinary != "") && (!filepath.IsAbs(cfg.Agent.ConfigPath) || !filepath.IsAbs(cfg.Agent.ConfigBinary)) {
+			return nil, fmt.Errorf("agent: config_path and config_binary must both be absolute paths")
+		}
+		cfg.Auth.Disabled = true
+		if !metadata.IsDefined("host", "panel_service") {
+			cfg.Host.PanelService = "telemt-agent"
+		}
+		if !metadata.IsDefined("host", "panel_container") {
+			cfg.Host.PanelContainer = "telemt-agent"
+		}
+		if strings.TrimSuffix(cfg.Host.TelemtService, ".service") == strings.TrimSuffix(cfg.Host.PanelService, ".service") || cfg.Host.TelemtContainer == cfg.Host.PanelContainer {
+			return nil, fmt.Errorf("agent: Telemt and agent service bindings must differ")
+		}
+	}
+	if cfg.ControlPlaneOnly && (cfg.Telemt.URL != "" || cfg.Telemt.AuthHeader != "" || cfg.Subpage.Enabled) {
+		return nil, fmt.Errorf("control_plane_only forbids a default telemt URL/credential and the legacy subscription listener")
+	}
+	if cfg.Telemt.URL == "" && !cfg.ControlPlaneOnly {
 		return nil, fmt.Errorf("telemt.url is required")
 	}
 	if err := cfg.TLS.Normalize(cfg.Listen, cfg.DataDir); err != nil {
 		return nil, err
+	}
+	if cfg.Agent.Enabled && cfg.TLS.Mode == "http" {
+		hostname, _, err := net.SplitHostPort(cfg.Listen)
+		ip, parseErr := netip.ParseAddr(hostname)
+		if err != nil || parseErr != nil || !ip.IsLoopback() {
+			return nil, fmt.Errorf("agent: HTTPS is required except on a literal loopback listener")
+		}
 	}
 	switch cfg.Telemt.ConfigEditMode {
 	case "":
@@ -336,10 +392,18 @@ func decode(data []byte, path string) (*Config, error) {
 	if err := validateBasePath(cfg.BasePath); err != nil {
 		return nil, err
 	}
+	if err := cfg.CustomerPortal.Validate(cfg.BasePath, cfg.Platform.Enabled, cfg.Agent.Enabled); err != nil {
+		return nil, err
+	}
 	if err := cfg.NormalizeAccess(); err != nil {
 		return nil, err
 	}
 
+	if cfg.ControlPlaneOnly {
+		cfg.Host.ServiceManager, cfg.Host.LogSource = "none", "none"
+		cfg.Host.Commands = host.CustomCommands{}
+		cfg.Privileges.Mode = host.PrivilegesModeManual
+	}
 	cfg.Path = path
 	if err := validatePrivilegeConfigPlacement(cfg, path); err != nil {
 		return nil, err

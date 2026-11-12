@@ -1,0 +1,45 @@
+import {expect,test} from "./fixtures";
+import {MOCK_URL} from "./env";
+
+test("empty central panel registers and selects its first remote node",async({page,login},info)=>{
+ test.skip(process.env["CONTROL_PLANE_ONLY"]!=="1","requires central-only stack");
+ await login();
+ await expect(page.getByRole("alert")).toContainText("Ноды ещё не добавлены");
+ expect((await page.request.get("/api/users")).status()).toBe(404);
+ expect((await page.request.get("/api/telemt/config")).status()).toBe(404);
+ await page.getByRole("button",{name:"Добавить ноду",exact:true}).click();
+ const editor=page.getByRole("dialog");
+ await editor.getByLabel("Название",{exact:true}).fill("First-"+info.project.name);
+ await editor.getByLabel("Адрес API",{exact:true}).fill(MOCK_URL);
+ await editor.getByLabel("Адрес агента",{exact:true}).fill("http://127.0.0.1:1");
+ await editor.getByLabel("Идентификатор установленного агента",{exact:true}).fill("browser-agent-identity-01");
+ await editor.getByLabel("Переменная окружения с Authorization агента",{exact:true}).fill("TEST_UNUSED_AGENT_AUTH");
+ await editor.getByRole("button",{name:"Сохранить",exact:true}).click();
+ await expect(editor).toBeHidden({timeout:15000});
+ const registry=await (await page.request.get("/api/nodes")).json() as {nodes:Array<{id:string,name:string}>};
+ expect(registry.nodes.some(n=>n.id==="default")).toBe(false);
+ const node=registry.nodes.find(n=>n.name==="First-"+info.project.name)!;
+ page.once("dialog",d=>d.accept());
+ const select=page.getByRole("combobox",{name:"Нода Telemt",exact:true});
+ await select.selectOption(node.id);
+ await expect(page.getByTestId("user-card-alice")).toBeVisible();
+ await expect(select).toHaveValue(node.id);
+ expect((await page.request.get("/api/users")).status()).toBe(404);
+ await page.screenshot({path:info.outputPath("standalone-node.png")});
+ // Keep the next project’s registry empty too.
+ await page.getByRole("button",{name:"Настроить",exact:true}).click();
+ await expect(editor.getByLabel("Адрес агента",{exact:true})).toHaveValue("http://127.0.0.1:1");
+ await expect(editor.getByLabel("Адрес агента",{exact:true})).toBeDisabled();
+ await expect(editor.getByLabel("Идентификатор установленного агента",{exact:true})).toHaveValue("browser-agent-identity-01");
+ await editor.getByLabel("Название",{exact:true}).fill("Renamed");
+ await editor.getByRole("button",{name:"Сохранить",exact:true}).click();
+ await expect(editor).toBeHidden();
+ const updated=await (await page.request.get("/api/nodes/"+node.id)).json();
+ expect(updated.agent_id).toBe("browser-agent-identity-01");
+ expect(updated.agent_auth_env).toBe("TEST_UNUSED_AGENT_AUTH");
+ await page.getByRole("button",{name:"Настроить",exact:true}).click();
+ page.once("dialog",d=>d.accept());
+ await page.getByRole("button",{name:"Удалить ноду",exact:true}).click();
+ await expect(page.getByRole("dialog")).toBeHidden({timeout:15000});
+ await expect(page.getByRole("alert")).toContainText("Ноды ещё не добавлены");
+});

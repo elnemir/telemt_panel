@@ -19,7 +19,8 @@ var ErrStoreNotEmpty = errors.New("store import requires an empty destination")
 
 // PortableData is the driver-neutral JSON format used by the store export and
 // import commands. It deliberately contains only values owned by the panel;
-// connection details and other configuration secrets are never exported.
+// settings include node URLs and credential environment references, but never
+// the referenced credential values or legacy TOML connection secrets.
 type PortableData struct {
 	UserIPs              []UserIPRecord                  `json:"user_ip_history,omitempty"`
 	UserIPCollection     *UserIPCollection               `json:"user_ip_collection,omitempty"`

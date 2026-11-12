@@ -1,3 +1,4 @@
+import { nodeAPIPath } from "../nodes/scope";
 // window.__BASE_PATH__ is injected into index.html by internal/webui at
 // serve time (empty string, or a leading-slash/no-trailing-slash prefix
 // like "/panel" — mirrors config.Config.BasePath). Every place the SPA
@@ -18,5 +19,5 @@ export function getBasePath(): string {
 // configured base path. Leaves relative paths and full URLs untouched.
 export function withBasePath(path: string): string {
   if (!path.startsWith("/")) return path;
-  return getBasePath() + path;
+  return getBasePath() + nodeAPIPath(path);
 }

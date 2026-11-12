@@ -9,9 +9,16 @@ import (
 )
 
 func (s *Server) handleUsersList(w http.ResponseWriter) {
-	out := make([]telemt.UserInfo, 0, len(s.users))
+	out := make([]telemt.UserPolicySnapshot, 0, len(s.users))
 	for _, u := range s.users {
-		out = append(out, u)
+		snapshot := telemt.UserPolicySnapshot{UserInfo: u}
+		if !s.scenario.OldBuild {
+			snapshot.Limits = &telemt.UserLimitState{Desired: telemt.UserLimitSnapshot{
+				MaxTCPConns:  telemt.InheritedUserLimit{Value: u.MaxTCPConns, ConfiguredOverride: u.MaxTCPConns, Origin: "user_override"},
+				MaxUniqueIPs: telemt.InheritedUserLimit{Value: u.MaxUniqueIPs, ConfiguredOverride: u.MaxUniqueIPs, Origin: "user_override"},
+			}, EffectiveScope: "runtime_config", SubsystemConvergence: "unknown"}
+		}
+		out = append(out, snapshot)
 	}
 	writeOK(w, http.StatusOK, out, s.revision())
 }
@@ -61,6 +68,10 @@ func (s *Server) handleActiveIPs(w http.ResponseWriter) {
 }
 
 func (s *Server) handleCreateUser(w http.ResponseWriter, r *http.Request) {
+	if expected := r.Header.Get("If-Match"); expected != "" && expected != s.revision() {
+		writeErr(w, http.StatusConflict, "revision_conflict", "configuration changed")
+		return
+	}
 	if s.scenario.ReadOnly {
 		writeReadOnly(w)
 		return
@@ -89,7 +100,7 @@ func (s *Server) handleCreateUser(w http.ResponseWriter, r *http.Request) {
 		RateLimitUpBps: req.RateLimitUpBps, RateLimitDownBps: req.RateLimitDownBps,
 		MaxUniqueIPs: req.MaxUniqueIPs,
 		ActiveIPList: []string{}, RecentIPList: []string{},
-		Links: telemt.UserLinks{Classic: []string{}, Secure: []string{}, TLS: []string{}, TLSDomains: []telemt.TLSDomainLink{}},
+		Links: copyUserLinks(secret),
 	}
 	s.users[req.Username] = u
 	s.secrets[req.Username] = secret
@@ -100,6 +111,10 @@ func (s *Server) handleCreateUser(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handlePatchUser(w http.ResponseWriter, r *http.Request, username string) {
+	if expected := r.Header.Get("If-Match"); expected != "" && expected != s.revision() {
+		writeErr(w, http.StatusConflict, "revision_conflict", "configuration changed")
+		return
+	}
 	if s.scenario.ReadOnly {
 		writeReadOnly(w)
 		return
@@ -141,8 +156,23 @@ func (s *Server) handlePatchUser(w http.ResponseWriter, r *http.Request, usernam
 	if raw, present := patch["enabled"]; present && !isJSONNull(raw) {
 		_ = json.Unmarshal(raw, &u.Enabled)
 	}
+	if raw, present := patch["secret"]; present {
+		var secret string
+		if json.Unmarshal(raw, &secret) != nil || len(secret) != 32 {
+			writeErr(w, 400, "bad_request", "invalid secret")
+			return
+		}
+		s.secrets[username] = secret
+		u.Links = copyUserLinks(secret)
+	}
 	s.users[username] = u
 	writeOK(w, http.StatusOK, u, s.bumpRevision())
+}
+
+// Real Telemt returns connection links after create/patch. Copy readback must
+// observe the requested secret instead of the mock's previous empty link list.
+func copyUserLinks(secret string) telemt.UserLinks {
+	return telemt.UserLinks{Classic: []string{"tg://proxy?server=example.com&port=443&secret=" + secret}, Secure: []string{}, TLS: []string{}, TLSDomains: []telemt.TLSDomainLink{}}
 }
 
 func isJSONNull(raw json.RawMessage) bool {

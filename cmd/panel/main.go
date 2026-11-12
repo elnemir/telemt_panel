@@ -18,10 +18,13 @@ import (
 	"github.com/amirotin/telemt_panel/internal/atomicfile"
 	"github.com/amirotin/telemt_panel/internal/auth"
 	"github.com/amirotin/telemt_panel/internal/config"
+	"github.com/amirotin/telemt_panel/internal/customer"
 	"github.com/amirotin/telemt_panel/internal/host"
 	"github.com/amirotin/telemt_panel/internal/httpapi"
 	"github.com/amirotin/telemt_panel/internal/hub"
 	"github.com/amirotin/telemt_panel/internal/migration"
+	"github.com/amirotin/telemt_panel/internal/nodes"
+	"github.com/amirotin/telemt_panel/internal/platform"
 	"github.com/amirotin/telemt_panel/internal/store"
 	"github.com/amirotin/telemt_panel/internal/telemt"
 	"github.com/amirotin/telemt_panel/internal/update"
@@ -144,17 +147,61 @@ func runRuntimeStore(ctx context.Context, cfg *config.Config, configPath string,
 		return 1
 	}
 
+	var platformStore *platform.Store
+	if cfg.Platform.Enabled {
+		key, keyErr := platform.KeyFromEnvironment(cfg.Platform.KeyEnv)
+		if keyErr != nil {
+			slog.Error("open platform", "err", keyErr)
+			return 1
+		}
+		platformPath, pathErr := filepath.Abs(filepath.Join(cfg.DataDir, "platform.sqlite"))
+		if pathErr != nil {
+			clear(key)
+			slog.Error("resolve platform path", "err", pathErr)
+			return 1
+		}
+		platformStore, err = platform.Open(platformPath, key)
+		clear(key)
+		if err != nil {
+			slog.Error("open platform", "err", err)
+			return 1
+		}
+		defer func() {
+			if err := platformStore.Close(); err != nil {
+				slog.Error("close platform", "err", err)
+				code = 1
+			}
+		}()
+	}
+
+	var customerService *customer.Service
+	if cfg.CustomerPortal.Enabled {
+		customerService, err = customer.New(platformStore, cfg.CustomerPortal, cfg.BasePath)
+		if err != nil {
+			slog.Error("open customer portal", "err", err)
+			return 1
+		}
+		defer customerService.Close()
+	}
+	registry, err := nodes.Open(st, cfg.Telemt.URL, cfg.Telemt.AuthHeader)
+	if err != nil {
+		slog.Error("open node registry", "err", err)
+		return 1
+	}
+	defer registry.Close()
 	tc := telemt.New(cfg.Telemt.URL, cfg.Telemt.AuthHeader)
 	hb := hub.New(hub.Config{}, tc, st)
 	defer hb.Close()
-	hb.StartPersistentCollectors()
+	if !cfg.ControlPlaneOnly && !cfg.Agent.Enabled {
+		hb.StartPersistentCollectors()
+	}
 	onReady := func() error {
 		if pending != nil {
 			return update.ConfirmPanelReady(st, *pending, version)
 		}
 		return nil
 	}
-	srv := httpapi.New(cfg, tc, st, hb, version, httpapi.EngineOptions{PanelLifecycleContext: ctx, OnReady: onReady})
+	srv := httpapi.New(cfg, tc, st, hb, version, httpapi.EngineOptions{PanelLifecycleContext: ctx, OnReady: onReady, Nodes: registry, Platform: platformStore, Customer: customerService})
 	srv.SetTLSConfigPath(configPath)
 	if err := srv.Run(ctx); err != nil {
 		slog.Error("server", "err", err)

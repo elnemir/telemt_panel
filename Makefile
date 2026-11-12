@@ -10,7 +10,7 @@ RELEASE_CHECK_SIZE ?= 1
 FULL_SIZE_LIMIT := 33554432
 LITE_SIZE_LIMIT := 16777216
 
-.PHONY: build build-lite test test-race lint release release-binaries release-size clean mock web dev-frontend dev-backend
+.PHONY: build build-agent build-lite test test-race lint release release-binaries release-size clean mock web dev-frontend dev-backend
 
 # Builds the SPA straight into internal/webui/dist (web/vite.config.ts's
 # outDir) — the package's go:embed directive picks it up with no
@@ -22,6 +22,10 @@ web:
 
 build: web
 	CGO_ENABLED=0 go build -ldflags="$(LDFLAGS)" -o telemt-panel ./cmd/panel
+
+# Agent mode does not serve the embedded SPA; use agent.example.toml.
+build-agent:
+	CGO_ENABLED=0 go build -ldflags="$(LDFLAGS)" -o telemt-agent ./cmd/panel
 
 build-lite: web
 	CGO_ENABLED=0 GOEXPERIMENT=$(LITE_GOEXPERIMENT) go build -tags lite -ldflags="$(LDFLAGS)" -o telemt-panel-lite ./cmd/panel

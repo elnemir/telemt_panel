@@ -1,3 +1,4 @@
+import {nodeStorageKey} from "../nodes/scope";
 import {useContext,useState,type ReactNode} from "react";
 import {Link} from "@tanstack/react-router";
 import {useMutation,useQuery,useQueryClient} from "@tanstack/react-query";
@@ -13,7 +14,7 @@ import {Sheet} from "../ui/Sheet";
 import {Skeleton} from "../ui/Skeleton";
 import "./bulkQuota.css";
 
-const storageKey=()=>`telemt-panel:quota-reset:${getBasePath()}`;
+const storageKey=()=>nodeStorageKey(`telemt-panel:quota-reset:${getBasePath()}`,getBasePath());
 function savedOperation(){try{return sessionStorage.getItem(storageKey())??undefined;}catch{return undefined;}}
 
 export function BulkQuotaProvider({children}:{children:ReactNode}){

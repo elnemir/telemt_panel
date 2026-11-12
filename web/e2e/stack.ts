@@ -1,3 +1,4 @@
+import {startCustomerFixture,CUSTOMER_SMTP_PASSWORD,CUSTOMER_PAYMENT_PASSWORD1,CUSTOMER_PAYMENT_PASSWORD2,type CustomerFixture} from "./customer-fixture";
 // e2e/stack.ts — starts/stops the real panel binary + cmd/telemt-mock for
 // the Playwright suite to run against (plan Rulings R4: e2e runs against
 // the BUILT binary, not vite dev + a mocked fetch layer). Deliberately
@@ -6,6 +7,7 @@
 // one-time setup this expects (`make build` for the panel; this module
 // builds cmd/telemt-mock itself, since that binary is dev/test-only and
 // never part of any `make build`/`make release` output).
+import {randomBytes} from "node:crypto";
 import { spawn, type ChildProcess } from "node:child_process";
 import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { existsSync } from "node:fs";
@@ -22,6 +24,7 @@ const REPO_ROOT = path.resolve(__dirname, "..", "..");
 export const PANEL_BINARY = process.env["TELEMT_PANEL_E2E_BINARY"] ?? path.join(REPO_ROOT, "telemt-panel");
 
 export interface Stack {
+  customer?: CustomerFixture;
   panel: ChildProcess;
   mock: ChildProcess;
   tmpDir: string;
@@ -96,26 +99,32 @@ export async function startStack(): Promise<Stack> {
 
   const passwordHash = await captureStdout(PANEL_BINARY, ["hash-password"], ADMIN_PASSWORD + "\n");
 
+  const customer = process.env["TELEMT_CUSTOMER_E2E"] === "1" ? await startCustomerFixture(tmpDir) : undefined;
   const configPath = path.join(tmpDir, "config.toml");
+  const standalone = process.env["CONTROL_PLANE_ONLY"] === "1";
   await writeFile(
     configPath,
     [
       `listen = "127.0.0.1:${PANEL_PORT}"`,
+      `control_plane_only = ${standalone}`,
       `data_dir = "${path.join(tmpDir, "state")}"`,
       "",
-      "[telemt]",
-      `url = "${MOCK_URL}"`,
-      `auth_header = ""`,
+      ...(standalone ? [] : ["[telemt]", `url = "${MOCK_URL}"`, `auth_header = ""`]),
       "",
       "[auth]",
       `username = "${ADMIN_USERNAME}"`,
       `password_hash = "${passwordHash}"`,
       "",
+      "[platform]",
+      `enabled = ${process.env["TELEMT_PLATFORM_E2E"] === "1" || !!customer}`,
+      `encryption_key_env = "TELEMT_PLATFORM_TEST_KEY"`,
+      "",
+      ...(customer ? ["[customer_portal]","enabled = true",`public_url = "${BASE_URL}"`,"[customer_portal.email]","enabled = true",'host = "127.0.0.1"',"port = 48197",'mode = "tls"','from = "noreply@example.test"','username = "sender"','password_env = "TELEMT_CUSTOMER_E2E_SMTP"',`ca_file = "${customer.caFile}"`,""] : []),
       "[store]",
       `driver = "memory"`,
       "",
       "[subpage]",
-      "enabled = true",
+      `enabled = ${!standalone}`,
       `listen = "127.0.0.1:48181"`,
       `public_url = "http://localhost:48181"`,
       `base_path = "/sub"`,
@@ -134,7 +143,21 @@ export async function startStack(): Promise<Stack> {
   const mock = spawn(mockBinary, ["-listen", `:${MOCK_PORT}`, "-scenario", scenario, ...versionArgs], {
     stdio: ["ignore", "pipe", "pipe"],
   });
+  // Start the dependency before the panel's persistent collectors. A failed
+  // initial observation delays the first traffic baseline by one 30s poll
+  // and makes clean-store history assertions depend on process scheduling.
+  mock.stdout?.on("data", (d) => process.stdout.write(`[telemt-mock] ${d}`));
+  mock.stderr?.on("data", (d) => process.stderr.write(`[telemt-mock] ${d}`));
+  try {
+    await waitForHealth(`${MOCK_URL}/v1/health`, 30_000);
+  } catch (err) {
+    await killAndWait(mock);
+    await customer?.close();
+    await rm(tmpDir, { recursive: true, force: true });
+    throw err;
+  }
   const panel = spawn(PANEL_BINARY, ["--config", configPath], {
+    env:{...process.env,TELEMT_PLATFORM_TEST_KEY:randomBytes(32).toString("base64"),...(customer?{TELEMT_CUSTOMER_E2E_SMTP:CUSTOMER_SMTP_PASSWORD,TELEMT_PAYMENT_E2E_PASSWORD1:CUSTOMER_PAYMENT_PASSWORD1,TELEMT_PAYMENT_E2E_PASSWORD2:CUSTOMER_PAYMENT_PASSWORD2}:{})},
     stdio: ["ignore", "pipe", "pipe"],
   });
 
@@ -142,7 +165,6 @@ export async function startStack(): Promise<Stack> {
   // rather than silently swallowed — both processes' own stdout/stderr are
   // otherwise invisible once globalSetup returns.
   for (const [name, proc] of [
-    ["telemt-mock", mock],
     ["telemt-panel", panel],
   ] as const) {
     proc.stdout?.on("data", (d) => process.stdout.write(`[${name}] ${d}`));
@@ -150,18 +172,14 @@ export async function startStack(): Promise<Stack> {
   }
 
   try {
-    // The panel's own /api/health is the readiness signal for the whole
-    // stack — it only serves once its own HTTP server is up, and every
-    // subsequent test call goes through the panel anyway (it proxies to
-    // telemt-mock, never the other way around), so there is no separate
-    // "is telemt-mock up" probe to make here.
+    // Both dependency readiness and the panel HTTP listener are required.
     await waitForHealth(`${BASE_URL}/api/health`, 30_000);
   } catch (err) {
-    await stopStack({ panel, mock, tmpDir });
+    await stopStack({ panel, mock, tmpDir, customer });
     throw err;
   }
 
-  return { panel, mock, tmpDir };
+  return { panel, mock, tmpDir, customer };
 }
 
 export function killAndWait(proc: ChildProcess): Promise<void> {
@@ -185,5 +203,6 @@ export function killAndWait(proc: ChildProcess): Promise<void> {
 // test in between crashed the runner.
 export async function stopStack(stack: Stack): Promise<void> {
   await Promise.all([killAndWait(stack.panel), killAndWait(stack.mock)]);
+  await stack.customer?.close();
   await rm(stack.tmpDir, { recursive: true, force: true });
 }

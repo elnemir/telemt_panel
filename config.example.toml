@@ -3,6 +3,9 @@
 # Explicit access settings update the selected endpoint's listener, URL, prefix and TLS.
 # Unknown keys and tables are rejected at startup; check spelling against this example.
 
+# Central-only installation: set true and REMOVE [telemt] URL/auth_header.
+# Nodes are then added through the UI; no local Telemt service/collectors start.
+# control_plane_only = true
 listen = "0.0.0.0:8080"
 
 # Base path for running behind a reverse proxy on a sub-path. Injected
@@ -146,3 +149,30 @@ mode = "http"
 # Installed binary paths that updates replace.
 # telemt_binary_path = "/bin/telemt"
 # panel_binary_path = "/usr/local/bin/telemt-panel"
+
+# Optional transactional clusters (full build only). Independent nodes work
+# without this section. Keep this key separately from database backups.
+[platform]
+enabled = false
+encryption_key_env = "TELEMT_PLATFORM_KEY"
+
+# Customer portal is independent of administrator authentication. Requires the
+# full build, platform.enabled and a durable data_dir. Same base_path as panel.
+[customer_portal]
+enabled = false
+public_url = "https://panel.example.com"
+
+[customer_portal.email]
+enabled = false
+host = "smtp.example.com"
+port = 465
+mode = "tls" # tls (implicit TLS) or starttls; certificate verification mandatory
+from = "noreply@example.com"
+username = "noreply@example.com"
+password_env = "TELEMT_CUSTOMER_SMTP_PASSWORD"
+ca_file = "" # optional absolute PEM CA file, added to system trust roots
+
+[customer_portal.telegram]
+enabled = false
+client_id = "" # BotFather Login Widget client ID
+client_secret_env = "TELEMT_CUSTOMER_TELEGRAM_SECRET"

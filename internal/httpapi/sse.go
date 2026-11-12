@@ -137,12 +137,16 @@ const sseHeartbeatFrame = "event: heartbeat\ndata: {}\n\n"
 // writeSSEEvent renders one hub.Event as an SSE frame: `id`/`event`/`data`
 // lines followed by a blank line.
 func writeSSEEvent(w io.Writer, e hub.Event) error {
+	return writeScopedSSEEvent(w, e, "")
+}
+
+func writeScopedSSEEvent(w io.Writer, e hub.Event, scope string) error {
 	if e.Err != "" {
 		payload, err := json.Marshal(sseErrorPayload{Topic: e.Topic, Code: e.Err})
 		if err != nil {
 			return err
 		}
-		_, err = fmt.Fprintf(w, "id: %d\nevent: source_error\ndata: %s\n\n", e.Seq, payload)
+		_, err = fmt.Fprintf(w, "id: %s%d\nevent: source_error\ndata: %s\n\n", scope, e.Seq, payload)
 		return err
 	}
 
@@ -150,7 +154,7 @@ func writeSSEEvent(w io.Writer, e hub.Event) error {
 	if err != nil {
 		return err
 	}
-	_, err = fmt.Fprintf(w, "id: %d\nevent: %s\ndata: %s\n\n", e.Seq, e.Topic, payload)
+	_, err = fmt.Fprintf(w, "id: %s%d\nevent: %s\ndata: %s\n\n", scope, e.Seq, e.Topic, payload)
 	return err
 }
 
@@ -162,6 +166,7 @@ func writeSSEEvent(w io.Writer, e hub.Event) error {
 // `event: heartbeat` frame (sseHeartbeatFrame) during quiet periods to keep
 // intermediary proxies from timing the connection out.
 func (s *Server) handleEvents(w http.ResponseWriter, r *http.Request) {
+	scope, _ := r.Context().Value(nodeStreamScopeKey{}).(string)
 	topics, err := parseTopics(r.URL.Query().Get("topics"))
 	if err != nil {
 		auth.WriteError(w, http.StatusBadRequest, "bad_request", err.Error())
@@ -207,11 +212,12 @@ func (s *Server) handleEvents(w http.ResponseWriter, r *http.Request) {
 	// anything at or under this watermark to avoid delivering it twice.
 	var lastReplayedSeq uint64
 	replayed := false
-	if lastID := r.Header.Get("Last-Event-ID"); lastID != "" {
+	if lastID := r.Header.Get("Last-Event-ID"); lastID != "" && strings.HasPrefix(lastID, scope) {
+		lastID = strings.TrimPrefix(lastID, scope)
 		if since, err := strconv.ParseUint(lastID, 10, 64); err == nil {
 			if events, ok := s.hub.ReplaySince(since, topics); ok {
 				for _, e := range events {
-					if err := stream.write(func() error { return writeSSEEvent(w, e) }); err != nil {
+					if err := stream.write(func() error { return writeScopedSSEEvent(w, e, scope) }); err != nil {
 						return
 					}
 					if e.Seq > lastReplayedSeq {
@@ -224,7 +230,7 @@ func (s *Server) handleEvents(w http.ResponseWriter, r *http.Request) {
 	}
 	if !replayed {
 		for _, e := range snapshots {
-			if err := stream.write(func() error { return writeSSEEvent(w, e) }); err != nil {
+			if err := stream.write(func() error { return writeScopedSSEEvent(w, e, scope) }); err != nil {
 				return
 			}
 		}
@@ -253,7 +259,7 @@ func (s *Server) handleEvents(w http.ResponseWriter, r *http.Request) {
 				// lastReplayedSeq's doc comment.
 				continue
 			}
-			if err := stream.write(func() error { return writeSSEEvent(w, e) }); err != nil {
+			if err := stream.write(func() error { return writeScopedSSEEvent(w, e, scope) }); err != nil {
 				return
 			}
 			flusher.Flush()

@@ -20,6 +20,7 @@ const selfUpdateHint = "binary updates are unavailable because the installation 
 
 // hostCaps mirrors openapi HostInfo.caps.
 type hostCaps struct {
+	ConfigFile    bool `json:"config_file"`
 	StartTelemt   bool `json:"start_telemt"`
 	StopTelemt    bool `json:"stop_telemt"`
 	RestartTelemt bool `json:"restart_telemt"`
