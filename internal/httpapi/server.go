@@ -60,6 +60,7 @@ type Server struct {
 	cfg                *config.Config
 	tc                 *telemt.Client
 	nodes              *nodes.Registry
+	nodeInstallation   *nodeInstallJobs
 	nodeRuntimeMu      sync.Mutex
 	nodeRuntimesClosed bool
 	nodeEntries        map[string]*nodeRuntimeEntry
@@ -127,6 +128,7 @@ type EngineOptions struct {
 	Customer              *customer.Service
 	Platform              *platform.Store
 	Nodes                 *nodes.Registry
+	NodeInstaller         NodeInstaller
 	PanelLifecycleContext context.Context
 	OnReady               func() error
 }
@@ -346,6 +348,10 @@ func New(cfg *config.Config, tc *telemt.Client, st store.Store, hb *hub.Hub, ver
 		serviceStopAllowed:  stopAllowed,
 		webUI:               webUI,
 	}
+	if engineOptions.NodeInstaller != nil && !cfg.Agent.Enabled && !cfg.Auth.Disabled && s.nodes != nil && s.nodes.ManagedAvailable() {
+		s.nodeInstallation = newNodeInstallJobs(engineOptions.PanelLifecycleContext, engineOptions.NodeInstaller)
+	}
+
 	if cfg.Agent.Enabled {
 		if cfg.Agent.ConfigPath != "" {
 			s.agentConfig, err = nodeagent.NewConfigFiles(cfg.Agent.ConfigBinary, cfg.Agent.ConfigPath, cfg.DataDir)
@@ -555,6 +561,9 @@ func (s *Server) Handler() http.Handler {
 	mux.Handle("POST /api/user-copies", protect(s.handleExecuteUserCopy))
 	mux.Handle("GET /api/user-copies/{key}", protect(s.handleUserCopyStatus))
 	mux.Handle("POST /api/nodes", protect(s.handleCreateNode))
+	mux.Handle("POST /api/node-installs/preview", protect(sessionOnly(s.handlePreviewNodeInstall)))
+	mux.Handle("POST /api/node-installs/{install_id}/apply", protect(sessionOnly(s.handleApplyNodeInstall)))
+	mux.Handle("GET /api/node-installs/{install_id}", protect(sessionOnly(s.handleNodeInstallStatus)))
 	mux.Handle("GET /api/nodes/{node_id}", protect(s.handleGetNode))
 	mux.Handle("PUT /api/nodes/{node_id}", protect(s.handleReplaceNode))
 	mux.Handle("DELETE /api/nodes/{node_id}", protect(s.handleDeleteNode))
@@ -774,6 +783,9 @@ func (s *Server) Run(ctx context.Context) error {
 	var wg sync.WaitGroup
 	defer func() {
 		cancel()
+		if s.nodeInstallation != nil {
+			s.nodeInstallation.close()
+		}
 		s.access.close()
 		s.quotaResets.Close()
 		wg.Wait()

@@ -160,7 +160,7 @@ func (s *Server) acquireNodeRuntime(id string) (*nodeRuntime, func(), error) {
 			subSvc:   subpage.NewService(cfg.Subpage.Secret, cfg.Subpage.BasePath, e.store),
 			subIndex: subpage.NewIndex(cfg.Subpage.Secret, client, e.store)}
 		if n.Binding.URL != "" {
-			child.agentClient, _ = nodeagent.NewClient(n.Binding)
+			child.agentClient, _ = s.nodes.AgentClient(n)
 		}
 		child.quotaResets = quotareset.New(client, child.quotaResetEvent)
 		child.quotaSchedules = quotareset.NewScheduler(e.store, child.quotaResets)

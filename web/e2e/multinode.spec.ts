@@ -29,6 +29,30 @@ test("registry UI, document selection, isolated users/SSE and TOML save", async 
   for(let i=0;i<2;i++) {
     await page.getByRole("button",{name:"Добавить ноду",exact:true}).click();
     const dialog=page.getByRole("dialog");
+    if (i === 0) {
+      const guide = dialog.locator("details").filter({ hasText: "Как настроить Telemt для подключения" });
+      await expect(guide.locator("code").first()).toBeHidden();
+      await guide.locator("summary").click();
+      await expect(guide.locator("code").first()).toContainText('[server.api]');
+      await expect(guide.locator("code").first()).toContainText('whitelist = ["10.42.0.10/32"]');
+      await expect(guide.locator("code").last()).toContainText('TELEMT_NODE_A_AUTH="Bearer REPLACE_WITH_RANDOM_TOKEN"');
+      await expect(guide.getByRole("button", { name: "Скопировать TOML", exact: true })).toBeVisible();
+      await expect(dialog.getByLabel("Адрес API", { exact: true })).toHaveValue("");
+      await guide.locator("summary").click();
+
+      const agent = dialog.getByRole("group", { name: "Агент управления хостом (необязательно)" });
+      const agentAddress = agent.getByLabel("Адрес агента", { exact: true });
+      const agentIdentity = agent.getByLabel("Идентификатор агента", { exact: true });
+      const agentEnv = agent.getByLabel("Переменная окружения для Authorization агента", { exact: true });
+      await expect(agent).toContainText("telemt-agent — отдельная служба на сервере Telemt");
+      await expect(agentAddress).not.toHaveAttribute("required");
+      await agentIdentity.fill("telemt-agent-example_01");
+      await expect(agentAddress).toHaveAttribute("required", "");
+      await expect(agentEnv).toHaveAttribute("required", "");
+      expect(await agentIdentity.evaluate((input: HTMLInputElement) => input.checkValidity())).toBe(true);
+      await agentIdentity.clear();
+      await expect(agentAddress).not.toHaveAttribute("required");
+    }
     await dialog.getByLabel("Название",{exact:true}).fill(names[i]!);
     await dialog.getByLabel("Адрес API",{exact:true}).fill(urls[i]!);
     await dialog.getByRole("button",{name:"Сохранить",exact:true}).click();
@@ -111,4 +135,47 @@ test("registry UI, document selection, isolated users/SSE and TOML save", async 
     expect(new URL(page.url()).searchParams.get("node")).toBe(id);
     await expect(selector()).toBeInViewport();
   }
+});
+
+test("SSH installer checks the host before confirming and tracks registry admission", async ({ page, login }) => {
+  await page.route("**/api/nodes", async route => {
+    const response = await route.fetch();
+    await route.fulfill({ response, json: { ...await response.json(), ssh_install_available: true } });
+  });
+  await login();
+  let starts = 0;
+  let checks = 0;
+  const id = "11111111111111111111111111111111";
+  const input = {
+    name: "Fresh node", host: "192.0.2.20", ssh_port: 22, ssh_user: "root",
+    host_fingerprint: "SHA256:" + "a".repeat(43), proxy_port: 443,
+    management_port: 9443, with_agent: true,
+  };
+  const plan = { ...input, architecture: "x86_64", panel_peer: "192.0.2.10", release: "3.5.17", api_url: "https://192.0.2.20:9443" };
+  await page.route("**/api/node-installs/preview", async route => {
+    expect(route.request().postDataJSON()).toEqual(input);
+    await route.fulfill({ json: { id, plan, state: "prepared" } });
+  });
+  await page.route("**/api/node-installs/" + id + "/apply", async route => {
+    starts++;
+    await route.fulfill({ status: 202, json: { id, plan, state: "checking" } });
+  });
+  await page.route("**/api/node-installs/" + id, async route => {
+    const state = starts ? (++checks > 1 ? "installed" : "checking") : "prepared";
+    await route.fulfill({ json: { id, plan, state, ...(state === "installed" ? { node_id: "n_new" } : {}) } });
+  });
+  await page.getByRole("button", { name: "Установить по SSH", exact: true }).click();
+  const dialog = page.getByRole("dialog", { name: "Установить по SSH" });
+  await dialog.getByLabel("Название", { exact: true }).fill(input.name);
+  await dialog.getByLabel("IP-адрес сервера", { exact: true }).fill(input.host);
+  await dialog.getByLabel("Отпечаток ED25519 ключа SSH-хоста", { exact: true }).fill(input.host_fingerprint);
+  await dialog.getByRole("checkbox", { name: /Установить telemt-agent/ }).check();
+  await dialog.getByRole("button", { name: "Проверить хост", exact: true }).click();
+  await expect(dialog.getByRole("status")).toHaveText("План установки");
+  expect(starts).toBe(0);
+  await dialog.getByRole("button", { name: "Начать установку", exact: true }).click();
+  await expect(dialog.getByRole("status")).toHaveText("Нода добавлена");
+  expect(starts).toBe(1);
+  await dialog.getByRole("button", { name: "Готово", exact: true }).click();
+  await expect(dialog).toBeHidden();
 });

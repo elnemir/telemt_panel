@@ -3,6 +3,7 @@ package nodeagent
 import (
 	"bytes"
 	"context"
+	"crypto/tls"
 	"errors"
 	"io"
 	"net/http"
@@ -30,11 +31,16 @@ type Binding struct {
 	AuthEnv string `json:"agent_auth_env,omitempty"`
 }
 
-func ValidateBinding(b Binding) error {
+func ValidateBinding(b Binding) error { return validateBinding(b, false) }
+
+func ValidateManagedBinding(b Binding) error { return validateBinding(b, true) }
+
+func validateBinding(b Binding, managed bool) error {
 	if b.URL == "" && b.ID == "" && b.AuthEnv == "" {
 		return nil
 	}
-	if !IDPattern.MatchString(b.ID) || !EnvPattern.MatchString(b.AuthEnv) || len(b.URL) > 2048 {
+	if !IDPattern.MatchString(b.ID) || (!managed && !EnvPattern.MatchString(b.AuthEnv)) ||
+		(managed && b.AuthEnv != "") || len(b.URL) > 2048 {
 		return ErrIdentity
 	}
 	u, err := url.Parse(b.URL)
@@ -53,6 +59,9 @@ func ValidateBinding(b Binding) error {
 		}
 	}
 	if u.Scheme != "https" {
+		if managed {
+			return ErrIdentity
+		}
 		ip, e := netip.ParseAddr(u.Hostname())
 		if u.Scheme != "http" || (u.Hostname() != "localhost" && (e != nil || !ip.IsLoopback())) {
 			return ErrIdentity
@@ -63,6 +72,7 @@ func ValidateBinding(b Binding) error {
 
 type Client struct {
 	binding Binding
+	auth    string
 	http    *http.Client
 }
 
@@ -70,16 +80,37 @@ func NewClient(b Binding) (*Client, error) {
 	if b.URL == "" || ValidateBinding(b) != nil {
 		return nil, ErrIdentity
 	}
+	return newClient(b, "", nil), nil
+}
+
+func NewManagedClient(b Binding, auth string, trust *tls.Config) (*Client, error) {
+	if b.URL == "" || ValidateManagedBinding(b) != nil || trust == nil {
+		return nil, ErrIdentity
+	}
+	if len(auth) < 32 || strings.ContainsAny(auth, "\r\n") {
+		return nil, ErrCredentials
+	}
+	return newClient(b, auth, trust), nil
+}
+
+func newClient(b Binding, auth string, trust *tls.Config) *Client {
 	tr := http.DefaultTransport.(*http.Transport).Clone()
+	if trust != nil {
+		tr.TLSClientConfig = trust
+		tr.Proxy = nil
+	}
 	tr.ResponseHeaderTimeout = 55 * time.Second
-	return &Client{binding: b, http: &http.Client{Transport: tr, CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }}}, nil
+	return &Client{binding: b, auth: auth, http: &http.Client{Transport: tr, CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }}}
 }
 func (c *Client) Close() { c.http.CloseIdleConnections() }
 func (c *Client) Request(ctx context.Context, method, path, key string) (*http.Response, error) {
 	return c.RequestBody(ctx, method, path, key, nil)
 }
 func (c *Client) RequestBody(ctx context.Context, method, path, key string, body []byte) (*http.Response, error) {
-	value := os.Getenv(c.binding.AuthEnv)
+	value := c.auth
+	if value == "" {
+		value = os.Getenv(c.binding.AuthEnv)
+	}
 	if len(value) < 32 || strings.ContainsAny(value, "\r\n") {
 		return nil, ErrCredentials
 	}

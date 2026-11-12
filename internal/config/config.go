@@ -38,6 +38,7 @@ type Config struct {
 
 	CustomerPortal CustomerPortalConfig `toml:"customer_portal"`
 	Platform       PlatformConfig       `toml:"platform"`
+	NodeInstall    NodeInstallConfig    `toml:"node_install"`
 	Agent          AgentConfig          `toml:"agent"`
 	Telemt         TelemtConfig         `toml:"telemt"`
 	Auth           AuthConfig           `toml:"auth"`
@@ -54,6 +55,13 @@ type Config struct {
 type PlatformConfig struct {
 	Enabled bool   `toml:"enabled"`
 	KeyEnv  string `toml:"encryption_key_env"`
+}
+
+// NodeInstallConfig enables the privileged, SSH-based clean host installer.
+type NodeInstallConfig struct {
+	Enabled    bool   `toml:"enabled"`
+	SSHKeyFile string `toml:"ssh_key_file"`
+	KeyEnv     string `toml:"encryption_key_env"`
 }
 
 // AgentConfig switches the binary to the private node host API only.
@@ -232,6 +240,14 @@ func decode(data []byte, path string) (*Config, error) {
 
 	if cfg.Platform.Enabled && (cfg.Agent.Enabled || cfg.DataDir == "" || !nodeagent.EnvPattern.MatchString(cfg.Platform.KeyEnv)) {
 		return nil, fmt.Errorf("platform: central mode, durable data_dir and encryption_key_env are required")
+	}
+
+	if cfg.NodeInstall.KeyEnv != "" && !nodeagent.EnvPattern.MatchString(cfg.NodeInstall.KeyEnv) {
+		return nil, fmt.Errorf("node_install: invalid encryption_key_env")
+	}
+	if cfg.NodeInstall.Enabled && (cfg.Agent.Enabled || cfg.Auth.Disabled || cfg.DataDir == "" ||
+		cfg.NodeInstall.KeyEnv == "" || !filepath.IsAbs(cfg.NodeInstall.SSHKeyFile)) {
+		return nil, fmt.Errorf("node_install: administrator authentication, durable data_dir, encryption_key_env and absolute ssh_key_file are required")
 	}
 
 	if cfg.Agent.Enabled {

@@ -15,6 +15,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 )
 
 // maxDownloadSize bounds a single downloaded release asset — generous for
@@ -295,4 +296,20 @@ func (e *Engine) CheckAndPublish(ctx context.Context, targetName string) {
 	if e.hub != nil {
 		e.hub.PublishUpdate(data)
 	}
+}
+
+// FetchVerifiedBinary is used by node installation with a pinned release URL
+// and SHA-256. The caller supplies a private, empty staging directory.
+func FetchVerifiedBinary(ctx context.Context, asset, digest, dir string) (string, error) {
+	archive := filepath.Join(dir, "release.tar.gz")
+	defer os.Remove(archive)
+	fetcher := Engine{httpClient: &http.Client{Timeout: 2 * time.Minute}}
+	if err := fetcher.download(ctx, asset, archive); err != nil {
+		return "", err
+	}
+	got, err := sha256File(archive)
+	if err != nil || got != digest {
+		return "", errors.New("release checksum verification failed")
+	}
+	return extractSingleBinary(archive, dir)
 }

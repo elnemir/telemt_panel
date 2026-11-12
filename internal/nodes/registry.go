@@ -2,6 +2,7 @@
 package nodes
 
 import (
+	"crypto/cipher"
 	"crypto/rand"
 	"encoding/hex"
 	"encoding/json"
@@ -60,17 +61,19 @@ type Input struct {
 
 type Node struct {
 	Input
-	ID             string    `json:"id"`
-	Source         string    `json:"source"`
-	Revision       uint64    `json:"revision"`
-	AuthConfigured bool      `json:"auth_configured"`
-	CreatedAt      time.Time `json:"created_at"`
-	UpdatedAt      time.Time `json:"updated_at"`
+	ID                 string    `json:"id"`
+	Source             string    `json:"source"`
+	Revision           uint64    `json:"revision"`
+	AuthConfigured     bool      `json:"auth_configured"`
+	ManagedCredentials bool      `json:"managed_credentials,omitempty"`
+	CreatedAt          time.Time `json:"created_at"`
+	UpdatedAt          time.Time `json:"updated_at"`
 }
 
 type document struct {
-	Version int    `json:"version"`
-	Nodes   []Node `json:"nodes"`
+	Version int               `json:"version"`
+	Nodes   []Node            `json:"nodes"`
+	Managed map[string][]byte `json:"managed,omitempty"`
 }
 
 type cachedClient struct {
@@ -85,12 +88,22 @@ type Registry struct {
 	clients     map[string]cachedClient
 	defaultAuth string
 	lookupEnv   func(string) (string, bool)
+	managed     map[string][]byte
+	seal        cipher.AEAD
 }
 
 // Open validates stored identities before serving. The legacy configuration
 // remains authoritative for default; its secret is never copied into state.
 func Open(state State, defaultURL, defaultAuth string) (*Registry, error) {
-	r := &Registry{state: state, nodes: map[string]Node{}, clients: map[string]cachedClient{},
+	return OpenWithKey(state, defaultURL, defaultAuth, nil)
+}
+
+func OpenWithKey(state State, defaultURL, defaultAuth string, key []byte) (*Registry, error) {
+	seal, err := credentialCipher(key)
+	if err != nil {
+		return nil, err
+	}
+	r := &Registry{state: state, seal: seal, managed: map[string][]byte{}, nodes: map[string]Node{}, clients: map[string]cachedClient{},
 		defaultAuth: defaultAuth, lookupEnv: os.LookupEnv}
 	raw, exists, err := state.GetSetting(settingKey)
 	if err != nil {
@@ -102,7 +115,8 @@ func Open(state State, defaultURL, defaultAuth string) (*Registry, error) {
 			return nil, ErrState
 		}
 		for _, n := range doc.Nodes {
-			input, err := normalize(n.Input)
+			_, managed := doc.Managed[n.ID]
+			input, err := normalizeInput(n.Input, managed)
 			if err != nil || !nodeID.MatchString(n.ID) || n.Revision == 0 || n.Source != "registry" ||
 				n.CreatedAt.IsZero() || n.UpdatedAt.Before(n.CreatedAt) {
 				return nil, ErrState
@@ -111,8 +125,15 @@ func Open(state State, defaultURL, defaultAuth string) (*Registry, error) {
 				return nil, ErrState
 			}
 			n.Input = input
-			n.AuthConfigured = n.AuthHeaderEnv != ""
+			n.ManagedCredentials = managed
+			n.AuthConfigured = managed || n.AuthHeaderEnv != ""
 			r.nodes[n.ID] = n
+		}
+		for id, sealed := range doc.Managed {
+			if _, exists := r.nodes[id]; !exists || len(sealed) < 28 || len(sealed) > 8<<10 {
+				return nil, ErrState
+			}
+			r.managed[id] = sealed
 		}
 	}
 	if defaultURL != "" {
@@ -126,8 +147,17 @@ func Open(state State, defaultURL, defaultAuth string) (*Registry, error) {
 	return r, nil
 }
 
-func normalize(in Input) (Input, error) {
-	if nodeagent.ValidateBinding(in.Binding) != nil {
+func normalize(in Input) (Input, error) { return normalizeInput(in, false) }
+
+func normalizeInput(in Input, managed bool) (Input, error) {
+	validateBinding := nodeagent.ValidateBinding
+	if managed {
+		validateBinding = nodeagent.ValidateManagedBinding
+		if in.AuthHeaderEnv != "" {
+			return Input{}, ErrInvalid
+		}
+	}
+	if validateBinding(in.Binding) != nil {
 		return Input{}, ErrInvalid
 	}
 	in.Name = strings.TrimSpace(in.Name)
@@ -148,6 +178,9 @@ func normalize(in Input) (Input, error) {
 		if err != nil || value == 0 {
 			return Input{}, ErrInvalid
 		}
+	}
+	if managed && (u.Scheme != "https" || (in.Binding.URL != "" && in.Binding.URL != in.APIURL)) {
+		return Input{}, ErrInvalid
 	}
 	if len(in.APIURL) > 2048 || len(in.Name) == 0 || len(in.Name) > 128 ||
 		(in.AuthHeaderEnv != "" && !envName.MatchString(in.AuthHeaderEnv)) || len(in.Labels) > 32 {
@@ -195,14 +228,25 @@ func (r *Registry) Get(id string) (Node, error) {
 	return clone(n), nil
 }
 
-func (r *Registry) Create(in Input) (Node, error) {
-	in, err := normalize(in)
+func (r *Registry) Create(in Input) (Node, error) { return r.create(in, nil) }
+
+func (r *Registry) create(in Input, credentials *ManagedCredentials) (Node, error) {
+	managed := credentials != nil
+	in, err := normalizeInput(in, managed)
 	if err != nil {
 		return Node{}, err
 	}
 	var token [16]byte
 	if _, err := rand.Read(token[:]); err != nil {
 		return Node{}, ErrStorage
+	}
+	id := "n_" + hex.EncodeToString(token[:])
+	var sealed []byte
+	if managed {
+		sealed, err = r.sealCredentials(id, *credentials, in.Binding.URL != "")
+		if err != nil {
+			return Node{}, err
+		}
 	}
 	r.mu.Lock()
 	defer r.mu.Unlock()
@@ -213,31 +257,42 @@ func (r *Registry) Create(in Input) (Node, error) {
 	if count >= MaxNodes {
 		return Node{}, ErrLimit
 	}
+	if managed {
+		for _, existing := range r.nodes {
+			if existing.APIURL == in.APIURL {
+				return Node{}, ErrConflict
+			}
+		}
+	}
 	now := time.Now().UTC()
-	n := Node{Input: in, ID: "n_" + hex.EncodeToString(token[:]), Source: "registry",
-		Revision: 1, AuthConfigured: in.AuthHeaderEnv != "", CreatedAt: now, UpdatedAt: now}
+	n := Node{Input: in, ID: id, Source: "registry", Revision: 1,
+		AuthConfigured: managed || in.AuthHeaderEnv != "", ManagedCredentials: managed, CreatedAt: now, UpdatedAt: now}
 	if _, exists := r.nodes[n.ID]; exists {
 		return Node{}, ErrConflict
 	}
-	if err := r.persist(n.ID, &n); err != nil {
+	if err := r.persist(n.ID, &n, sealed); err != nil {
+		if managed && r.nodes[id].ID == id {
+			return clone(n), err // state became visible before a durability error
+		}
 		return Node{}, err
 	}
 	return clone(n), nil
 }
 
 func (r *Registry) Replace(id string, revision uint64, in Input) (Node, error) {
-	in, err := normalize(in)
-	if err != nil {
-		return Node{}, err
-	}
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	n, err := r.mutable(id, revision)
 	if err != nil {
 		return Node{}, err
 	}
+	in, err = normalizeInput(in, n.ManagedCredentials)
+	if err != nil {
+		return Node{}, err
+	}
 	// Reusing an identity for another server would contaminate future history.
-	if n.APIURL != in.APIURL || (n.Binding.ID != "" && (n.Binding.ID != in.Binding.ID || n.Binding.URL != in.Binding.URL)) {
+	if n.APIURL != in.APIURL || (n.ManagedCredentials && n.Binding != in.Binding) ||
+		(n.Binding.ID != "" && (n.Binding.ID != in.Binding.ID || n.Binding.URL != in.Binding.URL)) {
 		return Node{}, ErrInvalid
 	}
 	if n.Revision == ^uint64(0) {
@@ -246,8 +301,8 @@ func (r *Registry) Replace(id string, revision uint64, in Input) (Node, error) {
 	n.Input = in
 	n.Revision++
 	n.UpdatedAt = time.Now().UTC()
-	n.AuthConfigured = in.AuthHeaderEnv != ""
-	if err := r.persist(id, &n); err != nil {
+	n.AuthConfigured = n.ManagedCredentials || in.AuthHeaderEnv != ""
+	if err := r.persist(id, &n, r.managed[id]); err != nil {
 		return Node{}, err
 	}
 	return clone(n), nil
@@ -259,7 +314,7 @@ func (r *Registry) Delete(id string, revision uint64) error {
 	if _, err := r.mutable(id, revision); err != nil {
 		return err
 	}
-	return r.persist(id, nil)
+	return r.persist(id, nil, nil)
 }
 
 func (r *Registry) mutable(id string, revision uint64) (Node, error) {
@@ -278,8 +333,16 @@ func (r *Registry) mutable(id string, revision uint64) (Node, error) {
 
 // persist publishes before replacing memory, except for a published-but-not-
 // durable error. In that case both stores must retain the published version.
-func (r *Registry) persist(id string, next *Node) error {
-	doc := document{Version: 1, Nodes: []Node{}}
+func (r *Registry) persist(id string, next *Node, sealed []byte) error {
+	doc := document{Version: 1, Nodes: []Node{}, Managed: make(map[string][]byte, len(r.managed)+1)}
+	for key, value := range r.managed {
+		if key != id {
+			doc.Managed[key] = value
+		}
+	}
+	if sealed != nil {
+		doc.Managed[id] = sealed
+	}
 	for key, n := range r.nodes {
 		if key != id && n.Source == "registry" {
 			doc.Nodes = append(doc.Nodes, n)
@@ -298,6 +361,7 @@ func (r *Registry) persist(id string, next *Node) error {
 	}
 	err = r.state.SetSetting(settingKey, string(raw))
 	if err == nil || atomicfile.Published(err) {
+		r.managed = doc.Managed
 		if next == nil {
 			delete(r.nodes, id)
 		} else {
@@ -325,6 +389,22 @@ func (r *Registry) Resolve(id string) (Node, *telemt.Client, error) {
 	}
 	if !n.Enabled {
 		return Node{}, nil, ErrDisabled
+	}
+	if n.ManagedCredentials {
+		if c, exists := r.clients[id]; exists {
+			return clone(n), c.client, nil
+		}
+		credentials, err := r.openCredentials(n)
+		if err != nil {
+			return Node{}, nil, err
+		}
+		trust, err := credentials.TLS()
+		if err != nil {
+			return Node{}, nil, err
+		}
+		client := telemt.NewIsolatedTLS(n.APIURL, credentials.Control, trust)
+		r.clients[id] = cachedClient{client: client}
+		return clone(n), client, nil
 	}
 	auth := ""
 	if id == DefaultID {

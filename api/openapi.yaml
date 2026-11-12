@@ -3298,6 +3298,63 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
   # platform paths end
+  /api/node-installs/preview:
+    post:
+      tags: [nodes]
+      operationId: previewNodeInstall
+      description: Verify the pinned SSH host key and read clean-host prerequisites. Does not install files or services.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/NodeInstallInput' }
+      responses:
+        '200':
+          description: Installation plan valid for five minutes
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/NodeInstallJob' }
+        '400': { $ref: '#/components/responses/NodeInstallError' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/NodeInstallError' }
+        '409': { $ref: '#/components/responses/NodeInstallError' }
+        '422': { $ref: '#/components/responses/NodeInstallError' }
+        '503': { $ref: '#/components/responses/NodeInstallError' }
+  /api/node-installs/{install_id}:
+    parameters:
+      - { name: install_id, in: path, required: true, schema: { type: string, pattern: '^[a-f0-9]{32}$' } }
+    get:
+      tags: [nodes]
+      operationId: getNodeInstall
+      description: Retrieve the installing administrator's job status. Process-local job records expire.
+      responses:
+        '200':
+          description: Current installation status
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/NodeInstallJob' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/NodeInstallError' }
+        '404': { $ref: '#/components/responses/NodeInstallError' }
+        '503': { $ref: '#/components/responses/NodeInstallError' }
+  /api/node-installs/{install_id}/apply:
+    parameters:
+      - { name: install_id, in: path, required: true, schema: { type: string, pattern: '^[a-f0-9]{32}$' } }
+    post:
+      tags: [nodes]
+      operationId: applyNodeInstall
+      description: Start the approved installation. A repeat for the same plan returns status without a second installation.
+      responses:
+        '202':
+          description: Accepted for asynchronous installation
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/NodeInstallJob' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/NodeInstallError' }
+        '404': { $ref: '#/components/responses/NodeInstallError' }
+        '409': { $ref: '#/components/responses/NodeInstallError' }
+        '503': { $ref: '#/components/responses/NodeInstallError' }
   /api/nodes:
     get:
       tags:
@@ -10437,6 +10494,11 @@ components:
     HistoryTimeout:
       description: history_timeout — history operation exceeded its deadline or was cancelled. A timed out mutation has no confirmed successful result.
       content: { application/json: { schema: { $ref: "#/components/schemas/Error" } } }
+    NodeInstallError:
+      description: Stable installer error code without SSH output or credentials.
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
     Unauthorized:
       description: No valid session
       content: { application/json: { schema: { $ref: "#/components/schemas/Error" } } }
@@ -11716,6 +11778,47 @@ components:
         body:
           type: object
           additionalProperties: true
+    NodeInstallInput:
+      type: object
+      additionalProperties: false
+      required: [name, host, ssh_port, ssh_user, host_fingerprint, proxy_port, management_port, with_agent]
+      properties:
+        name: { type: string, minLength: 1, maxLength: 128 }
+        host: { type: string, maxLength: 64, description: IPv4 or IPv6 address reachable from the panel for SSH and HTTPS management. }
+        ssh_port: { type: integer, minimum: 1, maximum: 65535 }
+        ssh_user: { type: string, pattern: '^[a-zA-Z_][a-zA-Z0-9_-]{0,63}$', description: SSH account with UID zero on the clean host. }
+        host_fingerprint: { type: string, pattern: '^SHA256:[A-Za-z0-9+/]{43}$' }
+        proxy_port: { type: integer, minimum: 1, maximum: 65535 }
+        management_port: { type: integer, minimum: 1024, maximum: 65535 }
+        with_agent: { type: boolean }
+    NodeInstallPlan:
+      type: object
+      additionalProperties: false
+      required: [name, host, ssh_port, ssh_user, host_fingerprint, proxy_port, management_port, with_agent, architecture, panel_peer, release, api_url]
+      properties:
+        name: { type: string, minLength: 1, maxLength: 128 }
+        host: { type: string, maxLength: 64, description: IPv4 or IPv6 address reachable from the panel for SSH and HTTPS management. }
+        ssh_port: { type: integer, minimum: 1, maximum: 65535 }
+        ssh_user: { type: string, pattern: '^[a-zA-Z_][a-zA-Z0-9_-]{0,63}$', description: SSH account with UID zero on the clean host. }
+        host_fingerprint: { type: string, pattern: '^SHA256:[A-Za-z0-9+/]{43}$' }
+        proxy_port: { type: integer, minimum: 1, maximum: 65535 }
+        management_port: { type: integer, minimum: 1024, maximum: 65535 }
+        with_agent: { type: boolean }
+        architecture: { type: string }
+        panel_peer: { type: string }
+        release: { type: string }
+        api_url: { type: string, format: uri }
+    NodeInstallJob:
+      type: object
+      required: [id, plan, state]
+      properties:
+        id: { type: string }
+        plan: { $ref: '#/components/schemas/NodeInstallPlan' }
+        state:
+          type: string
+          enum: [prepared, checking_host, downloading, installing, checking, installed, failed]
+        code: { type: string }
+        node_id: { type: string }
     NodeInput:
       type: object
       additionalProperties: false
@@ -11831,6 +11934,9 @@ components:
           type: integer
           format: int64
           minimum: 1
+        managed_credentials:
+          type: boolean
+          description: The installer owns the credentials and TLS trust for this node.
         auth_configured:
           type: boolean
           description: Credential reference/configuration present; does not prove it is resolvable.
@@ -11854,6 +11960,9 @@ components:
         state_durable:
           type: boolean
           description: False means registry disappears at process restart, like the existing panel state policy.
+        ssh_install_available:
+          type: boolean
+          description: The panel is configured to install clean hosts using its server-side SSH key.
     NodeHealthSnapshot:
       type: object
       required:
@@ -12129,6 +12238,21 @@ components:
           type: string
           enum:
             - node_registry_unavailable
+            - node_install_invalid
+            - node_install_ssh
+            - node_install_host_key
+            - node_install_unsupported
+            - node_install_existing
+            - node_install_ports
+            - node_install_artifacts
+            - node_install_apply
+            - node_install_health
+            - node_install_registry
+            - node_install_unconfirmed
+            - node_install_disabled
+            - node_install_busy
+            - node_install_not_found
+            - node_install_failed
             - node_not_found
             - node_disabled
             - node_revision_conflict

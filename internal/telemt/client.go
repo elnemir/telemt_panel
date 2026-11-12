@@ -8,6 +8,7 @@ package telemt
 import (
 	"bytes"
 	"context"
+	"crypto/tls"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -74,8 +75,18 @@ func New(baseURL, authHeader string) *Client {
 // NewIsolated gives a registry node its own connection pool and forbids
 // redirecting an authenticated control request to a different destination.
 func NewIsolated(baseURL, authHeader string) *Client {
+	return NewIsolatedTLS(baseURL, authHeader, nil)
+}
+
+// NewIsolatedTLS also allows an installation-specific TLS trust policy.
+func NewIsolatedTLS(baseURL, authHeader string, trust *tls.Config) *Client {
 	c := New(baseURL, authHeader)
-	c.http.Transport = http.DefaultTransport.(*http.Transport).Clone()
+	transport := http.DefaultTransport.(*http.Transport).Clone()
+	if trust != nil {
+		transport.TLSClientConfig = trust
+		transport.Proxy = nil
+	}
+	c.http.Transport = transport
 	c.http.CheckRedirect = func(*http.Request, []*http.Request) error {
 		return http.ErrUseLastResponse
 	}

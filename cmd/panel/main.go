@@ -56,6 +56,12 @@ func run() int {
 				return 1
 			}
 			return 0
+		case "node-gateway":
+			if err := runNodeGateway(os.Args[2:]); err != nil {
+				slog.Error("node gateway", "err", err)
+				return 1
+			}
+			return 0
 		case "config":
 			if err := runConfigCommand(os.Args[2:], os.Stdout); err != nil {
 				slog.Error("config", "err", err)
@@ -201,12 +207,33 @@ func runRuntimeStore(ctx context.Context, base *config.Config, configPath string
 		}
 		defer customerService.Close()
 	}
-	registry, err := nodes.Open(st, cfg.Telemt.URL, cfg.Telemt.AuthHeader)
+	nodeKey, err := nodeInstallKey(cfg.NodeInstall.KeyEnv)
+	if err != nil {
+		slog.Error("load node installation encryption key", "err", err)
+		return 1
+	}
+	registry, err := nodes.OpenWithKey(st, cfg.Telemt.URL, cfg.Telemt.AuthHeader, nodeKey)
+	clear(nodeKey)
 	if err != nil {
 		slog.Error("open node registry", "err", err)
 		return 1
 	}
 	defer registry.Close()
+	var installer httpapi.NodeInstaller
+	if cfg.NodeInstall.Enabled && nodeInstallSupported {
+		if !registry.ManagedAvailable() {
+			slog.Error("node installation requires durable registry state")
+			return 1
+		}
+		opened, err := openNodeInstaller(cfg.NodeInstall.SSHKeyFile)
+		if err != nil {
+			slog.Error("open node installer", "err", err)
+			return 1
+		}
+		installer = opened
+	} else if cfg.NodeInstall.Enabled {
+		slog.Warn("SSH node installation requires the full panel build")
+	}
 	tc := telemt.New(cfg.Telemt.URL, cfg.Telemt.AuthHeader)
 	hb := hub.New(hub.Config{}, tc, st)
 	defer hb.Close()
@@ -219,7 +246,7 @@ func runRuntimeStore(ctx context.Context, base *config.Config, configPath string
 		}
 		return nil
 	}
-	srv := httpapi.New(cfg, tc, st, hb, version, httpapi.EngineOptions{PanelLifecycleContext: ctx, OnReady: onReady, Nodes: registry, Platform: platformStore, Customer: customerService})
+	srv := httpapi.New(cfg, tc, st, hb, version, httpapi.EngineOptions{PanelLifecycleContext: ctx, OnReady: onReady, Nodes: registry, Platform: platformStore, Customer: customerService, NodeInstaller: installer})
 	srv.SetTLSConfigPath(configPath)
 	srv.SetPanelSettingsBase(base)
 	if err := srv.Run(ctx); err != nil {

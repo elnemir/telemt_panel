@@ -87,9 +87,10 @@ func (s *Server) handleListNodes(w http.ResponseWriter, r *http.Request) {
 	}
 	w.Header().Set("Cache-Control", "no-store")
 	writeJSON(w, http.StatusOK, struct {
-		Nodes        []nodes.Node `json:"nodes"`
-		StateDurable bool         `json:"state_durable"`
-	}{s.nodes.List(), s.nodes.Durable()})
+		Nodes               []nodes.Node `json:"nodes"`
+		StateDurable        bool         `json:"state_durable"`
+		SSHInstallAvailable bool         `json:"ssh_install_available,omitempty"`
+	}{s.nodes.List(), s.nodes.Durable(), s.nodeInstallation != nil})
 }
 
 func (s *Server) handleCreateNode(w http.ResponseWriter, r *http.Request) {
