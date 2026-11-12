@@ -157,7 +157,7 @@ enabled = false
 encryption_key_env = "TELEMT_PLATFORM_KEY"
 
 # Optional SSH installation of new Linux/systemd nodes (full build).
-# The SSH key must be a panel-readable file with owner-only permissions.
+# Use an owner-only SSH key or a private read-only systemd LoadCredential file.
 # Retain the encryption key after disabling installs to access managed nodes.
 # [node_install]
 # enabled = true

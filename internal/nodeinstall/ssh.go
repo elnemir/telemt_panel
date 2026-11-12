@@ -43,7 +43,7 @@ func Open(keyFile string) (*Installer, error) {
 	}
 	defer file.Close()
 	info, err := file.Stat()
-	if err != nil || !info.Mode().IsRegular() || info.Size() > 64<<10 || info.Mode().Perm()&0077 != 0 {
+	if err != nil || !info.Mode().IsRegular() || info.Size() > 64<<10 || (info.Mode().Perm()&0077 != 0 && !systemdCredentialKey(keyFile, info)) {
 		return nil, errors.New("node installation SSH key must be a private regular file")
 	}
 	raw, err := io.ReadAll(io.LimitReader(file, (64<<10)+1))
