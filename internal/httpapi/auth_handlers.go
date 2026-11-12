@@ -391,7 +391,7 @@ func administrativeHistoryEvent(ts time.Time, action, subject string) (store.His
 		"quota.schedule.global", "quota.schedule.user", "quota.schedule.completed", "quota.schedule.partial", "quota.schedule.stopped", "quota.schedule.interrupted",
 		"quota.reset_all.completed", "quota.reset_all.partial", "quota.reset_all.stopped", "quota.reset_all.interrupted",
 		"quota.reset", "secret.rotate", "storage.history_purge", "storage.policy_change",
-		"sublink.rotate", "telemt.reload", "telemt.restart", "update.apply",
+		"sublink.rotate", "subscription.appearance_change", "telemt.reload", "telemt.restart", "update.apply",
 		"update.auto_change", "user.create", "user.delete", "user.enabled", "user.traffic_reset", "user.ip_history_reset", "traffic.reset",
 		"user.patch", "web.sessions.close",
 		"passkey.register", "passkey.delete":

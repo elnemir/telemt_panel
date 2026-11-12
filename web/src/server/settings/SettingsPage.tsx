@@ -37,6 +37,7 @@ import { PanelConfigSettingsCard } from "./PanelConfigSettingsCard";
 import { AdminAccounts } from "./AdminAccounts";
 import { PasskeySettings } from "./PasskeySettings";
 import { TransportStatus } from "./TransportStatus";
+import { SubscriptionSettings } from "./SubscriptionSettings";
 
 function MiniInterfacePreview() {
   return (
@@ -319,7 +320,7 @@ export function SettingsPage() {
           )}
           {meQuery.data && !authDisabled && <AdminAccounts />}
           <TransportStatus />
-          <TransportStatus target="subscription" />
+          <SubscriptionSettings />
 
           {!authDisabled && <section className="grid grid-cols-[auto_minmax(0,1fr)] items-center gap-3 rounded-xl bg-surface p-3 sm:grid-cols-[auto_minmax(0,1fr)_auto]">
             <span

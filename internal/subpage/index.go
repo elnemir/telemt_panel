@@ -98,6 +98,23 @@ func (idx *Index) get(token string) (string, bool) {
 	return username, ok
 }
 
+// Remember records an explicitly issued link without another upstream fetch.
+// Public requests still verify the current secret and nonce on every hit.
+func (idx *Index) Remember(username, secret string) {
+	nonce, err := idx.nonces.GetSubpageNonce(username)
+	if err != nil {
+		return
+	}
+	token := deriveToken(idx.secret, username, secret, nonce)
+	idx.mu.Lock()
+	defer idx.mu.Unlock()
+	if idx.tokens[token] != username {
+		idx.tokens[token] = username
+		idx.nextGen++
+		idx.installedGen = idx.nextGen
+	}
+}
+
 // claimRefreshWindow atomically checks whether a refresh is due and, if
 // so, claims the window by stamping lastRefresh before returning — under
 // a single lock acquisition, so "check due" and "claim it" can't be

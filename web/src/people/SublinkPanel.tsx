@@ -69,7 +69,7 @@ export function SublinkPanel({ username, compact = false }: SublinkPanelProps) {
   }
 
   if (!query.data.enabled) {
-    return <div className="space-y-3"><p className="text-meta text-text-muted">{s.people.share.unavailableModule}</p><Link to="/panel" className="inline-flex min-h-11 items-center rounded-lg bg-surface-2 px-3 text-sm font-semibold text-accent">{s.server.settings.transport.configure}</Link></div>;
+    return <div className="space-y-3"><p className="text-meta text-text-muted">{s.people.share.unavailableModule}</p><Link to="/panel" hash="subscription-page" className="inline-flex min-h-11 items-center rounded-lg bg-surface-2 px-3 text-sm font-semibold text-accent">{s.server.settings.transport.configure}</Link></div>;
   }
 
   if (confirming) {
@@ -132,6 +132,9 @@ export function SublinkPanel({ username, compact = false }: SublinkPanelProps) {
     <div className="flex flex-col gap-3">
       <CopyField value={url} label={s.people.share.linkLabel} data-testid="sublink-value" />
       <QR value={url} />
+      <a className="inline-flex min-h-11 items-center justify-center rounded-lg bg-surface-2 px-3 text-sm font-semibold text-accent" href={url} target="_blank" rel="noreferrer">
+        {s.server.settings.subscriptionAppearance.openPage}
+      </a>
       <Button variant="secondary" onClick={() => setConfirming(true)}>
         {s.people.share.regenerate}
       </Button>

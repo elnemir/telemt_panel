@@ -121,7 +121,7 @@ func TestNodeManagementMutationsAndDefaultIsolation(t *testing.T) {
 	if w.Code != 200 {
 		t.Fatal("B user deleted")
 	}
-	for _, path := range []string{"/telemt/restart", "/updates/telemt/apply", "/users/alice/sublink"} {
+	for _, path := range []string{"/telemt/restart", "/updates/telemt/apply"} {
 		w = req(a.ID, "POST", path, `{}`, nil)
 		if w.Code != 501 {
 			t.Fatal("host/subscription escape", path, w.Code)

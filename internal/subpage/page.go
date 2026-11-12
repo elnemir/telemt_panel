@@ -18,6 +18,7 @@ const qrSize = 256
 
 // pageData is the subscription page's root data model.
 type pageData struct {
+	Appearance     *appearanceView
 	Lang           string
 	S              uiStrings
 	InstructionsRU instructions

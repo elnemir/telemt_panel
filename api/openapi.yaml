@@ -7845,28 +7845,23 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
-        '501':
-          description: node_operation_unavailable
+        '200':
+          description: Subscription URL and listener status
           content:
             application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
+              schema: { $ref: '#/components/schemas/Sublink' }
         '503':
           description: Node missing, disabled, retired or its credentials/storage unavailable. No fallback to another node.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
-      description: >-
-        Unavailable through node management. Local host actions and public subscription routing require a node
-        agent or node-aware subscription service.
+      description: Issue a signed subscription URL scoped to this node. No fallback to another node.
     post:
       tags:
         - nodes
       operationId: managedRegenerateUserSublink
-      description: >-
-        Unavailable through node management. Local host actions and public subscription routing require a node
-        agent or node-aware subscription service.
+      description: Rotate this node user's subscription URL without rotating the Telemt connection secret.
       parameters:
         - $ref: '#/components/parameters/Username'
       responses:
@@ -7882,12 +7877,11 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
-        '501':
-          description: node_operation_unavailable
+        '200':
+          description: Subscription URL and listener status
           content:
             application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
+              schema: { $ref: '#/components/schemas/Sublink' }
         '503':
           description: Node missing, disabled, retired or its credentials/storage unavailable. No fallback to another node.
           content:
@@ -8424,6 +8418,62 @@ paths:
           content:
             application/json:
               schema: { $ref: "#/components/schemas/BrandingSettings" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { description: CSRF rejected, content: { application/json: { schema: { $ref: "#/components/schemas/Error" } } } }
+        "500": { $ref: "#/components/responses/InternalError" }
+  /api/settings/subscription:
+    get:
+      tags: [settings]
+      operationId: getSubscriptionAppearance
+      description: Read the global subscription page appearance and its revision.
+      responses:
+        "200":
+          description: Subscription page appearance
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SubscriptionAppearanceSnapshot" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "500": { $ref: "#/components/responses/InternalError" }
+    put:
+      tags: [settings]
+      operationId: putSubscriptionAppearance
+      description: Apply appearance to subscription pages immediately. The revision prevents overwriting another edit.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/SubscriptionAppearanceSnapshot" }
+      responses:
+        "200":
+          description: Saved appearance
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SubscriptionAppearanceSnapshot" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { description: CSRF rejected, content: { application/json: { schema: { $ref: "#/components/schemas/Error" } } } }
+        "409": { description: Appearance revision changed, content: { application/json: { schema: { $ref: "#/components/schemas/Error" } } } }
+        "500": { $ref: "#/components/responses/InternalError" }
+  /api/settings/subscription/preview:
+    post:
+      tags: [settings]
+      operationId: previewSubscriptionAppearance
+      description: Render the draft using sample data. The result contains no live subscriber information and is never persisted.
+      parameters:
+        - { name: lang, in: query, schema: { type: string, enum: [ru, en] } }
+        - { name: state, in: query, schema: { type: string, enum: [active, disabled, expired, quota_exhausted], default: active } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/SubscriptionAppearance" }
+      responses:
+        "200":
+          description: Preview HTML
+          content:
+            text/html:
+              schema: { type: string }
         "400": { $ref: "#/components/responses/BadRequest" }
         "401": { $ref: "#/components/responses/Unauthorized" }
         "403": { description: CSRF rejected, content: { application/json: { schema: { $ref: "#/components/schemas/Error" } } } }
@@ -12123,6 +12173,43 @@ components:
           type: boolean
           default: false
           description: Allow explicit selection of a configured censorship.tls_domains value as the connection address in the Access tab. Does not modify Telemt configuration or TLS secrets.
+    SubscriptionPageCopy:
+      type: object
+      additionalProperties: false
+      required: [title, description, instructions, support_label]
+      properties:
+        title: { type: string, maxLength: 80 }
+        description: { type: string, maxLength: 400 }
+        instructions: { type: string, maxLength: 1500 }
+        support_label: { type: string, maxLength: 60 }
+    SubscriptionAppearance:
+      type: object
+      additionalProperties: false
+      required: [language, theme, accent, logo, ru, en, support_url, hidden, connections]
+      properties:
+        language: { type: string, enum: [auto, ru, en] }
+        theme: { type: string, enum: [auto, light, dark] }
+        accent: { type: string, enum: [blue, emerald, violet, amber] }
+        logo: { type: string, enum: [initial, panel, hidden] }
+        ru: { $ref: "#/components/schemas/SubscriptionPageCopy" }
+        en: { $ref: "#/components/schemas/SubscriptionPageCopy" }
+        support_url: { type: string, maxLength: 512, description: Empty or an HTTPS URL without credentials. }
+        hidden:
+          type: array
+          uniqueItems: true
+          items: { type: string, enum: [status, quota, expiry, qr, manual, instructions, fallback] }
+        connections:
+          type: array
+          minItems: 1
+          uniqueItems: true
+          items: { type: string, enum: [tls, secure, classic, web] }
+    SubscriptionAppearanceSnapshot:
+      type: object
+      additionalProperties: false
+      required: [settings, revision]
+      properties:
+        settings: { $ref: "#/components/schemas/SubscriptionAppearance" }
+        revision: { type: string, pattern: '^[0-9a-f]{64}$' }
     BrandingConfig:
       type: object
       required: [title, logo_mode, logo_path]
@@ -12345,6 +12432,8 @@ components:
             - quota_operation_unavailable
             - internal_error
             - history_timeout
+            - subscription_settings_invalid
+            - subscription_settings_conflict
             - branding_invalid_title
             - branding_invalid_mode
             - branding_invalid_path

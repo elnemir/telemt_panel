@@ -49,9 +49,11 @@ type NonceProvider interface {
 // using nothing more than a UserInfo's links and this package's store
 // dependency — it does not itself talk to Telemt.
 type Service struct {
-	secret   []byte
-	basePath string
-	nonces   NonceProvider
+	secret     []byte
+	basePath   string
+	nonces     NonceProvider
+	nodeID     string
+	routingKey []byte
 }
 
 // NewService creates a Service. secret is the panel's subpage.secret
@@ -61,6 +63,33 @@ func NewService(secret, basePath string, nonces NonceProvider) *Service {
 		basePath = "/sub"
 	}
 	return &Service{secret: []byte(secret), basePath: basePath, nonces: nonces}
+}
+
+// NewNodeSubscription uses separate token and nonce namespaces for each
+// registered node. The outer MAC is checked before acquiring a node runtime.
+func NewNodeSubscription(secret, basePath, nodeID string, client UsersLister, nonces NonceProvider) (*Service, *Index) {
+	key := hmac.New(sha256.New, []byte(secret))
+	key.Write([]byte("subscription-node-v1:" + nodeID))
+	scoped := string(key.Sum(nil))
+	service := NewService(scoped, basePath, nonces)
+	service.nodeID, service.routingKey = nodeID, []byte(secret)
+	return service, NewIndex(scoped, client, nonces)
+}
+
+// ResolveNodeToken authenticates the routing envelope. The inner token
+// still has to be verified against the current Telemt secret and nonce.
+func (s *Service) ResolveNodeToken(value string) (id, token string, ok bool) {
+	id, rest, found := strings.Cut(value, ".")
+	token, mac, split := strings.Cut(rest, ".")
+	if len(s.secret) == 0 || !found || !split || len(id) != 34 || !strings.HasPrefix(id, "n_") ||
+		!isHex32(id[2:]) || len(token) != 32 || len(mac) != 32 {
+		return "", "", false
+	}
+	expected := deriveToken(s.secret, "subscription-route-v1", id, token)
+	if !hmac.Equal([]byte(expected), []byte(mac)) {
+		return "", "", false
+	}
+	return id, token, true
 }
 
 // URL returns the base-path-relative subpage URL path for username, e.g.
@@ -73,7 +102,12 @@ func (s *Service) URL(username, userSecret string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	return s.basePath + "/" + deriveToken(s.secret, username, userSecret, nonce), nil
+	token := deriveToken(s.secret, username, userSecret, nonce)
+	if s.nodeID != "" {
+		mac := deriveToken(s.routingKey, "subscription-route-v1", s.nodeID, token)
+		token = s.nodeID + "." + token + "." + mac
+	}
+	return s.basePath + "/" + token, nil
 }
 
 // Verify reports whether token is the current, correct subpage token for

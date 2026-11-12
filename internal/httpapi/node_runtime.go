@@ -154,11 +154,10 @@ func (s *Server) acquireNodeRuntime(id string) (*nodeRuntime, func(), error) {
 		cfg := *s.cfg
 		cfg.Telemt.URL = n.APIURL
 		cfg.Telemt.AuthHeader = "" // the credential belongs only to the resolved client
-		cfg.Subpage.Enabled = false
+		subSvc, subIndex := subpage.NewNodeSubscription(cfg.Subpage.Secret, cfg.Subpage.BasePath, id, client, e.store)
 		child := &Server{platform: s.platform, platformMu: s.platformMu, platformNodeID: id, cfg: &cfg, tc: client, st: e.store, hub: hub.New(hub.Config{}, client, e.store),
 			sessions: s.sessions, logStreams: s.logStreams, geoip: s.geoip, version: s.version,
-			subSvc:   subpage.NewService(cfg.Subpage.Secret, cfg.Subpage.BasePath, e.store),
-			subIndex: subpage.NewIndex(cfg.Subpage.Secret, client, e.store)}
+			subSvc: subSvc, subIndex: subIndex, subAppearance: s.subAppearance, branding: s.branding}
 		if n.Binding.URL != "" {
 			child.agentClient, _ = s.nodes.AgentClient(n)
 		}

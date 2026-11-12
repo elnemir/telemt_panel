@@ -111,6 +111,7 @@ type Server struct {
 	geoip              *geoip.Manager
 	geography          *geography.Service
 	branding           *branding.Manager
+	subAppearance      *subpage.AppearanceSettings
 	storagePolicyOnce  sync.Once
 	storagePolicyGate  chan struct{}
 
@@ -144,7 +145,6 @@ func New(cfg *config.Config, tc *telemt.Client, st store.Store, hb *hub.Hub, ver
 		// Telemt/service binding is activated by a central-only installation.
 		isolated := *cfg
 		isolated.Telemt.URL, isolated.Telemt.AuthHeader = "", ""
-		isolated.Subpage.Enabled = false
 		isolated.Host.ServiceManager, isolated.Host.LogSource = "none", "none"
 		isolated.Host.Commands = host.CustomCommands{}
 		isolated.Privileges.Mode = host.PrivilegesModeManual
@@ -342,6 +342,7 @@ func New(cfg *config.Config, tc *telemt.Client, st store.Store, hb *hub.Hub, ver
 		autoUpdater:         update.NewAutoUpdater(st, updateEngine),
 		geoip:               geoip.NewManager(cfg.DataDir, st),
 		branding:            appearance,
+		subAppearance:       subpage.NewAppearanceSettings(st),
 		runner:              runner,
 		telemtServiceName:   telemtServiceName,
 		serviceStartAllowed: startAllowed,
@@ -618,6 +619,9 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("GET /api/branding/icon", s.handleBrandingAsset)
 	mux.Handle("GET /api/settings/branding", protect(s.handleGetBranding))
 	mux.Handle("PUT /api/settings/branding", protect(s.handlePutBranding))
+	mux.Handle("GET /api/settings/subscription", protect(s.handleGetSubscriptionAppearance))
+	mux.Handle("PUT /api/settings/subscription", protect(s.handlePutSubscriptionAppearance))
+	mux.Handle("POST /api/settings/subscription/preview", protect(s.handlePreviewSubscriptionAppearance))
 	mux.Handle("GET /api/settings/links", protect(s.handleGetLinkSettings))
 	mux.Handle("PUT /api/settings/links", protect(s.handlePutLinkSettings))
 	mux.Handle("GET /api/settings/storage", protect(s.handleGetStorageSettings))

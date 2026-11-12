@@ -338,10 +338,17 @@ func TestControlPlaneOnlyConfig(t *testing.T) {
 	if cfg.Telemt.URL != "" || cfg.Host.ServiceManager != "none" || cfg.Host.LogSource != "none" || cfg.Privileges.Mode != "manual" || cfg.WorkerStateDir() != "" {
 		t.Fatal("standalone activated host dependencies", cfg.Host, cfg.Privileges)
 	}
-	for _, extra := range []string{"[telemt]\nurl='http://127.0.0.1:9091'", "[telemt]\nauth_header='secret'", "[subpage]\nenabled=true\nsecret='x'"} {
+	for _, extra := range []string{"[telemt]\nurl='http://127.0.0.1:9091'", "[telemt]\nauth_header='secret'"} {
 		if _, err := load(t, raw+extra); err == nil {
 			t.Fatal("ambiguous standalone config accepted", extra)
 		}
+	}
+}
+
+func TestControlPlaneOnlySubscription(t *testing.T) {
+	cfg, err := load(t, "control_plane_only = true\n[auth]\ndisabled = true\n[subpage]\nenabled = true\nsecret = 'test-key'\n")
+	if err != nil || !cfg.Subpage.Enabled || cfg.Telemt.URL != "" {
+		t.Fatalf("registered-node subscription listener was not available: %v", err)
 	}
 }
 

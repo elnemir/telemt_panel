@@ -268,8 +268,8 @@ func decode(data []byte, path string) (*Config, error) {
 			return nil, fmt.Errorf("agent: Telemt and agent service bindings must differ")
 		}
 	}
-	if cfg.ControlPlaneOnly && (cfg.Telemt.URL != "" || cfg.Telemt.AuthHeader != "" || cfg.Subpage.Enabled) {
-		return nil, fmt.Errorf("control_plane_only forbids a default telemt URL/credential and the legacy subscription listener")
+	if cfg.ControlPlaneOnly && (cfg.Telemt.URL != "" || cfg.Telemt.AuthHeader != "") {
+		return nil, fmt.Errorf("control_plane_only forbids a default telemt URL/credential")
 	}
 	if cfg.Telemt.URL == "" && !cfg.ControlPlaneOnly {
 		return nil, fmt.Errorf("telemt.url is required")

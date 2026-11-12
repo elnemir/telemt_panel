@@ -10,6 +10,7 @@ import (
 	"net"
 	"net/http"
 	"net/url"
+	"strings"
 	"time"
 
 	"github.com/amirotin/telemt_panel/internal/auth"
@@ -31,8 +32,38 @@ func (s *Server) SubscriptionHandler() http.Handler {
 		base = "/sub"
 	}
 	mux := http.NewServeMux()
-	mux.Handle("GET /{token}", s.subpageRateLimited(s.handleSubpage))
+	mux.Handle("GET /{token}", s.subpageRateLimited(s.routeSubscription))
 	return acceptBasePath(base, mux)
+}
+
+func (s *Server) routeSubscription(w http.ResponseWriter, r *http.Request) {
+	value := r.PathValue("token")
+	if !strings.Contains(value, ".") {
+		if s.cfg.ControlPlaneOnly {
+			writeSubpageNotFound(w)
+			return
+		}
+		s.handleSubpage(w, r)
+		return
+	}
+	id, token, ok := s.subSvc.ResolveNodeToken(value)
+	if !ok || s.nodes == nil {
+		writeSubpageNotFound(w)
+		return
+	}
+	rt, release, err := s.acquireNodeRuntime(id)
+	if err != nil {
+		writeSubpageNotFound(w)
+		return
+	}
+	defer release()
+	ctx, cancel := context.WithCancel(r.Context())
+	stop := context.AfterFunc(rt.ctx, cancel)
+	defer cancel()
+	defer stop()
+	r = r.Clone(ctx)
+	r.SetPathValue("token", token)
+	rt.server.handleSubpage(w, r)
 }
 
 func (s *Server) subscriptionURL(r *http.Request, path string) string {
@@ -146,16 +177,18 @@ func (s *Server) handleSubpage(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	var buf bytes.Buffer
-	if err := subpage.RenderPage(&buf, u, entry, r.Header.Get("Accept-Language"), time.Now(), webLinks...); err != nil {
+	appearance, err := s.subAppearance.Read()
+	if err != nil {
+		slog.Warn("subpage: load appearance", "err", err)
+		appearance.Settings = subpage.DefaultAppearance()
+	}
+	if err := subpage.RenderAppearance(&buf, u, entry, r.Header.Get("Accept-Language"), time.Now(), appearance.Settings, s.subscriptionLogo(appearance.Settings), webLinks...); err != nil {
 		slog.Error("subpage: render", "username", username, "err", err)
 		writeSubpageRenderError(w)
 		return
 	}
 
-	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	w.Header().Set("Referrer-Policy", "no-referrer")
-	w.Header().Set("X-Robots-Tag", "noindex")
-	w.Header().Set("Cache-Control", "private, no-store")
+	subscriptionHTMLHeaders(w, false)
 	w.WriteHeader(http.StatusOK)
 	w.Write(buf.Bytes())
 }
@@ -276,6 +309,9 @@ func (s *Server) writeSublink(w http.ResponseWriter, r *http.Request, rotate boo
 	if link == "" {
 		auth.WriteError(w, http.StatusBadRequest, "bad_request", "invalid request host")
 		return
+	}
+	if s.cfg.Subpage.Enabled {
+		s.subIndex.Remember(username, secret)
 	}
 	writeJSON(w, http.StatusOK, sublinkResponse{
 		URL:     link,

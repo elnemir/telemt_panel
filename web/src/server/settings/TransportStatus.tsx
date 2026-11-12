@@ -7,7 +7,7 @@ import { StatePill } from "../../ui/StatePill";
 import { Skeleton } from "../../ui/Skeleton";
 import { PanelAccessForm } from "./PanelAccessForm";
 
-export function TransportStatus({ target = "panel" }: { target?: "panel" | "subscription" }) {
+export function TransportStatus({ target = "panel", title }: { target?: "panel" | "subscription"; title?: string }) {
   const copy = useStrings().server.settings.transport;
   const [formOpen, setFormOpen] = useState(false);
   const subscription = target === "subscription";
@@ -23,7 +23,7 @@ export function TransportStatus({ target = "panel" }: { target?: "panel" | "subs
   return (
     <section className="rounded-xl bg-surface p-4" data-testid={subscription ? "subscription-transport" : "panel-transport"}>
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h3 className="text-[15px] font-semibold text-text">{subscription ? copy.endpoints.subscriptionTitle : copy.title}</h3>
+        <h3 className="text-[15px] font-semibold text-text">{title ?? (subscription ? copy.endpoints.subscriptionTitle : copy.title)}</h3>
         {data && !query.isError && <StatePill state={disabled ? "muted" : plain || state === "warning" ? "warn" : state === "error" ? "error" : state === "waiting" ? "muted" : "ok"}>
           {disabled ? copy.endpoints.disabled : behindHttps ? copy.proxy : copy.modes[data.mode]}
         </StatePill>}
