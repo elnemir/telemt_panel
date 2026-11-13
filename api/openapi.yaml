@@ -3564,7 +3564,7 @@ paths:
       operationId: getClusterIdentity
       tags:
         - clusters
-      description: Per-node desired/applied revisions and readback outcomes, without secrets.
+      description: Per-node delivery and Native connection links through the applied ingress.
       parameters:
         - name: identity_id
           in: path
@@ -3573,7 +3573,7 @@ paths:
             type: string
       responses:
         '200':
-          description: Per-node desired/applied revisions and readback outcomes, without secrets.
+          description: Per-node delivery and Native connection links through the applied ingress.
           content:
             application/json:
               schema:
@@ -11905,6 +11905,7 @@ components:
       required:
         - status
         - nodes
+        - links
         - usage
       additionalProperties: false
       properties:
@@ -11919,6 +11920,10 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/CustomerServiceNode'
+        links:
+          type: array
+          items:
+            $ref: '#/components/schemas/CustomerConnectionLink'
         usage:
           anyOf:
             - $ref: '#/components/schemas/CustomerQuotaUsage'
@@ -12442,6 +12447,7 @@ components:
       required:
         - identity
         - jobs
+        - links
       properties:
         identity:
           $ref: '#/components/schemas/ClusterIdentity'
@@ -12449,6 +12455,10 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/ClusterIdentityJob'
+        links:
+          type: array
+          items:
+            $ref: '#/components/schemas/CustomerConnectionLink'
     # platform schemas end
     ConfigTree:
       type: object
@@ -13299,6 +13309,7 @@ components:
       properties:
         username: { type: string }
         enabled: { type: boolean }
+        cluster_managed: { type: boolean, description: Native links use the applied cluster ingress. }
         in_runtime: { type: boolean }
         user_ad_tag: { type: string }
         max_tcp_conns: { type: integer }

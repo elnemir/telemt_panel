@@ -169,7 +169,14 @@ func (s *Server) handleSubpage(w http.ResponseWriter, r *http.Request) {
 	// behavior) means a failure partway through leaves the client with a
 	// 200 and a truncated or empty body instead of a clear error.
 	var webLinks []string
-	if caps, err := s.tc.Capabilities(ctx); err == nil && caps.ConfigAPI {
+	routes, err := s.nodeUserIngress(ctx)
+	if err != nil {
+		writeSubpageNotFound(w)
+		return
+	}
+	if route, managed := routes[username]; managed {
+		u.Links = route.Links(u.Links)
+	} else if caps, err := s.tc.Capabilities(ctx); err == nil && caps.ConfigAPI {
 		if sections, _, err := s.tc.GetConfig(ctx); err == nil {
 			webLinks = subpage.WebLinksForUser(sections["web"], username, secret)
 		} else {

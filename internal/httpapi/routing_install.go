@@ -2,11 +2,13 @@ package httpapi
 
 import (
 	"context"
+	"log/slog"
 	"net/http"
 	"time"
 
 	"github.com/amirotin/telemt_panel/internal/auth"
 	"github.com/amirotin/telemt_panel/internal/nodeinstall"
+	"github.com/amirotin/telemt_panel/internal/platform"
 )
 
 type ingressInstaller interface {
@@ -79,11 +81,21 @@ func (s *Server) handleStartClusterIngressInstall(w http.ResponseWriter, r *http
 		defer s.platformMu.RUnlock()
 		return s.platform.ExportRouting(ctx, clusterID, revision)
 	}
+	routing, err := s.platform.GetRouting(r.Context(), clusterID)
+	if err != nil {
+		writePlatformError(w, err)
+		return
+	}
 	config, err := export(r.Context())
 	if err != nil {
 		writePlatformError(w, err)
 		return
 	}
+	if routing.Revision != revision || routing.Config == nil {
+		writePlatformError(w, platform.ErrConflict)
+		return
+	}
+	nativePort := routing.Config.NativePort
 	j.mu.Lock()
 	defer j.mu.Unlock()
 	j.expire()
@@ -113,6 +125,14 @@ func (s *Server) handleStartClusterIngressInstall(w http.ResponseWriter, r *http
 			job.State = state
 			j.mu.Unlock()
 		})
+		if err == nil {
+			saveCtx, stop := context.WithTimeout(context.WithoutCancel(ctx), 5*time.Second)
+			if saveErr := s.platform.RecordAppliedIngress(saveCtx, clusterID, revision, input.Host, nativePort); saveErr != nil {
+				slog.Error("record applied cluster ingress", "cluster", clusterID, "error", saveErr)
+				err = nodeinstall.ErrUnconfirmed
+			}
+			stop()
+		}
 		j.mu.Lock()
 		defer j.mu.Unlock()
 		job.State = "applied"

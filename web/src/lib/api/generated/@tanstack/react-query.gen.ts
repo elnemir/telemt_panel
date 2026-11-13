@@ -1175,7 +1175,7 @@ export const createClusterIdentityMutation = (options?: Partial<Options<CreateCl
 export const getClusterIdentityQueryKey = (options: Options<GetClusterIdentityData>) => createQueryKey('getClusterIdentity', options);
 
 /**
- * Per-node desired/applied revisions and readback outcomes, without secrets.
+ * Per-node delivery and Native connection links through the applied ingress.
  */
 export const getClusterIdentityOptions = (options: Options<GetClusterIdentityData>) => queryOptions<GetClusterIdentityResponse, GetClusterIdentityError, GetClusterIdentityResponse, ReturnType<typeof getClusterIdentityQueryKey>>({
     queryFn: async ({ queryKey, signal }) => {

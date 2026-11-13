@@ -28,6 +28,7 @@ import (
 	"github.com/amirotin/telemt_panel/internal/store"
 	"github.com/amirotin/telemt_panel/internal/telemt"
 	"github.com/amirotin/telemt_panel/internal/update"
+	"github.com/amirotin/telemt_panel/internal/userprojection"
 	"golang.org/x/term"
 )
 
@@ -235,7 +236,13 @@ func runRuntimeStore(ctx context.Context, base *config.Config, configPath string
 		slog.Warn("SSH node installation requires the full panel build")
 	}
 	tc := telemt.New(cfg.Telemt.URL, cfg.Telemt.AuthHeader)
-	hb := hub.New(hub.Config{}, tc, st)
+	hubConfig := hub.Config{}
+	if platformStore != nil {
+		hubConfig.ProjectUsers = func(ctx context.Context, users []userprojection.User) error {
+			return platformStore.ProjectNodeUserLinks(ctx, nodes.DefaultID, users)
+		}
+	}
+	hb := hub.New(hubConfig, tc, st)
 	defer hb.Close()
 	if !cfg.ControlPlaneOnly && !cfg.Agent.Enabled {
 		hb.StartPersistentCollectors()

@@ -20,6 +20,7 @@ import (
 	"github.com/amirotin/telemt_panel/internal/store"
 	"github.com/amirotin/telemt_panel/internal/subpage"
 	"github.com/amirotin/telemt_panel/internal/telemt"
+	"github.com/amirotin/telemt_panel/internal/userprojection"
 )
 
 type nodeStreamScopeKey struct{}
@@ -155,7 +156,13 @@ func (s *Server) acquireNodeRuntime(id string) (*nodeRuntime, func(), error) {
 		cfg.Telemt.URL = n.APIURL
 		cfg.Telemt.AuthHeader = "" // the credential belongs only to the resolved client
 		subSvc, subIndex := subpage.NewNodeSubscription(cfg.Subpage.Secret, cfg.Subpage.BasePath, id, client, e.store)
-		child := &Server{platform: s.platform, platformMu: s.platformMu, platformNodeID: id, cfg: &cfg, tc: client, st: e.store, hub: hub.New(hub.Config{}, client, e.store),
+		hubConfig := hub.Config{}
+		if s.platform != nil {
+			hubConfig.ProjectUsers = func(ctx context.Context, users []userprojection.User) error {
+				return s.platform.ProjectNodeUserLinks(ctx, id, users)
+			}
+		}
+		child := &Server{platform: s.platform, platformMu: s.platformMu, platformNodeID: id, cfg: &cfg, tc: client, st: e.store, hub: hub.New(hubConfig, client, e.store),
 			sessions: s.sessions, logStreams: s.logStreams, geoip: s.geoip, version: s.version,
 			subSvc: subSvc, subIndex: subIndex, subAppearance: s.subAppearance, branding: s.branding}
 		if n.Binding.URL != "" {

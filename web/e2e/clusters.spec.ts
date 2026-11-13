@@ -103,9 +103,11 @@ test("cluster membership, identity delivery, guarded node writes, rotation and r
  await expect(page.getByText("Сохранено и проверено",{exact:true})).toHaveCount(2,{timeout:15000});
  const userPath=`/api/nodes/${node.id}/manage/users/${username}`;
  const target=await(await page.request.get(userPath)).json();
- expect(target.max_tcp_conns).toBe(7);const original=target.links.classic[0];
- const source=await(await page.request.get("/api/users/"+username)).json();
- expect(new URL(source.links.classic[0]).searchParams.get("secret")).toBe(new URL(original).searchParams.get("secret"));
+ expect(target.max_tcp_conns).toBe(7);
+ expect(target.cluster_managed).toBe(true);
+ // The browser mocked installation, so no applied endpoint is recorded.
+ expect(target.links.classic).toEqual([]);
+ await expect(page.getByText("Ссылка появится после применения маршрута кластера и подтверждения подключения пользователя на ноде.")).toBeVisible();
  expect((await page.request.patch(userPath,{headers,data:{enabled:false}})).status()).toBe(409);
  await page.getByRole("region",{name:"Синхронизация",exact:true}).scrollIntoViewIfNeeded();
  await page.screenshot({path:info.outputPath("cluster-delivery.png"),fullPage:true});
@@ -114,7 +116,7 @@ test("cluster membership, identity delivery, guarded node writes, rotation and r
  sheet=page.getByRole("dialog",{name:"Изменить пользователя",exact:true});
  await sheet.getByLabel("Заменить секрет на всех нодах",{exact:true}).check();
  await sheet.getByRole("button",{name:"Сохранить",exact:true}).click();await expect(sheet).not.toBeVisible();
- await expect.poll(async()=>{const data=await(await page.request.get(userPath)).json();return data.links.classic[0];}).not.toBe(original);
+ await expect(page.getByText("Сохранено и проверено",{exact:true})).toHaveCount(2,{timeout:15000});
  await page.getByRole("button",{name:"Изменить пользователя",exact:true}).click();
  sheet=page.getByRole("dialog",{name:"Изменить пользователя",exact:true});
  await sheet.getByLabel("Безвозвратно отозвать учётную запись",{exact:true}).check();

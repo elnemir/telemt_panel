@@ -40,7 +40,7 @@ const schemas={
  CustomerConnectionLink:object({mode:{type:'string',enum:['classic','secure','faketls']},url:{type:'string',pattern:'^tg://proxy\\?'}}),
  CustomerServiceNode:object({node_id:string,status:{type:'string',enum:['pending','conflict','unavailable','quota_empty','configured']},checked_at:integer,budget_until:integer,links:array(ref('CustomerConnectionLink'))}),
  CustomerQuotaUsage:object({period_id:string,quota_bytes:{type:['string','null'],pattern:'^[0-9]+$'},overrun_bytes:{type:['string','null'],pattern:'^[0-9]+$'},granted_bytes:{type:'string',pattern:'^[0-9]+$'},observed_bytes:{type:'string',pattern:'^[0-9]+$'},unknown_bytes:{type:'string',pattern:'^[0-9]+$'},allocations:integer,last_reported_at:{type:['integer','null'],format:'int64'}}),
- CustomerServiceAccess:object({status:{type:'string',enum:['not_provisioned','disabled','unpaid','configured']},nodes:array(ref('CustomerServiceNode')),usage:{anyOf:[ref('CustomerQuotaUsage'),{type:'null'}]}}),
+ CustomerServiceAccess:object({status:{type:'string',enum:['not_provisioned','disabled','unpaid','configured']},nodes:array(ref('CustomerServiceNode')),links:array(ref('CustomerConnectionLink')),usage:{anyOf:[ref('CustomerQuotaUsage'),{type:'null'}]}}),
  CustomerInvoiceInput:object({subscription_id:string,plan_id:string,account_id:string,request_key:{type:'string',pattern:'^[A-Za-z0-9_-]{16,128}$'}},['plan_id','account_id','request_key']),
  CustomerCheckoutForm:object({action:{type:'string',enum:['https://auth.robokassa.ru/Merchant/Index.aspx','https://yoomoney.ru/quickpay/confirm']},method:{type:'string',enum:['POST']},fields:{type:'object',additionalProperties:{type:'string'}}}),
 };

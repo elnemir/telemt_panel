@@ -340,6 +340,7 @@ export type CustomerQuotaUsage = {
 export type CustomerServiceAccess = {
     status: 'not_provisioned' | 'disabled' | 'unpaid' | 'configured';
     nodes: Array<CustomerServiceNode>;
+    links: Array<CustomerConnectionLink>;
     usage: CustomerQuotaUsage | null;
 };
 
@@ -533,6 +534,7 @@ export type ClusterIdentityJob = {
 export type ClusterIdentityDetail = {
     identity: ClusterIdentity;
     jobs: Array<ClusterIdentityJob>;
+    links: Array<CustomerConnectionLink>;
 };
 
 export type ConfigTree = {
@@ -1084,6 +1086,10 @@ export type Error = {
 export type User = {
     username: string;
     enabled: boolean;
+    /**
+     * Native links use the applied cluster ingress.
+     */
+    cluster_managed?: boolean;
     in_runtime?: boolean;
     user_ad_tag?: string;
     max_tcp_conns?: number;
@@ -5216,7 +5222,7 @@ export type GetClusterIdentityError = GetClusterIdentityErrors[keyof GetClusterI
 
 export type GetClusterIdentityResponses = {
     /**
-     * Per-node desired/applied revisions and readback outcomes, without secrets.
+     * Per-node delivery and Native connection links through the applied ingress.
      */
     200: ClusterIdentityDetail;
 };

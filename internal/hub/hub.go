@@ -88,6 +88,7 @@ const (
 // Config configures the hub's poll intervals and lifecycle timings. Zero
 // fields fall back to the production defaults above.
 type Config struct {
+	ProjectUsers      func(context.Context, []userprojection.User) error
 	UsersInterval     time.Duration
 	StatsInterval     time.Duration
 	TrafficInterval   time.Duration
@@ -333,7 +334,7 @@ func New(cfg Config, tc *telemt.Client, st store.HistoryStore) *Hub {
 			name:         "users",
 			wake:         make(chan struct{}, 1),
 			interval:     cfg.UsersInterval,
-			fetch:        func(ctx context.Context) (any, error) { return fetchUsers(ctx, tc, st) },
+			fetch:        func(ctx context.Context) (any, error) { return fetchUsers(ctx, tc, st, cfg.ProjectUsers) },
 			historyFetch: func(ctx context.Context) (any, error) { return fetchUsersHistory(ctx, tc) },
 			pollGate:     newTopicGate(),
 			persistent:   durableHistory,
@@ -407,7 +408,7 @@ type usersSnapshot struct {
 
 type userSnapshotItem = userprojection.User
 
-func fetchUsers(ctx context.Context, tc *telemt.Client, st store.HistoryStore) (usersSnapshot, error) {
+func fetchUsers(ctx context.Context, tc *telemt.Client, st store.HistoryStore, project func(context.Context, []userprojection.User) error) (usersSnapshot, error) {
 	users, gauges, err := fetchUsersObservation(ctx, tc)
 	if err != nil {
 		return usersSnapshot{}, err
@@ -437,6 +438,11 @@ func fetchUsers(ctx context.Context, tc *telemt.Client, st store.HistoryStore) (
 	items := make([]userprojection.User, len(users))
 	for i, user := range users {
 		items[i] = userprojection.Build(user, traffic, ips)
+	}
+	if project != nil {
+		if err := project(ctx, items); err != nil {
+			return usersSnapshot{}, err
+		}
 	}
 	return usersSnapshot{
 		Users: items, Quota: quota, QuotaSupported: hasQuota,

@@ -62,7 +62,7 @@ test("customer email proof, isolated invoices, lost-response recovery and verifi
  const fixtureLink="tg://proxy?server=proxy.example.test&port=443&secret=0123456789abcdef0123456789abcdef";
  await page.route("**"+servicePath,async route=>{
   const now=Math.floor(Date.now()/1000);
-  await route.fulfill({json:{...originalDetail,access_status:"configured",usage_available:true,access:{status:"configured",nodes:[{node_id:"node-fixture",status:"configured",checked_at:now,budget_until:now+55,links:[{mode:"secure",url:fixtureLink}]}],usage:{period_id:periods[0].id,quota_bytes:"1073741824",overrun_bytes:"1048576",granted_bytes:"1048576",observed_bytes:"4096",unknown_bytes:"1044480",allocations:1,last_reported_at:now}}}});
+  await route.fulfill({json:{...originalDetail,access_status:"configured",usage_available:true,access:{status:"configured",nodes:[{node_id:"node-fixture",status:"configured",checked_at:now,budget_until:now+55,links:[]}],links:[{mode:"secure",url:fixtureLink}],usage:{period_id:periods[0].id,quota_bytes:"1073741824",overrun_bytes:"1048576",granted_bytes:"1048576",observed_bytes:"4096",unknown_bytes:"1044480",allocations:1,last_reported_at:now}}}});
  });
  await page.getByRole("button",{name:"Обновить",exact:true}).click();
  await expect(page.getByText("Доступ настроен",{exact:true})).toBeVisible();

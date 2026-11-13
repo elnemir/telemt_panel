@@ -149,6 +149,8 @@ export const en: Dict = {
       "general.telemetry.user_enabled": "User telemetry", "general.telemetry.me_level": "ME telemetry level",
     },
   },
+  ingressLinks: "Connect through the load balancer",
+  ingressLinksUnavailable: "A link will appear after cluster routing is applied and the user is confirmed on a node.",
   routing: {
     "title": "Connection balancing",
     "hint": "Choose the public port and strategy. Node addresses and ports are suggested from Telemt configuration.",

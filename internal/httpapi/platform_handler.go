@@ -266,16 +266,15 @@ func (s *Server) handleCreateIdentity(w http.ResponseWriter, r *http.Request) {
 }
 
 type identityDetail struct {
-	Identity platform.Identity `json:"identity"`
-	Jobs     []platform.Job    `json:"jobs"`
+	Identity platform.Identity         `json:"identity"`
+	Jobs     []platform.Job            `json:"jobs"`
+	Links    []platform.ConnectionLink `json:"links"`
 }
 
 func (s *Server) handleGetIdentity(w http.ResponseWriter, r *http.Request) {
 	if !s.requirePlatform(w) {
 		return
 	}
-	s.platformMu.RLock()
-	defer s.platformMu.RUnlock()
 	i, e := s.platform.GetIdentity(r.Context(), r.PathValue("identity_id"))
 	if e != nil {
 		writePlatformError(w, e)
@@ -286,8 +285,47 @@ func (s *Server) handleGetIdentity(w http.ResponseWriter, r *http.Request) {
 		writePlatformError(w, e)
 		return
 	}
+	links := []platform.ConnectionLink{}
+	if s.nodes != nil {
+		route, candidates, err := s.platform.IdentityIngressLinkNodes(r.Context(), i.ID, i.Revision)
+		if err != nil {
+			writePlatformError(w, err)
+			return
+		}
+		ctx, cancel := context.WithTimeout(r.Context(), subpageRequestTimeout)
+		defer cancel()
+		for _, id := range candidates {
+			if ctx.Err() != nil {
+				break
+			}
+			_, client, err := s.nodes.Resolve(id)
+			if err != nil {
+				continue
+			}
+			users, err := client.Users(ctx)
+			if err == nil {
+				if user, ok := findUser(users, i.Username); ok && user.Enabled && user.InRuntime {
+					if found := route.ConnectionLinks(user.Links); len(found) > 0 {
+						links = found
+						break
+					}
+				}
+			}
+		}
+	}
+	if len(links) > 0 {
+		current, err := s.platform.GetIdentity(r.Context(), i.ID)
+		if err != nil {
+			writePlatformError(w, err)
+			return
+		}
+		if current.Revision != i.Revision {
+			writePlatformError(w, platform.ErrConflict)
+			return
+		}
+	}
 	platformETag(w, i.Revision)
-	writeJSON(w, 200, identityDetail{i, jobs})
+	writeJSON(w, 200, identityDetail{Identity: i, Jobs: jobs, Links: links})
 }
 func (s *Server) handleUpdateIdentity(w http.ResponseWriter, r *http.Request) {
 	if !s.requirePlatform(w) {

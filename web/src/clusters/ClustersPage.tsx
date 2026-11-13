@@ -9,6 +9,7 @@ import {Button} from "../ui/Button";
 import {Input} from "../ui/Input";
 import {Select} from "../ui/Select";
 import {Sheet} from "../ui/Sheet";
+import {CopyField} from "../ui/CopyField";
 import {PageHeader} from "../ui/PageHeader";
 import {getPlatformStatusOptions,listClustersOptions,getClusterOptions,listClusterIdentitiesOptions,getClusterIdentityOptions,listNodesOptions} from "../lib/api/generated/@tanstack/react-query.gen";
 import {createCluster,renameCluster,deleteCluster,addClusterMember,removeClusterMember,createClusterIdentity,updateClusterIdentity,retryClusterIdentity} from "../lib/api/generated/sdk.gen";
@@ -87,6 +88,10 @@ export function ClustersPage() {
      <h2 className="text-lg font-semibold">{identity.data.identity.username} · {t.delivery}</h2>
      <p className="text-sm text-text-muted">{t.deliveryHint}</p>
      <div className="flex flex-wrap gap-2"><Button disabled={busy||identity.data.identity.revoked} onClick={()=>setEditor({clusterID:c.id,revision:c.revision,identity:identity.data!.identity})}>{t.edit}</Button><Button variant="secondary" disabled={busy} onClick={()=>run(async()=>{await retryClusterIdentity({path:{identity_id:identityID},headers:{"If-Match":String(identity.data!.identity.revision)},throwOnError:true});})}>{t.retry}</Button></div>
+     {identity.data.identity.policy.enabled&&!identity.data.identity.revoked&&<div className="space-y-2">
+      <h3 className="font-semibold">{t.ingressLinks}</h3>
+      {identity.data.links.length===0?<p className="text-sm text-text-muted">{t.ingressLinksUnavailable}</p>:identity.data.links.map(link=><CopyField key={link.url} label={link.mode} value={link.url}/>)}
+     </div>}
      {identity.data.jobs.length===0&&<p>{t.noJobs}</p>}
      <ul className="grid gap-3 md:grid-cols-2">{identity.data.jobs.map(j=><li key={j.node_id} className="rounded-lg border border-border p-3">
       <strong>{nodes.data?.nodes.find(n=>n.id===j.node_id)?.name??j.node_id}</strong><p>{t.states[j.status]}</p><p>{t.desired}: {j.desired_revision} · {t.applied}: {j.applied_revision}</p><p className="text-sm">{j.in_runtime?t.inRuntime:t.noRuntime}</p>{j.last_code&&<code className="break-all text-xs">{j.last_code}</code>}

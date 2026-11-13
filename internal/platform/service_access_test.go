@@ -21,8 +21,15 @@ func TestCustomerAccessRequiresOwnCurrentLeaseAndEncryptedLinks(t *testing.T) {
 	if e != nil {
 		t.Fatal(e)
 	}
+	pending, e := s.CustomerServiceAccess(ctx, "customer-a", sub.ID)
+	if e != nil || len(pending.Links) != 0 || len(pending.Nodes) != 1 || len(pending.Nodes[0].Links) != 0 {
+		t.Fatal("unapplied endpoint exposed links", e)
+	}
+	if e = s.RecordAppliedIngress(ctx, sub.ClusterID, 1, "192.0.2.10", 10443); e != nil {
+		t.Fatal(e)
+	}
 	access, e := s.CustomerServiceAccess(ctx, "customer-a", sub.ID)
-	if e != nil || access.Status != "configured" || len(access.Nodes) != 1 || len(access.Nodes[0].Links) != 1 || access.Usage == nil || access.Usage.LastReportedAt == nil {
+	if e != nil || access.Status != "configured" || len(access.Nodes) != 1 || len(access.Nodes[0].Links) != 0 || len(access.Links) != 1 || !strings.Contains(access.Links[0].URL, "server=192.0.2.10") || access.Usage == nil || access.Usage.LastReportedAt == nil {
 		t.Fatal(access, e)
 	}
 	if _, e = s.CustomerServiceAccess(ctx, "customer-b", sub.ID); !errors.Is(e, ErrNotFound) {
@@ -38,7 +45,7 @@ func TestCustomerAccessRequiresOwnCurrentLeaseAndEncryptedLinks(t *testing.T) {
 	}
 	*now = access.Nodes[0].BudgetUntil
 	stale, e := s.CustomerServiceAccess(ctx, "customer-a", sub.ID)
-	if e != nil || stale.Status == "configured" || len(stale.Nodes[0].Links) != 0 || stale.Nodes[0].Status != "unavailable" {
+	if e != nil || stale.Status == "configured" || len(stale.Nodes[0].Links) != 0 || len(stale.Links) != 0 || stale.Nodes[0].Status != "unavailable" {
 		t.Fatal(stale, e)
 	}
 	// Unknown old-node usage is retained after its lease expires.

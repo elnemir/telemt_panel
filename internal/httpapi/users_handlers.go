@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/amirotin/telemt_panel/internal/auth"
+	"github.com/amirotin/telemt_panel/internal/platform"
 	"github.com/amirotin/telemt_panel/internal/store"
 	"github.com/amirotin/telemt_panel/internal/subpage"
 	"github.com/amirotin/telemt_panel/internal/telemt"
@@ -151,8 +152,14 @@ func (s *Server) handleListUsers(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		slog.Warn("user IP summaries unavailable")
 	}
+	routes, err := s.nodeUserIngress(ctx)
+	if err != nil {
+		writePlatformError(w, err)
+		return
+	}
 	for i, u := range users {
 		out[i] = s.buildUserResponse(r, u, quota, hasQuota, traffic, ips)
+		platform.ProjectUserLinks(&out[i].User, routes)
 	}
 	writeJSON(w, http.StatusOK, out)
 }
@@ -207,7 +214,14 @@ func (s *Server) handleGetUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	quota, hasQuota, traffic := s.loadUserEnrichment(ctx)
-	writeJSON(w, http.StatusOK, s.buildUserResponse(r, u, quota, hasQuota, traffic, nil))
+	routes, err := s.nodeUserIngress(ctx)
+	if err != nil {
+		writePlatformError(w, err)
+		return
+	}
+	out := s.buildUserResponse(r, u, quota, hasQuota, traffic, nil)
+	platform.ProjectUserLinks(&out.User, routes)
+	writeJSON(w, http.StatusOK, out)
 }
 
 // handlePatchUser implements PATCH /api/users/{username}.
@@ -556,4 +570,11 @@ func writeTelemtError(w http.ResponseWriter, err error, capabilityGated bool) {
 		}
 		auth.WriteError(w, http.StatusBadGateway, "telemt_unreachable", apiErr.Message)
 	}
+}
+
+func (s *Server) nodeUserIngress(ctx context.Context) (map[string]platform.UserIngress, error) {
+	if s.platform == nil {
+		return nil, nil
+	}
+	return s.platform.NodeUserIngress(ctx, s.platformNodeID)
 }

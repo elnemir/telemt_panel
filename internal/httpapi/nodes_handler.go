@@ -11,6 +11,7 @@ import (
 	"github.com/amirotin/telemt_panel/internal/auth"
 	"github.com/amirotin/telemt_panel/internal/nodes"
 	"github.com/amirotin/telemt_panel/internal/platform"
+	"github.com/amirotin/telemt_panel/internal/telemt"
 )
 
 func (s *Server) requireNodes(w http.ResponseWriter) bool {
@@ -203,7 +204,21 @@ func (s *Server) handleNodeRead(kind string) http.HandlerFunc {
 		case "health":
 			data, err = client.Health(ctx)
 		case "users":
-			data, revision, err = client.UsersWithRevision(ctx)
+			var users []telemt.UserInfo
+			users, revision, err = client.UsersWithRevision(ctx)
+			if err == nil && s.platform != nil {
+				routes, routeErr := s.platform.NodeUserIngress(ctx, n.ID)
+				if routeErr != nil {
+					writePlatformError(w, routeErr)
+					return
+				}
+				for i := range users {
+					if route, managed := routes[users[i].Username]; managed {
+						users[i].Links = route.Links(users[i].Links)
+					}
+				}
+			}
+			data = users
 		case "config":
 			data, revision, err = client.GetConfig(ctx)
 		default:

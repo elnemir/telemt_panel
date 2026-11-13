@@ -24,14 +24,19 @@ type ServiceNode struct {
 	Links       []ConnectionLink `json:"links"`
 }
 type ServiceAccess struct {
-	Status string        `json:"status"`
-	Nodes  []ServiceNode `json:"nodes"`
-	Usage  *QuotaUsage   `json:"usage"`
+	Status string           `json:"status"`
+	Nodes  []ServiceNode    `json:"nodes"`
+	Links  []ConnectionLink `json:"links"`
+	Usage  *QuotaUsage      `json:"usage"`
 }
 
 // A node cannot inject arbitrary clickable schemes or another identity's link
 // into a customer account. WEB links need the separate ingress contract.
 func connectionLinks(links telemt.UserLinks, secret string) []ConnectionLink {
+	return verifiedConnectionLinks(links, secretHash(secret))
+}
+
+func verifiedConnectionLinks(links telemt.UserLinks, expectedHash string) []ConnectionLink {
 	out := []ConnectionLink{}
 	seen := map[string]bool{}
 	total := 0
@@ -51,9 +56,17 @@ func connectionLinks(links telemt.UserLinks, secret string) []ConnectionLink {
 		if e != nil || port < 1 || port > 65535 {
 			return
 		}
-		check := telemt.UserLinks{Classic: []string{raw}, Secure: []string{raw}, TLS: []string{raw}}
+		var check telemt.UserLinks
+		switch mode {
+		case "classic":
+			check.Classic = []string{raw}
+		case "secure":
+			check.Secure = []string{raw}
+		case "faketls":
+			check.TLS = []string{raw}
+		}
 		found, ok := subpage.ExtractSecret(check)
-		if !ok || secretHash(found) != secretHash(secret) {
+		if !ok || secretHash(found) != expectedHash {
 			return
 		}
 		seen[raw] = true
@@ -76,7 +89,7 @@ func connectionLinks(links telemt.UserLinks, secret string) []ConnectionLink {
 }
 
 func (s *Store) CustomerServiceAccess(ctx context.Context, customerID, subscriptionID string) (ServiceAccess, error) {
-	out := ServiceAccess{Status: "not_provisioned", Nodes: []ServiceNode{}}
+	out := ServiceAccess{Status: "not_provisioned", Nodes: []ServiceNode{}, Links: []ConnectionLink{}}
 	e := s.transaction(ctx, func(tx *sql.Tx) error {
 		sub, e := scanSubscription(tx.QueryRowContext(ctx, "SELECT "+subscriptionColumns+" FROM subscriptions WHERE id=? AND customer_id=?", subscriptionID, customerID))
 		if e != nil {
@@ -117,6 +130,11 @@ func (s *Store) CustomerServiceAccess(ctx context.Context, customerID, subscript
 		}
 		usage.UnknownBytes = usage.GrantedBytes - usage.ObservedBytes
 		out.Usage = &usage
+		endpoint, e := appliedEndpoint(ctx, tx, identity.ClusterID)
+		if e != nil {
+			return e
+		}
+		var candidates []ConnectionLink
 		rows, e := tx.QueryContext(ctx, `SELECT j.node_id,j.status,j.last_code,j.updated_at,j.budget_until,j.links_cipher,j.budget_period_id,j.applied_revision,j.desired_revision,j.in_runtime
    FROM identity_jobs j JOIN cluster_members m ON m.node_id=j.node_id WHERE j.identity_id=? AND m.state='active' ORDER BY j.node_id`, sub.IdentityID)
 		if e != nil {
@@ -143,20 +161,23 @@ func (s *Store) CustomerServiceAccess(ctx context.Context, customerID, subscript
 			case state == "applied" && applied == desired && inRuntime && budgetPeriod == period.ID && node.BudgetUntil > now && code == "managed_quota_active":
 				node.Status = "configured"
 				out.Status = "configured"
-				if len(sealed) > 0 {
+				if endpoint.host != "" && len(sealed) > 0 {
 					raw, e := s.decrypt("links:"+identity.ID+":"+node.NodeID, sealed)
 					if e != nil {
 						return e
 					}
-					if e = json.Unmarshal([]byte(raw), &node.Links); e != nil {
+					var links []ConnectionLink
+					if e = json.Unmarshal([]byte(raw), &links); e != nil {
 						return ErrSchema
 					}
+					candidates = append(candidates, links...)
 				}
 			case state == "applied" && node.BudgetUntil <= now:
 				node.Status = "unavailable"
 			}
 			out.Nodes = append(out.Nodes, node)
 		}
+		out.Links = ingressConnectionLinks(candidates, endpoint)
 		return rows.Err()
 	})
 	return out, e

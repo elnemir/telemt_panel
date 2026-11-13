@@ -13,6 +13,7 @@ import (
 	"testing"
 
 	"github.com/amirotin/telemt_panel/internal/platform"
+	"github.com/amirotin/telemt_panel/internal/subpage"
 	"github.com/amirotin/telemt_panel/internal/telemt"
 	"github.com/amirotin/telemt_panel/internal/usercopy"
 )
@@ -25,6 +26,10 @@ func TestPlatformHTTPIsolationRevisionsAndManagedUserProtection(t *testing.T) {
 	}
 	defer db.Close()
 	s.platform = db
+	s.cfg.Subpage.Enabled = true
+	s.cfg.Subpage.BasePath = "/sub"
+	s.cfg.Subpage.Secret = "fixture-subpage-key"
+	s.subSvc = subpage.NewService(s.cfg.Subpage.Secret, s.cfg.Subpage.BasePath, s.st)
 	request := func(method, path string, body any, revision int64) *httptest.ResponseRecorder {
 		t.Helper()
 		raw, _ := json.Marshal(body)
@@ -95,6 +100,40 @@ func TestPlatformHTTPIsolationRevisionsAndManagedUserProtection(t *testing.T) {
 	}
 	if len(detail.Jobs) != 1 || detail.Jobs[0].Status != "applied" {
 		t.Fatal(w.Body)
+	}
+	if len(detail.Links) != 0 {
+		t.Fatal("cluster published a link before ingress activation")
+	}
+	if err := db.RecordAppliedIngress(context.Background(), c.ID, 3, "192.0.2.20", 10443); err != nil {
+		t.Fatal(err)
+	}
+	w = request("GET", "/api/identities/"+identity.ID, nil, 0)
+	if w.Code != 200 || json.Unmarshal(w.Body.Bytes(), &detail) != nil || len(detail.Links) == 0 ||
+		!strings.Contains(detail.Links[0].URL, "port=10443") || !strings.Contains(detail.Links[0].URL, "server=192.0.2.20") {
+		t.Fatal("cluster detail missing applied links", w.Code)
+	}
+	w = request("GET", nodeURL(a.ID, "/users/"+name), nil, 0)
+	var managed userResponse
+	if w.Code != 200 || json.Unmarshal(w.Body.Bytes(), &managed) != nil || !managed.ClusterManaged ||
+		len(managed.Links.Classic) == 0 || !strings.Contains(managed.Links.Classic[0], "server=192.0.2.20") {
+		t.Fatal("node detail bypasses the cluster ingress", w.Code)
+	}
+	sub := request("GET", nodeURL(a.ID, "/users/"+name+"/sublink"), nil, 0)
+	var link sublinkResponse
+	if sub.Code != 200 || json.Unmarshal(sub.Body.Bytes(), &link) != nil {
+		t.Fatal("subscription URL unavailable", sub.Code)
+	}
+	public := httptest.NewRecorder()
+	s.SubscriptionHandler().ServeHTTP(public, httptest.NewRequest("GET", pathOf(t, link.URL), nil))
+	if public.Code != 200 || !strings.Contains(public.Body.String(), "server=192.0.2.20") ||
+		!strings.Contains(public.Body.String(), "port=10443") {
+		t.Fatal("public subscription missing applied ingress", public.Code)
+	}
+	w = request("GET", nodeURL(a.ID, "/users/alice"), nil, 0)
+	var local userResponse
+	if w.Code != 200 || json.Unmarshal(w.Body.Bytes(), &local) != nil || local.ClusterManaged ||
+		strings.Contains(w.Body.String(), "server=192.0.2.20") {
+		t.Fatal("local user incorrectly uses cluster ingress", w.Code)
 	}
 	for _, op := range []struct {
 		method, path string

@@ -121,7 +121,9 @@ function CustomerHome({account,methods,expired}:{account:PortalCustomer;methods:
      {detail.data.access.usage.last_reported_at!==null&&<p>{t.usageUpdated}: {date(detail.data.access.usage.last_reported_at)}</p>}
      <p className="text-sm text-text-muted">{t.reserveHint}</p>
     </div>:<p className="text-text-muted">{t.usagePending}</p>}
-    {detail.data.access.nodes.length>0&&<><h3 className="font-semibold">{t.servers}</h3><ul className="space-y-2">{detail.data.access.nodes.map(node=><li key={node.node_id} className="rounded-lg border border-border p-3 space-y-2"><p>{t.server} {node.node_id.slice(-8)}: {t.nodeStates[node.status]}</p><div className="flex flex-wrap gap-3">{node.links.map(link=><a key={link.url} href={link.url} className="text-accent underline break-all">{t.connect} · {link.mode}</a>)}</div></li>)}</ul></>}
+    {detail.data.access.links.length>0&&<div className="flex flex-wrap gap-3">{detail.data.access.links.map(link=><a key={link.url} href={link.url} className="text-accent underline break-all">{t.connect} · {link.mode}</a>)}</div>}
+    {detail.data.access_status==="configured"&&detail.data.access.links.length===0&&<p className="text-text-muted">{s.clusters.ingressLinksUnavailable}</p>}
+    {detail.data.access.nodes.length>0&&<><h3 className="font-semibold">{t.servers}</h3><ul className="space-y-2">{detail.data.access.nodes.map(node=><li key={node.node_id} className="rounded-lg border border-border p-3 space-y-2"><p>{t.server} {node.node_id.slice(-8)}: {t.nodeStates[node.status]}</p></li>)}</ul></>}
 
     {detail.data.current_period?<p>{t.currentPeriod}: {t.from} {date(detail.data.current_period.starts_at)} {t.until} {date(detail.data.current_period.ends_at)}</p>:<p>{t.noCurrent}</p>}
     <h3 className="font-semibold">{t.periods}</h3><ul className="space-y-2">{periods.data?.map(p=><li key={p.id} className="rounded-lg border border-border p-3"><p>{date(p.starts_at)} → {date(p.ends_at)}</p><p>{p.terms.quota_bytes===null?t.unlimited:`${t.quota}: ${p.terms.quota_bytes} ${t.bytes}`}</p></li>)}</ul>

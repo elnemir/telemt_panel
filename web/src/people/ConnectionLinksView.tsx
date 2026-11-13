@@ -16,9 +16,9 @@ import {Button} from "../ui/Button";
 const emptyProfiles: WebLinkProfile[] = [];
 function useLinks(user: UsersTopicUser) {
   const context = useContext(PeopleContext);
-  const profiles = context.profiles.get(user.username) ?? emptyProfiles;
+  const profiles = user.cluster_managed ? emptyProfiles : context.profiles.get(user.username) ?? emptyProfiles;
   const links = useMemo(()=>collectConnectionLinks(user.links, profiles),[user.links,profiles]);
-  return {...context,links,profiles,format:context.formats.get(user.username)??"tg" as const};
+  return {...context,webUnavailable:!user.cluster_managed&&context.webUnavailable,links,profiles,format:context.formats.get(user.username)??"tg" as const};
 }
 const names: Record<ConnectionKind,string> = {tls:"EE",secure:"DD",classic:"Classic",web:"WEB"};
 
@@ -36,8 +36,8 @@ export function QuickConnectionLinks({user}: {user: UsersTopicUser}) {
 }
 
 export function ConnectionLinks({user}: {user:UsersTopicUser}) {
-  const settings = useQuery({...getLinkSettingsOptions(), staleTime:0, refetchOnMount:"always"});
-  const allowed = settings.data?.allow_address_override === true && !settings.isError && !settings.isFetching;
+  const settings = useQuery({...getLinkSettingsOptions(), staleTime:0, refetchOnMount:"always",enabled:!user.cluster_managed});
+  const allowed = !user.cluster_managed && settings.data?.allow_address_override === true && !settings.isError && !settings.isFetching;
   return <ConnectionLinksForm key={`${user.username}:${allowed}`} user={user} allowAddressOverride={allowed} settingsError={settings.isError} />;
 }
 
@@ -63,7 +63,7 @@ function ConnectionLinksForm({user, allowAddressOverride, settingsError}: {user:
     {settingsError&&<p className="user-note text-warn">{s.linkAddress.noSettings}</p>}
     {webUnavailable&&<p className="user-note">{s.people.webAccess.unavailable}</p>}
     {!!profiles.length&&!links.some(l=>l.kind==="web")&&<p className="user-note text-warn">{t.webSecretUnavailable}</p>}
-    {!link?<p className="user-note">{s.people.detail.noLinks}</p>:<>
+    {!link?<p className="user-note">{user.cluster_managed?s.clusters.ingressLinksUnavailable:s.people.detail.noLinks}</p>:<>
       <div className="workspace-segments" role="group" aria-label={t.linkKind}>{kinds.map(k=><button type="button" key={k} aria-pressed={activeKind===k} onClick={()=>{setKind(k);setSelected("");setAddress({link:"",host:""});setManual(null);setQR(false);}}>{names[k]}</button>)}</div>
       <label className="user-field"><span>{allowAddressOverride&&activeKind!=="web"?s.linkAddress.sourceVariant:t.linkVariant}</span><Select value={link.url} onChange={e=>{setSelected(e.target.value);setAddress({link:"",host:""});setManual(null);setQR(false);}}>{options.map(l=><option key={l.url} value={l.url}>{[l.endpoint,l.domain,l.profileMode,l.primary?t.primary:null].filter(Boolean).join(" · ")}</option>)}</Select></label>
       {allowAddressOverride&&activeKind!=="web"&&<div className="space-y-2">

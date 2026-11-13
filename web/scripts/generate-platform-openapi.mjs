@@ -29,7 +29,7 @@ const paths={
  '/api/clusters/{cluster_id}/members':{post:op('addClusterMember',[...cid,match],object({node_id:string}),204,null,'Join one enabled registered node to this cluster; enqueue non-revoked identities transactionally.')},
  '/api/clusters/{cluster_id}/members/{member_id}':{delete:op('removeClusterMember',[...cid,param('member_id'),match],null,202,null,'Request removal. Disable managed accounts with per-node retirement credentials and verify before releasing membership. Failure keeps ownership reserved.')},
  '/api/clusters/{cluster_id}/identities':{get:op('listClusterIdentities',[...cid,{name:'offset',in:'query',schema:{type:'integer',minimum:0,default:0}}],null,200,array(ref('ClusterIdentity')),'Up to 100 identities ordered by username; use offset for the next page.'),post:op('createClusterIdentity',[...cid,match],ref('ClusterIdentityInput'),201,ref('ClusterIdentity'),'Persist desired identity and delivery jobs. Does not assert successful delivery. If-Match is the cluster revision.')},
- '/api/identities/{identity_id}':{get:op('getClusterIdentity',iid,null,200,ref('ClusterIdentityDetail'),'Per-node desired/applied revisions and readback outcomes, without secrets.'),put:op('updateClusterIdentity',[...iid,match],ref('ClusterIdentityUpdate'),202,null,'Update desired policy, rotate secret or irreversibly revoke identity. Revoke also rotates the credential. Does not terminate all existing transport sessions.')},
+ '/api/identities/{identity_id}':{get:op('getClusterIdentity',iid,null,200,ref('ClusterIdentityDetail'),'Per-node delivery and Native connection links through the applied ingress.'),put:op('updateClusterIdentity',[...iid,match],ref('ClusterIdentityUpdate'),202,null,'Update desired policy, rotate secret or irreversibly revoke identity. Revoke also rotates the credential. Does not terminate all existing transport sessions.')},
  '/api/identities/{identity_id}/retry':{post:op('retryClusterIdentity',[...iid,match],null,202,null,'Schedule re-observation without stealing a live worker lease.')},
 };
 const nullableLimit={type:['integer','null'],format:'uint64',minimum:0};
@@ -56,7 +56,7 @@ const schemas={
  ClusterIdentityInput:object({username:{type:'string',pattern:'^[A-Za-z0-9_.-]{1,64}$'},policy:ref('ClusterIdentityPolicy'),secret:{type:'string',pattern:'^[a-fA-F0-9]{32}$'}},['username','policy']),
  ClusterIdentityUpdate:object({policy:ref('ClusterIdentityPolicy'),rotate_secret:boolean,revoke:boolean}),
  ClusterIdentityJob:object({identity_id:string,node_id:string,desired_revision:integer,applied_revision:integer,status:{type:'string',enum:['pending','running','applied','conflict','unavailable']},attempts:{type:'integer'},next_attempt:integer,last_code:string,in_runtime:boolean,updated_at:integer}),
- ClusterIdentityDetail:object({identity:ref('ClusterIdentity'),jobs:array(ref('ClusterIdentityJob'))}),
+ ClusterIdentityDetail:object({identity:ref('ClusterIdentity'),jobs:array(ref('ClusterIdentityJob')),links:array(ref('CustomerConnectionLink'))}),
 };
 function replaceBlock(name,indent,value,before){
  const start=indent+'# '+name+' start\n',end=indent+'# '+name+' end\n';

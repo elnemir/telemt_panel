@@ -11,8 +11,9 @@ import (
 // topic.
 type User struct {
 	telemt.UserInfo
-	Traffic   *Traffic             `json:"traffic,omitempty"`
-	IPHistory *store.UserIPSummary `json:"ip_history,omitempty"`
+	ClusterManaged bool                 `json:"cluster_managed,omitempty"`
+	Traffic        *Traffic             `json:"traffic,omitempty"`
+	IPHistory      *store.UserIPSummary `json:"ip_history,omitempty"`
 }
 
 // Traffic contains the panel-owned traffic fields exposed with a user.

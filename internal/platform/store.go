@@ -119,7 +119,7 @@ func (s *Store) initialize(ctx context.Context) error {
 		if err := tx.QueryRowContext(ctx, "PRAGMA user_version").Scan(&version); err != nil {
 			return err
 		}
-		if version < 0 || version > 5 {
+		if version < 0 || version > 6 {
 			return ErrSchema
 		}
 		if version == 0 {
@@ -199,6 +199,20 @@ func (s *Store) initialize(ctx context.Context) error {
 				}
 			}
 			if _, err := tx.ExecContext(ctx, "PRAGMA user_version=5"); err != nil {
+				return err
+			}
+		}
+
+		if version < 6 {
+			if _, err := tx.ExecContext(ctx, `CREATE TABLE cluster_ingress_applied (
+				cluster_id TEXT PRIMARY KEY REFERENCES clusters(id) ON DELETE CASCADE,
+				revision INTEGER NOT NULL CHECK(revision > 0),
+				host TEXT NOT NULL,
+				native_port INTEGER NOT NULL CHECK(native_port BETWEEN 1 AND 65535)
+			) STRICT`); err != nil {
+				return err
+			}
+			if _, err := tx.ExecContext(ctx, "PRAGMA user_version=6"); err != nil {
 				return err
 			}
 		}

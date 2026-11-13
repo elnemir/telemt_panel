@@ -752,7 +752,7 @@ export const createClusterIdentity = <ThrowOnError extends boolean = false>(opti
 });
 
 /**
- * Per-node desired/applied revisions and readback outcomes, without secrets.
+ * Per-node delivery and Native connection links through the applied ingress.
  */
 export const getClusterIdentity = <ThrowOnError extends boolean = false>(options: Options<GetClusterIdentityData, ThrowOnError>): RequestResult<GetClusterIdentityResponses, GetClusterIdentityErrors, ThrowOnError> => (options.client ?? client).get<GetClusterIdentityResponses, GetClusterIdentityErrors, ThrowOnError>({
     security: [{
