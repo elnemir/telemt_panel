@@ -59,6 +59,15 @@ or 192 KiB with WEB enabled. The result is capped at 100,000. Installation
 fails below 256. The systemd service has a 262,144 file descriptor limit
 and leaves HAProxy thread selection automatic.
 
+The Native listener requests a TCP accept backlog of at least 4,096,
+or the computed `maxconn` if larger. Linux caps the effective queue at
+`net.core.somaxconn`. This buffers bursts without raising the active
+session limit. Check the Send-Q column of `ss -ltn 'sport = :10443'`
+(use your route's port) after applying. A graceful reload can reuse an
+existing listening socket and leave its previous queue size in effect.
+Changing the size on such a host requires recreating the listener in
+a maintenance window; the installer does not restart a running service.
+
 Native TCP enables keepalives on both legs, allows one hour of tunnel
 inactivity, and releases half-closed sessions after 30 seconds.
 Backend checks are staggered. Old workers drain existing connections

@@ -178,7 +178,12 @@ if [ "$action" = apply-managed ]; then
             printf "%d\n", int(min(budget / per_connection, 100000))
         }' /proc/meminfo)
     [ "$capacity" -ge 256 ] || fail 14 'Insufficient free memory to start the ingress worker.'
-    sed "s/^    maxconn 10000$/    maxconn $capacity/" "$source_config" > "$candidate"
+    # Cover short connection bursts without raising the active-session budget.
+    # Keep the queue at least as large as the computed limit on bigger hosts.
+    backlog=$capacity
+    if [ "$backlog" -lt 4096 ]; then backlog=4096; fi
+    sed -e "s/^    maxconn 10000$/    maxconn $capacity/" \
+        -e "s/^    backlog 10000$/    backlog $backlog/" "$source_config" > "$candidate"
     grep -qx "    maxconn $capacity" "$candidate" || fail 13 'Missing connection limit.'
     chown root:haproxy "$candidate"
     chmod 0640 "$candidate"

@@ -191,6 +191,7 @@ tls = true
 
 [server]
 port = %d
+listen_backlog = 4096
 
 [server.api]
 enabled = true
