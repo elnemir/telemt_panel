@@ -1,9 +1,10 @@
 package httpapi
 
 import (
+	"net/http"
+
 	"github.com/amirotin/telemt_panel/internal/ingress"
 	"github.com/amirotin/telemt_panel/internal/platform"
-	"net/http"
 )
 
 func (s *Server) handleGetClusterRouting(w http.ResponseWriter, r *http.Request) {
@@ -54,8 +55,8 @@ func (s *Server) handleExportClusterRouting(w http.ResponseWriter, r *http.Reque
 		return
 	}
 	s.platformMu.RLock()
-	defer s.platformMu.RUnlock()
 	raw, e := s.platform.ExportRouting(r.Context(), r.PathValue("cluster_id"), revision)
+	s.platformMu.RUnlock()
 	if e != nil {
 		writePlatformError(w, e)
 		return

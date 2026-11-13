@@ -1,76 +1,81 @@
-# Standalone Telemt ingress
+# Telemt ingress
 
-This is an operator-managed HAProxy 3.2 deployment. Saving or downloading routing
-in the panel does **not** install this service or confirm public connectivity.
-The panel, ingress and Telemt nodes may run on different machines.
+Open **Clusters → Connection balancing**. The panel suggests backend IP
+addresses and listener ports for active nodes. Review the addresses from the
+load balancer's network. Set the public Native TCP port and balancing strategy.
+Enable WEB only if the cluster serves WEB on a common domain. Save the route
+and open **Install HAProxy**.
 
-## Prepare
+## Prepare the host and the nodes
 
-1. Install HAProxy 3.2 on the ingress host. The example unit expects
-   `/usr/sbin/haproxy` and the `haproxy` OS user/group; adjust the unit for the
-   host package if they differ. No package is installed by the panel.
-2. Point the cluster domain's A/AAAA records to this ingress. Choose different
-   public ports: WEB must use 443 with the current Telemt bridge; Native/FakeTLS
-   uses another chosen port (the editor initially proposes 8443). Ensure the firewall allows
-   these ports and prevents public access to Telemt's backend/control ports.
-3. Provision a valid PEM certificate chain plus private key for this domain at
-   `/etc/telemt-ingress/tls.pem`, owned by root:haproxy, mode 0640. Keep its parent
-   directory root:haproxy mode 0750. Renew using the host's certificate workflow;
-   no key is uploaded to the panel. Certificate renewal requires HAProxy reload.
-4. Configure each native Telemt listener to accept PROXY protocol and trust
-   **only the actual ingress peer CIDRs**. Configure each WEB listener with
-   `proxy_protocol = false`, an explicit trusted ingress CIDR and
-   `web_client_ip_source = "x_forwarded_for"`. WEB uses a private plain-HTTP hop:
-   use a private network or VPN between hosts. Do not expose it on the Internet.
-5. Synchronize WEB vhost domain, base path, profiles, secret mode and inner
-   `public_addr` across nodes. `public_addr` is the concrete public IP on port
-   443 used in the inner KDF tuple; it is not the private WEB listening address.
-   Restart-only listener changes must be applied before accepting traffic.
-6. In the panel's cluster editor, enter backend traffic addresses (not control
-   API URLs), ports, native algorithm, weights 1–256 and drain states. Download
-   `haproxy.cfg` after saving. Membership changes require reviewing the inventory
-   and exporting again. The certificate path in the export is fixed.
+- Use a Debian or Ubuntu host running systemd with HAProxy 3.0 or newer.
+  Authorize the panel installation public key for the UID 0 SSH account.
+  Read the ED25519 fingerprint from the trusted load balancer console with
+  `ssh-keygen -lf /etc/ssh/ssh_host_ed25519_key.pub`.
+- Allow incoming TCP on the public Native port. Point the cluster DNS name
+  to the load balancer if using a domain. Check that the selected ports are
+  available for the new service.
+- Native listeners must accept PROXY protocol and trust the load balancer's
+  actual peer IP or CIDR. Limit backend access to the load balancer. If the
+  same Telemt node also serves direct clients, use a separate listener for
+  the load balancer. Check the listener and trust changes on each node before
+  moving traffic. Never reuse the Control API port as a backend.
+- For WEB, allow TCP 443 and use private networking for backend HTTP. Set
+  `proxy_protocol = false`, `web_client_ip_source = "x_forwarded_for"` and
+  `web_trusted_proxy_cidrs` to the actual ingress CIDR on each WEB listener.
+  Configure the same WEB vhost, base path and profile policies on each node.
+  Its `public_addr` is the concrete public IP on port 443 used by the WEB
+  bridge. Provision the domain's certificate chain and private key as a single
+  PEM at `/etc/telemt-ingress/tls.pem`, owned by root:haproxy with mode 0640.
+  The parent directory should be root:haproxy with mode 0750. Reload after
+  renewing this certificate.
 
-## Validate and install
+## Install and apply
 
-The following commands run on the ingress host, from the directory containing
-the downloaded configuration. They are deployment actions for the operator;
-they have not been executed against a live server by this project.
+Enter the load balancer IP address, SSH port, account, and ED25519
+fingerprint, then select **Apply over SSH**. The panel connects with the
+configured SSH installation key. It installs missing HAProxy and socat
+packages through APT, validates the saved revision as the HAProxy user,
+and writes the config atomically to `/etc/telemt-ingress/haproxy.cfg`.
+It starts or reloads `telemt-ingress.service` and verifies the active
+worker's connection limit through a local socket. The regular
+`haproxy.service` has separate configuration and lifecycle.
+
+Reapply from the same step after changing routing. Activation failure
+restores the prior file and running service when present. The previous
+validated file is retained at `/etc/telemt-ingress/haproxy.cfg.previous`.
+A config marked for another cluster, a newer revision or an incompatible
+service installation requires operator intervention. The panel shows
+recent operation status for one hour. The saved route and last
+installation status are separate.
+
+## Capacity profile
+
+The installer chooses HAProxy `maxconn` per worker from the smaller of
+one quarter of total memory and one half of available memory. On cgroup v2
+it also considers limits and remaining memory in the installation
+process's cgroup hierarchy. The budget uses 96 KiB per Native connection
+or 192 KiB with WEB enabled. The result is capped at 100,000. Installation
+fails below 256. The systemd service has a 262,144 file descriptor limit
+and leaves HAProxy thread selection automatic.
+
+Native TCP enables keepalives on both legs, allows one hour of tunnel
+inactivity, and releases half-closed sessions after 30 seconds.
+Backend checks are staggered. Old workers drain existing connections
+on reload. Memory, CPU, network bandwidth, and the outgoing ephemeral
+port range per backend endpoint determine actual capacity. Run a load
+test with the production mix before setting a concurrency target.
+
+## Verify traffic
+
+Read backend health via the dedicated local HAProxy socket:
 
 ```sh
-sudo install -o root -g haproxy -m 0640 haproxy.cfg /etc/telemt-ingress/haproxy.cfg.next
-sudo -u haproxy /usr/sbin/haproxy -c -f /etc/telemt-ingress/haproxy.cfg.next
+printf '@1 show stat\n' | sudo socat - UNIX-CONNECT:/run/telemt-ingress/master.sock
 ```
 
-Continue only after validation succeeds. For an existing installation, preserve
-`haproxy.cfg` as `haproxy.cfg.previous` first; then rename the validated `.next`
-file to `haproxy.cfg` on the same filesystem. Install the provided unit as
-`/etc/systemd/system/telemt-ingress.service`, run `systemctl daemon-reload`, and
-start/enable it for a first installation or reload it for a subsequent change.
-The unit validates before start/reload; `USR2` asks the HAProxy master to re-exec
-and gracefully replace workers. Existing sessions are not transferred between
-Telemt processes. Inspect the service journal and perform external protocol
-probes after reload; an accepted reload command alone is not acceptance.
-
-## Verify and recover
-
-- Verify Native/FakeTLS from outside the private network, including client IP
-  attribution at Telemt. The native frontend preserves the original byte stream
-  and sends the source/destination tuple in PROXY v2.
-- Verify WEB TLS, a fresh bridge and its bootstrap/carrier on the chosen public
-  port. Keep browser cookies enabled. Test a long-lived connection and reconnect
-  after draining/failing a node. The load balancer health check is TCP-only; it
-  does not prove WEB capacity, Telegram reachability or paid quota delivery.
-- With drain enabled, new native connections avoid that node. Existing TCP and
-  cookie-pinned WEB traffic may continue there. To stop existing WEB sessions,
-  use Telemt's separate lifecycle controls; drain is not an immediate revoke.
-- If validation fails, leave the existing service/file intact. If post-reload
-  checks fail, restore the previously validated file and reload. Recheck TLS and
-  both protocols. A process restart or failure can require a new WEB session.
-- Keep the panel's SQLite DB **and its encryption key** in separate protected
-  backups. Do not reclaim unknown quota allocations after restoring an older
-  DB. Unknown node grants fail closed; reconciling payments/reservations across
-  a stale DB restore requires an explicit recovery procedure.
-
-No multi-ingress failover/state replication, automatic DNS/certificate changes,
-remote apply acknowledgement or live acceptance is claimed by this example.
+A TCP check shows listener reachability. Verify actual Native/FakeTLS
+traffic and the client source IP on Telemt. For WEB, open a fresh bridge
+and verify bootstrap, carrier traffic and reconnect after drain.
+WEB affinity stays with a node while it is available. A failed node can
+require reconnecting with a fresh session.

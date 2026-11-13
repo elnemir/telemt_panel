@@ -36,6 +36,7 @@ type nodeInstallJobs struct {
 	cancel        context.CancelFunc
 	jobs          map[string]*nodeInstallJob
 	upgrades      map[string]*nodeUpgradeJob
+	ingress       map[string]*clusterIngressJob
 	nodeWrites    map[string]int
 	upgradingNode string
 	busy          bool
@@ -48,7 +49,7 @@ func newNodeInstallJobs(parent context.Context, runner NodeInstaller) *nodeInsta
 	}
 	ctx, cancel := context.WithCancel(parent)
 	return &nodeInstallJobs{runner: runner, ctx: ctx, cancel: cancel, jobs: make(map[string]*nodeInstallJob),
-		upgrades: make(map[string]*nodeUpgradeJob), nodeWrites: make(map[string]int)}
+		upgrades: make(map[string]*nodeUpgradeJob), ingress: make(map[string]*clusterIngressJob), nodeWrites: make(map[string]int)}
 }
 
 func (j *nodeInstallJobs) close() {
@@ -68,6 +69,11 @@ func (j *nodeInstallJobs) expire() {
 	for id, job := range j.upgrades {
 		if !job.expires.IsZero() && time.Now().After(job.expires) {
 			delete(j.upgrades, id)
+		}
+	}
+	for id, job := range j.ingress {
+		if !job.expires.IsZero() && time.Now().After(job.expires) {
+			delete(j.ingress, id)
 		}
 	}
 }

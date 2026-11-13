@@ -407,15 +407,49 @@ export type IngressTarget = {
     drain: boolean;
 };
 
+export type IngressSuggestion = {
+    node_id: string;
+    native: Array<string>;
+    web: Array<string>;
+    status: 'read' | 'unavailable';
+};
+
 export type IngressConfig = {
+    /**
+     * Public domain. May be empty for a Native-only route.
+     */
     domain: string;
     native_port: number;
     /**
-     * Current Telemt bridge uses HTTPS port 443.
+     * 0 disables WEB. The Telemt WEB bridge uses HTTPS port 443.
      */
-    web_port: 443;
+    web_port: 0 | 443;
     native_balance: 'roundrobin' | 'leastconn' | 'source';
     targets: Array<IngressTarget>;
+};
+
+export type ClusterIngressInput = {
+    /**
+     * IPv4 or IPv6 address of the SSH host.
+     */
+    host: string;
+    ssh_port: number;
+    ssh_user: string;
+    host_fingerprint: string;
+    request_id: string;
+};
+
+export type ClusterIngressJob = {
+    revision: number;
+    host: string;
+    state: 'checking_host' | 'packages' | 'validating' | 'activating' | 'applied' | 'failed';
+    code?: string;
+    max_connections?: number;
+};
+
+export type ClusterIngressStatus = {
+    available: boolean;
+    job?: ClusterIngressJob;
 };
 
 export type ClusterRouting = {
@@ -4539,6 +4573,165 @@ export type ExportClusterRoutingResponses = {
 };
 
 export type ExportClusterRoutingResponse = ExportClusterRoutingResponses[keyof ExportClusterRoutingResponses];
+
+export type GetClusterRoutingSuggestionsData = {
+    body?: never;
+    path: {
+        cluster_id: string;
+    };
+    query?: never;
+    url: '/api/clusters/{cluster_id}/routing/suggestions';
+};
+
+export type GetClusterRoutingSuggestionsErrors = {
+    /**
+     * Rejected or unavailable; fetch the current revision before retrying.
+     */
+    400: Error;
+    /**
+     * Rejected or unavailable; fetch the current revision before retrying.
+     */
+    401: Error;
+    /**
+     * Rejected or unavailable; fetch the current revision before retrying.
+     */
+    403: Error;
+    /**
+     * Rejected or unavailable; fetch the current revision before retrying.
+     */
+    404: Error;
+    /**
+     * Rejected or unavailable; fetch the current revision before retrying.
+     */
+    409: Error;
+    /**
+     * Rejected or unavailable; fetch the current revision before retrying.
+     */
+    428: Error;
+    /**
+     * Rejected or unavailable; fetch the current revision before retrying.
+     */
+    503: Error;
+};
+
+export type GetClusterRoutingSuggestionsError = GetClusterRoutingSuggestionsErrors[keyof GetClusterRoutingSuggestionsErrors];
+
+export type GetClusterRoutingSuggestionsResponses = {
+    /**
+     * Read candidate backend addresses from active member listeners. Reachability and trust require operator verification.
+     */
+    200: Array<IngressSuggestion>;
+};
+
+export type GetClusterRoutingSuggestionsResponse = GetClusterRoutingSuggestionsResponses[keyof GetClusterRoutingSuggestionsResponses];
+
+export type GetClusterIngressInstallData = {
+    body?: never;
+    path: {
+        cluster_id: string;
+    };
+    query?: never;
+    url: '/api/clusters/{cluster_id}/routing/install';
+};
+
+export type GetClusterIngressInstallErrors = {
+    /**
+     * Rejected or unavailable; fetch the current revision before retrying.
+     */
+    400: Error;
+    /**
+     * Rejected or unavailable; fetch the current revision before retrying.
+     */
+    401: Error;
+    /**
+     * Rejected or unavailable; fetch the current revision before retrying.
+     */
+    403: Error;
+    /**
+     * Rejected or unavailable; fetch the current revision before retrying.
+     */
+    404: Error;
+    /**
+     * Rejected or unavailable; fetch the current revision before retrying.
+     */
+    409: Error;
+    /**
+     * Rejected or unavailable; fetch the current revision before retrying.
+     */
+    428: Error;
+    /**
+     * Rejected or unavailable; fetch the current revision before retrying.
+     */
+    503: Error;
+};
+
+export type GetClusterIngressInstallError = GetClusterIngressInstallErrors[keyof GetClusterIngressInstallErrors];
+
+export type GetClusterIngressInstallResponses = {
+    /**
+     * SSH installation capability and recent apply status.
+     */
+    200: ClusterIngressStatus;
+};
+
+export type GetClusterIngressInstallResponse = GetClusterIngressInstallResponses[keyof GetClusterIngressInstallResponses];
+
+export type StartClusterIngressInstallData = {
+    body: ClusterIngressInput;
+    headers: {
+        /**
+         * Positive revision of the cluster or identity owning this operation.
+         */
+        'If-Match': string;
+    };
+    path: {
+        cluster_id: string;
+    };
+    query?: never;
+    url: '/api/clusters/{cluster_id}/routing/install';
+};
+
+export type StartClusterIngressInstallErrors = {
+    /**
+     * Rejected or unavailable; fetch the current revision before retrying.
+     */
+    400: Error;
+    /**
+     * Rejected or unavailable; fetch the current revision before retrying.
+     */
+    401: Error;
+    /**
+     * Rejected or unavailable; fetch the current revision before retrying.
+     */
+    403: Error;
+    /**
+     * Rejected or unavailable; fetch the current revision before retrying.
+     */
+    404: Error;
+    /**
+     * Rejected or unavailable; fetch the current revision before retrying.
+     */
+    409: Error;
+    /**
+     * Rejected or unavailable; fetch the current revision before retrying.
+     */
+    428: Error;
+    /**
+     * Rejected or unavailable; fetch the current revision before retrying.
+     */
+    503: Error;
+};
+
+export type StartClusterIngressInstallError = StartClusterIngressInstallErrors[keyof StartClusterIngressInstallErrors];
+
+export type StartClusterIngressInstallResponses = {
+    /**
+     * Validate and apply the saved routing revision on the pinned SSH host.
+     */
+    202: ClusterIngressJob;
+};
+
+export type StartClusterIngressInstallResponse = StartClusterIngressInstallResponses[keyof StartClusterIngressInstallResponses];
 
 export type DeleteClusterConfigurationData = {
     body?: never;

@@ -37,3 +37,22 @@ func TestRejectInjectionAndAmbiguousEndpoints(t *testing.T) {
 		}
 	}
 }
+
+func TestRenderNativeWithoutWEB(t *testing.T) {
+	c := fixture()
+	c.WebPort, c.NativePort, c.Domain = 0, 443, ""
+	if _, err := c.Render(); err == nil {
+		t.Fatal("unexpected WEB targets accepted")
+	}
+	for i := range c.Targets {
+		c.Targets[i].WebAddress = ""
+	}
+	raw, err := c.Render()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(raw, "bind :443") || !strings.Contains(raw, "send-proxy-v2") ||
+		strings.Contains(raw, "tls.pem") || strings.Contains(raw, "web_nodes") {
+		t.Fatal(raw)
+	}
+}

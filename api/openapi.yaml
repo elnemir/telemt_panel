@@ -2810,6 +2810,206 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+  /api/clusters/{cluster_id}/routing/suggestions:
+    get:
+      operationId: getClusterRoutingSuggestions
+      tags:
+        - clusters
+      description: >-
+        Read candidate backend addresses from active member listeners. Reachability and trust require operator
+        verification.
+      parameters:
+        - name: cluster_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: >-
+            Read candidate backend addresses from active member listeners. Reachability and trust require
+            operator verification.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/IngressSuggestion'
+        '400':
+          description: Rejected or unavailable; fetch the current revision before retrying.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Rejected or unavailable; fetch the current revision before retrying.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Rejected or unavailable; fetch the current revision before retrying.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Rejected or unavailable; fetch the current revision before retrying.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: Rejected or unavailable; fetch the current revision before retrying.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '428':
+          description: Rejected or unavailable; fetch the current revision before retrying.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '503':
+          description: Rejected or unavailable; fetch the current revision before retrying.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /api/clusters/{cluster_id}/routing/install:
+    get:
+      operationId: getClusterIngressInstall
+      tags:
+        - clusters
+      description: SSH installation capability and recent apply status.
+      parameters:
+        - name: cluster_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: SSH installation capability and recent apply status.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClusterIngressStatus'
+        '400':
+          description: Rejected or unavailable; fetch the current revision before retrying.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Rejected or unavailable; fetch the current revision before retrying.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Rejected or unavailable; fetch the current revision before retrying.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Rejected or unavailable; fetch the current revision before retrying.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: Rejected or unavailable; fetch the current revision before retrying.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '428':
+          description: Rejected or unavailable; fetch the current revision before retrying.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '503':
+          description: Rejected or unavailable; fetch the current revision before retrying.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    post:
+      operationId: startClusterIngressInstall
+      tags:
+        - clusters
+      description: Validate and apply the saved routing revision on the pinned SSH host.
+      parameters:
+        - name: cluster_id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: If-Match
+          in: header
+          required: true
+          description: Positive revision of the cluster or identity owning this operation.
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ClusterIngressInput'
+      responses:
+        '202':
+          description: Validate and apply the saved routing revision on the pinned SSH host.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClusterIngressJob'
+        '400':
+          description: Rejected or unavailable; fetch the current revision before retrying.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Rejected or unavailable; fetch the current revision before retrying.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Rejected or unavailable; fetch the current revision before retrying.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Rejected or unavailable; fetch the current revision before retrying.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: Rejected or unavailable; fetch the current revision before retrying.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '428':
+          description: Rejected or unavailable; fetch the current revision before retrying.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '503':
+          description: Rejected or unavailable; fetch the current revision before retrying.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
   /api/clusters/{cluster_id}/configuration:
     get:
       operationId: getClusterConfiguration
@@ -11892,6 +12092,29 @@ components:
           maximum: 256
         drain:
           type: boolean
+    IngressSuggestion:
+      type: object
+      required:
+        - node_id
+        - native
+        - web
+        - status
+      properties:
+        node_id:
+          type: string
+        native:
+          type: array
+          items:
+            type: string
+        web:
+          type: array
+          items:
+            type: string
+        status:
+          type: string
+          enum:
+            - read
+            - unavailable
     IngressConfig:
       type: object
       required:
@@ -11903,6 +12126,7 @@ components:
       properties:
         domain:
           type: string
+          description: Public domain. May be empty for a Native-only route.
         native_port:
           type: integer
           minimum: 1
@@ -11910,8 +12134,9 @@ components:
         web_port:
           type: integer
           enum:
+            - 0
             - 443
-          description: Current Telemt bridge uses HTTPS port 443.
+          description: 0 disables WEB. The Telemt WEB bridge uses HTTPS port 443.
         native_balance:
           type: string
           enum:
@@ -11924,6 +12149,67 @@ components:
           maxItems: 64
           items:
             $ref: '#/components/schemas/IngressTarget'
+    ClusterIngressInput:
+      type: object
+      required:
+        - host
+        - ssh_port
+        - ssh_user
+        - host_fingerprint
+        - request_id
+      properties:
+        host:
+          type: string
+          description: IPv4 or IPv6 address of the SSH host.
+        ssh_port:
+          type: integer
+          minimum: 1
+          maximum: 65535
+        ssh_user:
+          type: string
+          pattern: ^[a-zA-Z_][a-zA-Z0-9_-]{0,63}$
+        host_fingerprint:
+          type: string
+          pattern: ^SHA256:[A-Za-z0-9+/]{43}$
+        request_id:
+          type: string
+          pattern: ^[a-f0-9]{32}$
+    ClusterIngressJob:
+      type: object
+      required:
+        - revision
+        - host
+        - state
+      properties:
+        revision:
+          type: integer
+          format: int64
+        host:
+          type: string
+        state:
+          type: string
+          enum:
+            - checking_host
+            - packages
+            - validating
+            - activating
+            - applied
+            - failed
+        code:
+          type: string
+        max_connections:
+          type: integer
+          minimum: 256
+          maximum: 100000
+    ClusterIngressStatus:
+      type: object
+      required:
+        - available
+      properties:
+        available:
+          type: boolean
+        job:
+          $ref: '#/components/schemas/ClusterIngressJob'
     ClusterRouting:
       type: object
       required:

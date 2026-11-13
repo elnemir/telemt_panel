@@ -111,7 +111,7 @@ export function ClustersPage() {
       </div>
     </form>
   </Sheet>}
-  {routing&&<RoutingEditor {...routing} close={()=>setRouting(undefined)} saved={refresh}/>}
+  {routing&&<RoutingEditor {...routing} names={new Map(nodes.data?.nodes.map(item=>[item.id,item.name]))} close={()=>setRouting(undefined)} saved={refresh}/>}
   {editor&&<IdentityEditor {...editor} close={()=>setEditor(undefined)} saved={async id=>{setEditor(undefined);setIdentityID(id);await refresh();}}/>}
  </div>;
 }

@@ -199,6 +199,10 @@ func begin(client *ssh.Client, stage string, r Request) (*installation, error) {
 }
 
 func beginRemote(client *ssh.Client, command string) (*installation, error) {
+	return beginRemoteHandshake(client, command, func(line string) bool { return line == "ready\n" })
+}
+
+func beginRemoteHandshake(client *ssh.Client, command string, ready func(string) bool) (*installation, error) {
 	session, err := client.NewSession()
 	if err != nil {
 		return nil, ErrApply
@@ -220,7 +224,7 @@ func beginRemote(client *ssh.Client, command string) (*installation, error) {
 	}
 	runner := &installation{session: session, input: input}
 	line, err := bufio.NewReader(io.LimitReader(stdout, 32)).ReadString('\n')
-	if err != nil || line != "ready\n" {
+	if err != nil || !ready(line) {
 		_ = input.Close()
 		waitErr := session.Wait()
 		session.Close()
